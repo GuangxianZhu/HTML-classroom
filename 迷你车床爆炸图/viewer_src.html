@@ -1,241 +1,409 @@
-<title>迷你车床拆解</title>
+<title>迷你车床怎么车圆</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout (same family as the motor / drone / hand viewers): full-bleed 3D stage; drawing title block + part card
-   top-left, side panel (BOM / principle) right, mode tabs + controls in one strip at the bottom where the thumb is */
+/* 布局和「不转盘的微波炉」同一套：上半是一张检修台（左边机器、右边分步手册），下半是实验和讲解。
+   先猜题，猜完（或"不猜了"）才解锁后面的步骤和下半页。 */
 :root{
-  --bg:#e4e8ec; --bg2:#f5f7f9; --panel:rgba(247,249,251,.93); --panel-solid:#f7f9fb;
-  --fg:#161d26; --muted:#56616f; --line:#c2cad3; --accent:#a8521f; --accent-ink:#ffffff;
-  --hl:#d6860b; --hl-ink:#1b1204; --shadow-a:.2;
-  --c1:#c99400; --c2:#1f9447; --c3:#2a66cf; --c4:#d93b3b; --c5:#7b52c7; --off:#9aa4b0;
-  --f-cn:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --ctrl-h:120px;
+  --bg:#ECEFF1; --panel:#F8F9FA; --ink:#14181C; --ink2:#454E56; --ink3:#66707A; --line:#CFD6DB;
+  --stage:#DCE1E4; --copper:#A44A1F; --copper-bg:#F4E1D6; --on-copper:#FFFFFF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --hl:#D6860B; --hl-ink:#1B1204;
+  --c1:#B98500; --c2:#1F9447; --c3:#2A66CF; --c4:#D93B3B; --c5:#7B52C7; --off:#9AA4B0;
+  --s1:#EB6834; --s2:#2A78D6; --s3:#1BAF7A; --s4:#8C5BD0;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+  --shadow-a:.2;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
-  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
-  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
-  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --on-copper:#1A0D05;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --hl:#F2B13D;
+  --c1:#F2C230; --c2:#46C477; --c3:#5B94FF; --c4:#FF5D5D; --c5:#A985F0; --off:#5B6573;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A27BE0; --shadow-a:.45; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
-  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
-  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
-  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }
-
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --on-copper:#1A0D05;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --hl:#F2B13D;
+  --c1:#F2C230; --c2:#46C477; --c3:#5B94FF; --c4:#FF5D5D; --c5:#A985F0; --off:#5B6573;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A27BE0; --shadow-a:.45; color-scheme:dark}
+*{box-sizing:border-box}
 [hidden]{display:none!important}
-html{height:100%;box-sizing:border-box}
-*,*::before,*::after{box-sizing:inherit}
-body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-cn);-webkit-font-smoothing:antialiased}
-#app{position:relative;height:100%;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,var(--bg2),var(--bg) 72%)}
-#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity .2s}
-#leaders line{stroke:var(--fg);stroke-width:.9;opacity:.55}
-#leaders circle{fill:var(--fg);opacity:.7}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+p{margin:0}
+a{color:var(--copper);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+.top{padding-block:30px 22px}
+.top .wrap{display:flex;gap:28px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.top .wrap>div:first-child{min-width:0;flex:1 1 520px}
+.top h1{font-size:clamp(30px,5.2vw,54px);font-weight:900;letter-spacing:-.02em}
+.lead{color:var(--ink2);max-width:42em;margin-top:8px;font-size:16px}
+.spec{display:grid;grid-template-columns:auto auto;gap:2px 14px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px 14px;font-size:12.5px;color:var(--ink3);flex:none}
+.spec b{font:700 12.5px/1.6 var(--mono);color:var(--ink)}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 380px;background:var(--stage);border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:560px;height:min(72vh,720px);min-width:0;overflow:hidden}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;outline:none}
+#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#leaders line{stroke:var(--ink);stroke-width:.9;opacity:.5}
+#leaders circle{fill:var(--ink);opacity:.65}
 #leaders line.sel{stroke:var(--hl);opacity:1;stroke-width:1.4}
 #leaders circle.sel{fill:var(--hl);opacity:1}
-.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
-  border:1.25px solid var(--fg);background:var(--panel-solid);color:var(--fg);font:600 12.5px/1 var(--f-num);
-  display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;font-variant-numeric:tabular-nums;will-change:transform}
-.bln:hover{border-color:var(--accent);color:var(--accent)}
+.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1.25px solid var(--ink);background:var(--panel);color:var(--ink);font:700 11px/1 var(--mono);display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;will-change:transform}
+.bln:hover{border-color:var(--copper);color:var(--copper)}
 .bln.sel{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
-.tag{position:absolute;left:0;top:0;transform-origin:0 0;padding:2px 6px;border-radius:4px;white-space:nowrap;
-  font:600 11.5px/16px var(--f-cn);color:#fff;background:var(--fg);will-change:transform;opacity:.95;translate:-50% -50%}
-.bln:focus-visible,.btn:focus-visible,.row:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lbl3d{position:absolute;left:0;top:0;padding:1px 7px;border-radius:3px;white-space:nowrap;font:500 12px/18px var(--sans);color:var(--bg);background:var(--ink);will-change:transform;translate:-50% -50%;opacity:.92}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);font:500 14px var(--mono);z-index:3}
+#loading .barl{height:3px;background:var(--line);margin-top:8px;border-radius:2px;overflow:hidden}
+#loading .barl i{display:block;height:100%;width:0;background:var(--copper)}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:2px 8px;border-radius:3px;white-space:nowrap;z-index:2}
+.vhud{position:absolute;top:calc(10px + 0px);left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;pointer-events:none;z-index:2}
+.vhud>*{pointer-events:auto}
+.vbtn{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 88%,transparent);border-radius:4px;padding:3px 9px;font-size:12.5px;color:var(--ink2)}
+.vbtn:hover{border-color:var(--copper);color:var(--ink)}
+.vhint{font-size:12px;color:var(--ink3);padding-top:4px}
+.legend-hud{position:absolute;left:14px;bottom:12px;right:14px;font:500 12px/1.4 var(--sans);color:var(--ink2);display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;pointer-events:none;z-index:2}
+.legend-hud i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px}
 
-.hud{position:absolute;z-index:2}
-.left{top:12px;left:max(16px,env(safe-area-inset-left,0px));width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:10px}
-.tb{border:1.25px solid var(--fg);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;grid-template-columns:1fr auto;font-size:12px}
-.tb>div{padding:6px 9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
-.tb>div:nth-child(2n){border-right:0}
-.tb>div:nth-last-child(-n+2){border-bottom:0}
-.tb .name{grid-column:1/-1;border-right:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.tb h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.04em;text-wrap:balance}
-.tb .en{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.tb .k{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em}
-.tb .v{font:500 12px/1.35 var(--f-mono)}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;max-height:min(72vh,720px);min-height:560px}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border-bottom:1px solid var(--line);flex:none}
+.tab{border:0;background:none;padding:10px 2px 8px;font-size:12.5px;font-weight:500;color:var(--ink2);border-bottom:3px solid transparent;line-height:1.35}
+.tab b{display:block;font:700 11px var(--mono);color:var(--ink3)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--copper);font-weight:700}
+.tab:disabled{opacity:.42;cursor:not-allowed}
+.pane{padding:18px 18px 12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;flex:1}
+.pane>*{flex-shrink:0}
+.pane h2{font-size:19px;font-weight:700}
+.pane p{color:var(--ink2);font-size:14.5px}
+.pane p b{color:var(--ink)}
+.q{display:grid;gap:7px}
+.q button{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px 11px;font-size:14px;line-height:1.5}
+.q button:hover:not(:disabled){border-color:var(--copper)}
+.q button:disabled{cursor:default;color:var(--ink2)}
+.q button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ink)}
+.q button.wrong{background:var(--no-bg);border-color:var(--no);color:var(--ink)}
+.quiz{display:grid;gap:10px}
+.qr{display:grid;gap:10px}
+.qnote{color:var(--ink)!important}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:5px;padding:8px 14px;font-weight:700;font-size:14px}
+.btn.alt{background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.alt[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--copper);color:var(--copper)}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink3);text-decoration:underline;text-underline-offset:3px;font-size:13px;text-align:left;justify-self:start}
+.row-c{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reading{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13.5px;color:var(--ink2);align-items:baseline}
+.reading b{font:700 15px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
+.rng{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.rng output{font:700 13px var(--mono);color:var(--ink);min-width:4.5em;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--copper);min-width:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex-wrap:wrap;max-width:100%}
+.seg button{border:0;background:none;padding:5px 11px;font-size:13.5px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{border:1px solid var(--line);background:none;border-radius:3px;padding:2px 8px;font-size:13px;color:var(--ink2)}
+.chips button:hover{border-color:var(--copper);color:var(--ink)}
+.small{font-size:13px!important;color:var(--ink3)!important}
+.part{border-top:1px solid var(--line);padding:12px 18px 14px;flex:none;background:var(--panel);position:relative}
+.part h3{font-size:15px;color:var(--copper);padding-right:24px}
+.part h3 small{font:500 11.5px var(--mono);color:var(--ink3);margin-left:6px}
+.part .mat{font:500 12px/1.5 var(--mono);color:var(--ink3);margin-top:2px}
+.part p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:4px}
+.part .x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:18px;color:var(--ink3);line-height:1;padding:2px 4px}
+.bom{display:grid;gap:0;border-top:1px solid var(--line)}
+.bom button{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:5px 2px;font-size:13px;color:var(--ink2)}
+.bom button b{font:700 11.5px var(--mono);color:var(--ink3)}
+.bom button span:last-child{font:500 11.5px var(--mono);color:var(--ink3)}
+.bom button:hover,.bom button.sel{color:var(--ink);background:color-mix(in srgb,var(--hl) 14%,transparent)}
 
-.card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px}
-.card-head{display:flex;gap:10px;align-items:flex-start}
-.card-no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--hl);color:var(--hl-ink);display:grid;place-items:center;font:600 15px/1 var(--f-num)}
-.card h2{margin:0;font-size:16px;font-weight:700;line-height:1.25}
-.card .jp{font:500 11.5px var(--f-mono);color:var(--muted);margin-top:2px}
-.card .x{margin-left:auto;flex:none;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px}
-.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
-.card dt{color:var(--muted)} .card dd{margin:0;font-family:var(--f-mono);font-size:12px;min-width:0}
-.card p{margin:0;font-size:13px;line-height:1.6;max-width:60ch}
-.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.ev{display:inline-block;font:700 10.5px/1.6 var(--mono);padding:0 5px;border-radius:2px;vertical-align:1px;white-space:nowrap;margin-left:2px}
+.t-fact{background:var(--ok-bg);color:var(--ok)}
+.t-src{background:var(--copper-bg);color:var(--copper)}
+.t-sim{background:color-mix(in srgb,var(--s2) 18%,transparent);color:var(--s2)}
+.t-guess{background:var(--line);color:var(--ink2)}
 
-.side{top:12px;right:max(16px,env(safe-area-inset-right,0px));width:380px;bottom:calc(var(--ctrl-h) + 10px);
-  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;display:flex;flex-direction:column;min-height:0}
-.side-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
-.side-head h3{margin:0;font-size:14px;font-weight:700}
-.side-head h3 small{font:500 12px var(--f-mono);color:var(--muted);margin-left:6px}
-.scroll{overflow:auto;flex:1;min-height:0}
-.row{display:grid;grid-template-columns:26px 1fr auto;gap:2px 10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;color:var(--fg);font:inherit}
-.row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-.row.sel{background:color-mix(in srgb,var(--hl) 18%,transparent)}
-.row .n{grid-column:1;grid-row:1/3;width:22px;height:22px;border-radius:50%;border:1.25px solid var(--fg);display:grid;place-items:center;font:600 12px/1 var(--f-num)}
-.row.sel .n{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
-.row .nm{grid-column:2;grid-row:1;font-size:13px;font-weight:500;min-width:0}
-.row .q{grid-column:3;grid-row:1/3;font:500 12px var(--f-mono);color:var(--muted)}
-.row .m{grid-column:2;grid-row:2;font:400 11px/1.3 var(--f-mono);color:var(--muted);min-width:0}
-
-/* principle panel building blocks */
-.pp{padding:12px;display:flex;flex-direction:column;gap:10px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline;font-size:12.5px;margin:0}
-.kv dt{color:var(--muted)} .kv dd{margin:0;font:500 13px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
-.kv dd b{font:600 16px/1 var(--f-num);letter-spacing:.02em}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font:500 12.5px/1 var(--f-cn);padding:6px 9px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:transparent;text-align:center}
-.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-button.chip{cursor:pointer}
-button.chip:hover{border-color:var(--accent)}
-button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-.expl{font-size:13px;line-height:1.65;margin:0}
-.expl b{font-weight:600}
-.note{font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
-table.st{width:100%;border-collapse:collapse;font:500 12px/1.25 var(--f-mono);font-variant-numeric:tabular-nums}
-table.st th{font:500 11px var(--f-cn);color:var(--muted);text-align:center;padding:4px 2px;border-bottom:1px solid var(--line)}
-table.st td{text-align:center;padding:5px 2px;border-bottom:1px solid var(--line)}
-table.st td.l{text-align:left;font-family:var(--f-cn)}
-table.st tr.cur td{background:color-mix(in srgb,var(--hl) 22%,transparent);font-weight:600}
-.sub{font-size:12px;font-weight:700;margin:2px 0 -4px;color:var(--muted);letter-spacing:.06em}
-canvas.plot{width:100%;height:140px;display:block}
-
-.ctrl{left:0;right:0;bottom:0;padding-block:8px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.bar{max-width:1080px;margin:0 auto;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}
-.bar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tabs{display:inline-flex;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px;background:var(--panel-solid)}
-.tab{font:500 13px/1 var(--f-cn);padding:7px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
-.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.btn{font:500 13px/1 var(--f-cn);padding:8px 11px;border:1px solid var(--line);background:var(--panel-solid);color:var(--fg);border-radius:6px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
-.btn svg{width:13px;height:13px;fill:currentColor}
-select.btn{padding:7px 8px}
-.slider{display:flex;align-items:center;gap:8px;flex:1 1 200px;min-width:170px}
-.slider label{font-size:12px;color:var(--muted);white-space:nowrap}
-.slider input{flex:1;min-width:0;accent-color:var(--accent)}
-.slider output{font:500 12px var(--f-mono);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cap{font-size:12.5px;line-height:1.55;color:var(--muted);min-width:0}
-.cap b{color:var(--fg);font-weight:500}
-.spacer{flex:1 1 0}
-
-.loading{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
-.loading div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-size:13px;min-width:220px}
-.loading .barl{height:4px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden}
-.loading .barl i{display:block;height:100%;width:0;background:var(--accent)}
-
-@media (max-width:760px){
-  .left{width:calc(100% - 32px)}
-  .tb .hidemob{display:none}
-  .tb{grid-template-columns:1fr 1fr}
-  #info{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(var(--ctrl-h) + 8px + env(safe-area-inset-bottom,0px));width:auto;max-height:40%;overflow:auto;z-index:3}
-  .side{left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;top:auto;max-height:56%;bottom:calc(var(--ctrl-h) + 8px)}
-  #pPanel{max-height:44%}
-  #app.mode-principle .left{display:none}
-  #app.mode-principle #cap{display:none}
-  .pp{gap:8px;padding:10px 12px}
-  .expl{font-size:12.5px;line-height:1.6}
-  .slider{flex-basis:100%}
-  .tab{padding:7px 12px}
-  .mob-hide{display:none}
+section.s{padding-block:44px 8px}
+.s>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em}
+.prose{max-width:46em;color:var(--ink2);margin-top:10px;display:grid;gap:10px}
+.prose b{color:var(--ink)}
+.note{font-size:13.5px;color:var(--ink2);border-left:3px solid var(--copper);padding-left:12px}
+.qbox{max-width:46em;margin-top:14px;display:grid;gap:10px}
+.lab{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:26px;margin-top:20px;align-items:start}
+.lab .ctrls{display:grid;gap:12px;align-content:start;min-width:0}
+.lab .out{display:grid;gap:12px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0}
+.panel h3{font-size:15px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:13.5px;color:var(--ink2)}
+.kv b{font:700 14px var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .big{font-size:22px}
+.kv .bad{color:var(--no)} .kv .good{color:var(--ok)}
+canvas.chart{display:block;width:100%;height:260px}
+canvas.chart.short{height:190px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:4px;border-radius:2px;display:block}
+.tscroll{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;font-size:13.5px;min-width:100%}
+th,td{text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-size:12.5px;color:var(--ink3);font-weight:500}
+tbody th{font-weight:500}
+td{font-variant-numeric:tabular-nums;color:var(--ink2)}
+details{margin-top:10px;font-size:14px;max-width:900px}
+summary{cursor:pointer;color:var(--ink2)}
+.routes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.route{padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;gap:7px;align-content:start;min-width:0}
+.route.main{border-color:var(--copper)}
+.route h3{font-size:16px}
+.route .st{font:700 11.5px var(--mono);color:var(--copper)}
+.route dl{margin:0;display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.route dt{font-weight:700;color:var(--ink);font-size:13px}
+.route dd{margin:0}
+.fail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 30px;margin:16px 0 0;padding:0;list-style:none;max-width:1000px}
+.fail li{font-size:14px;color:var(--ink2);min-width:0}
+.fail b{color:var(--ink);display:block}
+.tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.tiers h3{font-size:14px;margin-bottom:6px}
+.tiers ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink2);display:grid;gap:5px}
+.src{columns:2;column-gap:30px;font-size:13.5px;margin:14px 0 0;padding-left:18px;color:var(--ink2)}
+.src li{break-inside:avoid;margin-bottom:4px}
+footer{padding-block:40px 40px;color:var(--ink3);font-size:13px}
+@media (max-width:960px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:max(360px,70vw);min-height:0}
+  .manual{border-left:0;border-top:1px solid var(--line);max-height:none;min-height:0}
+  .lab,.routes{grid-template-columns:minmax(0,1fr)}
+  .tiers{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fail{grid-template-columns:minmax(0,1fr)}
+  .src{columns:1}
 }
-@media (prefers-reduced-motion: reduce){ #leaders,#tags{transition:none} }
-.chip.done{border-color:var(--accent);color:var(--accent)}
+@media (max-width:520px){
+  .tiers{grid-template-columns:minmax(0,1fr)}
+  .spec{display:none}
+  .tab{font-size:12px}
+  .vhint{display:none}
+}
+.ph{display:flex;flex-wrap:wrap;gap:5px}
+.ph span{border:1px solid var(--line);border-radius:3px;padding:2px 9px;font-size:13px;color:var(--ink3)}
+.ph span.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.ph span.done{border-color:var(--copper);color:var(--copper)}
+canvas.sec{display:block;width:100%;height:190px}
+.lbl3d.hot{background:var(--copper);color:var(--on-copper)}
 </style>
 
-<div id="app">
-  <canvas id="c" aria-label="迷你桌面车床三维模型，可拖动旋转"></canvas>
-  <svg id="leaders" aria-hidden="true"></svg>
-  <div id="tags"></div>
-  <div class="loading" id="loading"><div><span id="ld-t">正在加载模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
-
-  <div class="hud left">
-    <div class="tb" role="group" aria-label="图纸标题栏">
-      <div class="name"><h1>迷你桌面车床</h1><span class="en">Mini lathe · 8 in 1</span></div>
-      <div><span class="k">中心高</span><span class="v">87 mm</span></div>
-      <div><span class="k">卡盘</span><span class="v">Φ50 三爪自定心</span></div>
-      <div class="hidemob"><span class="k">驱动</span><span class="v">24 V 直流电机 · 皮带</span></div>
-      <div class="hidemob"><span class="k">皮带轮</span><span class="v">Φ18 : Φ48 ≈ 1 : 2.7</span></div>
-    </div>
-    <div id="info" class="card" hidden aria-live="polite">
-      <div class="card-head">
-        <div class="card-no" id="i-no">1</div>
-        <div><h2 id="i-cn">—</h2><div class="jp" id="i-en">—</div></div>
-        <button class="x" id="i-close" aria-label="关闭说明">×</button>
-      </div>
-      <dl><dt>材料</dt><dd id="i-mat">—</dd><dt>数量</dt><dd id="i-qty">—</dd></dl>
-      <p id="i-desc"></p>
-    </div>
-    <div class="hint" id="hint">拖动旋转，滚轮或双指缩放。点零件或编号看说明。</div>
+<header class="top"><div class="wrap">
+  <div>
+    <h1>一把不转的刀，怎么车出精确的圆</h1>
+    <p class="lead">车床上转的是工件，车刀只会沿两个方向走直线。这台 8 合 1 迷你车床用两个手轮控制车刀：一个管吃多深，一个管往前走。直径车到多少、表面光不光，各由谁决定？这么小的电机，又能车多粗的料？</p>
   </div>
+  <div class="spec"><span>卡盘</span><b>Φ50 三爪</b><span>皮带轮</span><b>Φ18 : Φ48</b><span>横向刻度</span><b>0.02 mm / 格</b><span>纵向丝杠</span><b>2 mm / 圈</b></div>
+</div></header>
 
-  <section class="hud side" id="bom" hidden aria-label="零件表">
-    <div class="side-head"><h3>零件表<small id="bom-count"></small></h3><button class="btn" id="bom-close">收起</button></div>
-    <div class="scroll" id="bom-list"></div>
-  </section>
+<div class="bench">
+  <div class="viewport" id="viewport">
+    <canvas id="c" aria-label="迷你桌面车床三维模型，可拖动旋转，点零件看说明"></canvas>
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="tags"></div>
+    <div class="vhud"><button class="vbtn" id="b-view">复位视角</button><span class="vhint">拖动旋转，滚轮或双指缩放，点零件看说明</span></div>
 
-  <section class="hud side" id="pPanel" hidden aria-label="车削原理">
-    <div class="side-head"><h3>外圆车削<small id="pp-pass">第 1 刀</small></h3><button class="btn" id="b-new">换新料</button></div>
-    <div class="scroll"><div class="pp">
-      <div class="chips" id="ph-chips"><span class="chip">① 进刀</span><span class="chip">② 走刀</span><span class="chip">③ 退刀</span><span class="chip">④ 返回</span></div>
-      <p class="expl" id="expl"></p>
-      <div class="sub">转速：皮带减速</div>
-      <dl class="kv">
-        <dt>电机</dt><dd><b id="v-motor">2400</b> rpm</dd>
-        <dt>主轴</dt><dd><b id="v-spindle">900</b> rpm <span class="mob-hide">= 电机 × 18 ÷ 48</span></dd>
-        <dt>扭矩</dt><dd>放大约 2.7 倍 <span class="mob-hide">（转速降几倍，扭矩就大几倍）</span></dd>
-        <dt>切削速度</dt><dd><b id="v-vc">51</b> m/min <span class="mob-hide">= π × D × n ÷ 1000</span></dd>
-      </dl>
-      <div class="sub">吃刀：横向刻度手轮</div>
-      <dl class="kv">
-        <dt>这一刀</dt><dd><b id="v-div">25</b> 格 × 0.02 = <span id="v-ap">0.50</span> mm</dd>
-        <dt>直径</dt><dd><span id="v-d0">Φ18.00</span> → <b id="v-d1">Φ17.00</b></dd>
-        <dt>纵向手轮</dt><dd>摇了 <b id="v-turns">0.0</b> 圈 × 2 mm = <span id="v-feed">0</span> mm</dd>
-      </dl>
-      <p class="note">动画里主轴转速放慢了约 6 倍，走刀加快了很多：真实车削每转只走 0.05 ~ 0.2 mm，这 42 mm 要车十几秒到一分钟。皮带罩已隐藏；电机外壳和四方刀架画成半透明，能看到转子跟着转、车刀刀尖贴着工件。</p>
-    </div></div>
-  </section>
-
-  <div class="hud ctrl" id="ctrl">
-    <div class="bar">
-      <div class="bar-row">
-        <div class="tabs" role="tablist" aria-label="模式">
-          <button class="tab" role="tab" data-mode="struct" aria-selected="true">结构</button>
-          <button class="tab" role="tab" data-mode="principle" aria-selected="false">原理</button>
-          <button class="tab" role="tab" data-mode="model" aria-selected="false">模型</button>
+    <div id="loading"><div><span id="ld-t">正在装配模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
+    <div id="tip" hidden></div>
+  </div>
+  <aside class="manual">
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="look" aria-selected="true"><b></b>先猜</button>
+      <button class="tab" role="tab" data-tab="spin" aria-selected="false" disabled><b></b>谁在转</button>
+      <button class="tab" role="tab" data-tab="depth" aria-selected="false" disabled><b></b>吃刀</button>
+      <button class="tab" role="tab" data-tab="pass" aria-selected="false" disabled><b></b>走一刀</button>
+      <button class="tab" role="tab" data-tab="explode" aria-selected="false" disabled><b></b>拆开看</button>
+    </div>
+    <div class="pane" data-pane="look">
+      <h2>先猜：刀进 0.1 mm，直径小多少？</h2>
+      <p>横向手轮上的刻度环，一格是 0.02 mm。摇 5 格，车刀往工件里进 0.1 mm，然后沿着工件车一刀。车完以后，工件的直径小了多少？</p>
+      <div class="quiz" id="q1">
+        <div class="q">
+          <button data-a="a">0.05 mm</button>
+          <button data-a="b">0.1 mm，进多少就小多少</button>
+          <button data-a="c">0.2 mm</button>
+          <button data-a="d">说不准，要看转速和走刀快慢</button>
         </div>
-        <span class="spacer"></span>
-        <button class="btn" id="b-view">复位</button>
+        <button class="linkbtn" data-skip>不猜了，直接看答案</button>
+        <p class="small" id="q1hint" hidden>上次已经答过，后面的步骤都打开了。</p>
+        <div class="qr" hidden>
+          <p class="qnote"></p>
+          <div class="row-c"><button class="btn" data-go="spin">先看谁在转</button></div>
+        </div>
       </div>
-      <div class="bar-row grp-struct">
-        <button class="btn primary" id="b-play"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z"/></svg><span id="b-play-t">装配</span></button>
-        <div class="slider"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
-        <button class="btn" id="b-lbl" aria-pressed="true">编号</button>
-        <button class="btn" id="b-bom" aria-pressed="false">零件表</button>
-      </div>
-      <div class="bar-row grp-principle" hidden>
-        <button class="btn primary" id="b-run"><span id="b-run-t">暂停</span></button>
-        <div class="slider"><label for="r-motor">电机转速</label><input id="r-motor" type="range" min="600" max="6000" step="100" value="2400"><output id="o-motor">2400 rpm</output></div>
-        <div class="slider"><label for="r-div">每刀吃刀</label><input id="r-div" type="range" min="5" max="50" step="5" value="25"><output id="o-div">25 格</output></div>
-      </div>
-      <div class="bar-row grp-model" hidden>
-        <button class="btn" id="b-cut" aria-pressed="false">剖切</button>
-        <button class="btn" id="b-spin" aria-pressed="false">主轴转动</button>
-      </div>
-      <div class="cap" id="cap"></div>
     </div>
-  </div>
+
+    <div class="pane" data-pane="spin" hidden>
+      <h2>工件转，车刀不转</h2>
+      <p>电机外壳画成半透明，皮带罩拆了。电机上的小皮带轮 Φ18，通过皮带带着主轴上的大皮带轮 Φ48：<b>转速降到 1/2.7，扭矩放大 2.7 倍</b>（不算损耗）。主轴带着卡盘和夹在里面的黄铜棒一起转。<span class="ev t-fact">公认</span></p>
+      <p>车刀装在刀架上，只会被两个手轮推着走直线。刀尖碰到转着的工件，就从表面削下一条切屑。</p>
+      <div class="rng"><label for="s-motor">电机转速</label><input type="range" id="s-motor" min="600" max="6000" step="100" value="2400"><output id="o-motor">2400 rpm</output></div>
+      <div class="reading"><b id="s-n">—</b><span>主轴转速 = 电机 × 18 ÷ 48</span><b id="s-vc">—</b><span>刀尖处工件表面的速度（切削速度 v = π × 直径 × 转速）</span></div>
+      <p class="small">动画里转速放慢了 6 倍。切削速度才是刀"感觉"到的快慢：同样的转速，工件越粗，表面跑得越快。</p>
+      <div class="row-c"><button class="btn" id="b-runs">暂停</button><button class="btn alt" data-go="depth">下一步：吃刀</button></div>
+    </div>
+
+    <div class="pane" data-pane="depth" hidden>
+      <h2>刀进 1 格，直径小 0.04 mm</h2>
+      <p>横向手轮转一圈，丝杠推着刀架往里走 1 mm；刻度环一圈 50 格，<b>一格 0.02 mm</b>。可工件在转，刀尖削掉的是一整圈，<b>两边一起变薄</b>，所以直径小的是进刀量的两倍。<span class="ev t-fact">公认</span></p>
+      <canvas class="sec" id="c-sec" aria-label="工件横截面：这一刀车掉的一圈"></canvas>
+      <div class="rng"><label for="d-div">这一刀进</label><input type="range" id="d-div" min="1" max="50" step="1" value="25"><output id="o-div">25 格</output></div>
+      <div class="reading"><b id="d-ap">—</b><span>车刀往里进（半径少了这么多）</span><b id="d-dia">—</b><span>车完这一刀的直径</span></div>
+      <p class="small">实际操作：先让刀尖轻轻碰到工件表面，把刻度环拨到 0；再把刀退到工件端头外面，进 N 格，然后开始走刀。<span class="ev t-src">资料</span></p>
+      <div class="row-c"><button class="btn" id="b-cut">按这个深度车一刀</button></div>
+    </div>
+
+    <div class="pane" data-pane="pass" hidden>
+      <h2>一刀四步：进刀、走刀、退刀、返回</h2>
+      <div class="ph" id="ph"><span>① 进刀</span><span>② 走刀</span><span>③ 退刀</span><span>④ 返回</span></div>
+      <p id="expl"></p>
+      <div class="reading"><b id="p-pass">—</b><span>第几刀（车到 Φ10 以下会换新料）</span><b id="p-turns">—</b><span>纵向手轮摇了几圈（丝杠 2 mm / 圈）</span><b id="p-dia">—</b><span>这一刀的直径</span></div>
+      <p class="small">动画里走刀快了很多。真实车削工件每转一圈，刀只往前走 0.05～0.2 mm，这叫<b>进给量</b>；这 42 mm 要车十几秒到一分钟，纵向手轮得一直匀速摇。<span class="ev t-src">资料</span></p>
+      <div class="row-c"><button class="btn" id="b-runp">暂停</button><button class="btn alt" id="b-new">换新料</button></div>
+    </div>
+    <div class="pane" data-pane="explode" hidden>
+      <h2>全部拆开</h2>
+      <p>按维修顺序拆开。点模型上的零件、编号，或下面的名字，都能看到它是干什么的。拆装路线和 Blender 动画是同一份数据。</p>
+      <div class="rng"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
+      <div class="row-c"><button class="btn" id="b-play">装回去</button><button class="btn alt" id="b-lbl" aria-pressed="true">编号</button></div>
+      <div class="bom" id="bom-list"></div>
+    </div>
+    <div class="part" id="partCard" hidden><button class="x" id="i-close" aria-label="关闭说明">×</button><h3><span id="i-cn"></span><small id="i-en"></small></h3><div class="mat" id="i-mat"></div><p id="i-desc"></p></div>
+  </aside>
 </div>
+
+<main id="after" hidden>
+  <section class="s"><div class="wrap">
+    <h2>再猜一题：走得快一倍，表面会毛多少？</h2>
+    <div class="prose"><p>走刀时，工件每转一圈，车刀往前走一小段，这段距离叫<b>进给量 f</b>。刀尖不是尖的，而是一个半径 0.4 mm 左右的小圆弧，它在工件表面留下一圈挨一圈的浅槽。现在把进给量从 0.1 mm/转 提到 0.2 mm/转，其他都不变，浅槽的深度会变成原来的几倍？</p></div>
+    <div class="qbox quiz" id="q2">
+      <div class="q">
+        <button data-a="a">一样深，槽的深度只看刀尖</button>
+        <button data-a="b">2 倍</button>
+        <button data-a="c">4 倍</button>
+        <button data-a="d">反而变浅，刀在每处停留的时间短了</button>
+      </div>
+      <button class="linkbtn" data-skip>不猜了，直接看</button>
+      <div class="qr" hidden><p class="qnote" style="font-weight:700"></p></div>
+    </div>
+
+    <div id="labBody" hidden>
+      <div class="lab">
+        <div class="ctrls">
+          <div><div class="small">车什么料</div><div class="seg" role="group" aria-label="材料" id="l-m"><button data-v="brass" aria-pressed="true">黄铜</button><button data-v="al">铝合金</button><button data-v="steel">45 钢</button></div></div>
+          <div class="rng"><label for="l-D">工件直径</label><input type="range" id="l-D" min="4" max="40" step="1" value="18"><output id="o-D">18 mm</output></div>
+          <div class="rng"><label for="l-n">主轴转速</label><input type="range" id="l-n" min="100" max="2250" step="50" value="900"><output id="o-n">900 rpm</output></div>
+          <div class="rng"><label for="l-ap">每刀吃深</label><input type="range" id="l-ap" min="0.05" max="1" step="0.05" value="0.3"><output id="o-ap">0.30 mm</output></div>
+          <div class="rng"><label for="l-f">进给量</label><input type="range" id="l-f" min="0.02" max="0.3" step="0.01" value="0.1"><output id="o-f">0.10 mm/转</output></div>
+          <div><div class="small">刀尖圆弧半径</div><div class="seg" role="group" aria-label="刀尖圆弧半径" id="l-re"><button data-v="0.2">0.2 mm</button><button data-v="0.4" aria-pressed="true">0.4 mm</button><button data-v="0.8">0.8 mm</button></div></div>
+        </div>
+        <div class="out">
+          <div class="panel">
+            <h3>表面放大看：一排刀尖圆弧留下的浅槽</h3>
+            <canvas class="chart short" id="l-prof" aria-label="车削表面轮廓"></canvas>
+            <div class="kv">
+              <span>槽深（峰到谷）≈ f² ÷ (8 × 刀尖圆弧半径)</span><b class="big" id="l-rt">—</b>
+              <span>粗糙度 Ra ≈ 槽深 ÷ 4</span><b id="l-ra">—</b>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>这台小电机带得动吗</h3>
+            <div class="kv">
+              <span>切削速度 v = π × 直径 × 转速</span><b id="l-vc">—</b>
+              <span>切削力 ≈ 材料系数 × 吃深 × 进给</span><b id="l-fc">—</b>
+              <span>主轴要的扭矩 = 切削力 × 半径</span><b class="big" id="l-tq">—</b>
+              <span>切削功率</span><b id="l-pc">—</b>
+              <span>车完 42 mm 要多久，手轮要摇多快</span><b id="l-t">—</b>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="prose" style="max-width:52em;margin-top:22px">
+        <p><b>直径靠刻度，光不光靠进给和刀尖。</b>刀尖圆弧每转往前挪 f，槽深约等于 f² ÷（8 × 圆弧半径）。进给翻倍，槽深变 4 倍；圆弧半径翻倍，槽深减半。所以精车最后一刀要吃得浅、走得慢。<span class="ev t-fact">公认</span></p>
+        <p><b>小车床的上限是扭矩，不是转速。</b>切削力约等于材料系数 × 吃深 × 进给，再乘上工件半径，就是主轴要出的扭矩。料越粗、吃得越深、走得越快，电机越容易闷住。同样的吃刀量，车 45 钢要的力是黄铜的两倍多。<span class="ev t-sim">本页估算</span></p>
+        <p><b>转速只管切削速度。</b>同样 900 转，Φ40 的料表面跑得比 Φ18 快一倍多。高速钢车刀车钢，切削速度超过 30 m/min 左右刀尖就会发热变钝；车铜、铝可以快得多。<span class="ev t-src">资料</span></p>
+      </div>
+      <details><summary>这个估算用了哪些假设</summary>
+        <div class="prose" style="max-width:52em"><p>材料系数（单位切削力）取小进给时的常见量级：黄铜 1000、铝合金 800、45 钢 2500 N/mm²，真实值还会随进给变小而变大。推荐切削速度按高速钢车刀：黄铜 60～100、铝合金 90～240、45 钢 20～30 m/min。主轴能出的扭矩按 24 V、96 W、额定 6000 rpm 的直流电机，经 1 : 2.7 皮带减速、传动效率 0.8 估算，额定约 0.33 N·m；直流电机短时能出到额定的两三倍，这里超过额定算“吃力”（会降速、发热），超过 2.5 倍算闷车。这些数是我按同类小车床的标称功率推的，没有实测。槽深公式是刀尖圆弧在表面留下的理论值，没算振动、积屑瘤和刀具磨损，实际表面一般比这更毛。</p></div>
+      </details>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>让进给更匀、尺寸更准，三条路线</h2>
+    <div class="routes">
+      <article class="route">
+        <div class="st">玩具级、教学级小车床（本机）</div>
+        <h3>手摇丝杠</h3>
+        <dl><dt>做法</dt><dd>两个手轮直接摇丝杠，看刻度环读数控制吃刀和走刀。</dd>
+          <dt>好处</dt><dd>便宜、结构简单，车铜、铝、塑料小件够用。</dd>
+          <dt>代价</dt><dd>进给快慢全靠手，表面纹路一段密一段疏；车不了标准螺纹。<span class="ev t-guess">推测</span></dd>
+          <dt>失效</dt><dd>丝杠间隙大、手不稳时，尺寸只能靠多车几刀、边量边修。</dd></dl>
+      </article>
+      <article class="route">
+        <div class="st">手动普通车床的主流</div>
+        <h3>挂轮带动丝杠自动走刀</h3>
+        <dl><dt>做法</dt><dd>主轴通过一组齿轮带动丝杠，主轴每转一圈，刀就走固定的一段，进给量由齿轮比决定。<span class="ev t-fact">公认</span></dd>
+          <dt>好处</dt><dd>进给恒定，表面均匀；换一组齿轮就能车公制、英制螺纹。</dd>
+          <dt>代价</dt><dd>机床更重更贵，改进给量要换齿轮或扳手柄。</dd>
+          <dt>失效</dt><dd>车螺纹时开合螺母合得不是时候，第二刀就对不上第一刀的槽（乱扣）。<span class="ev t-src">资料</span></dd></dl>
+      </article>
+      <article class="route main">
+        <div class="st">工厂量产的主流</div>
+        <h3>数控车床</h3>
+        <dl><dt>做法</dt><dd>横向、纵向各一台伺服电机加滚珠丝杠，控制器读主轴编码器，按程序同步走刀。<span class="ev t-fact">公认</span></dd>
+          <dt>好处</dt><dd>尺寸由程序和编码器保证，能车圆弧、锥面、螺纹，一批零件几乎一样。</dd>
+          <dt>代价</dt><dd>贵，要学编程和对刀。</dd>
+          <dt>失效</dt><dd>刀补输错、丝杠受热伸长，整批尺寸一起漂。<span class="ev t-src">资料</span></dd></dl>
+      </article>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>依赖哪些前提，什么时候会失效</h2>
+    <ul class="fail">
+      <li><b>刀尖对准工件中心高</b>刀尖低了，实际吃进去的比刻度少，车端面时中心会留一个小凸台；高了，刀的后面会蹭工件，表面发亮发毛。<span class="ev t-fact">公认</span></li>
+      <li><b>只朝一个方向读刻度</b>便宜的丝杠和螺母之间有间隙，手轮一反转，先空转一小段刀才动。所以进刀时只朝进的方向读数，退多了要多退半圈再重新进。<span class="ev t-src">资料</span></li>
+      <li><b>工件别伸出太长</b>伸出长度超过直径的 3～4 倍又没用尾座顶住，车刀一推工件就让开，车出来一头粗一头细，还会振刀。<span class="ev t-src">资料</span></li>
+      <li><b>扭矩够用</b>吃得太深、走得太快，电机闷住或皮带打滑，主轴一顿，表面就留下一道停顿痕。上面的实验可以看到这台小车床的边界。<span class="ev t-sim">本页估算</span></li>
+      <li><b>转速和刀具配得上</b>高速钢车刀车钢转速太高，刀尖发热退火变钝，切屑变成撕下来的，表面拉毛。<span class="ev t-fact">公认</span></li>
+      <li><b>本页没算的</b>振动、积屑瘤、刀具磨损、工件和主轴受热伸长。它们会让实际表面比理论值更毛，尺寸也会随温度变一点。</li>
+    </ul>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>这页内容的证据强弱</h2>
+    <div class="tiers">
+      <div><h3><span class="ev t-fact">公认</span> 教科书级</h3><ul><li>直径的变化是进刀量的两倍</li><li>切削速度 = π × 直径 × 转速</li><li>皮带减速：转速降几倍，扭矩大几倍（不算损耗）</li><li>理论槽深 ≈ f² ÷ (8 × 刀尖圆弧半径)</li></ul></div>
+      <div><h3><span class="ev t-src">资料</span> 有来源，不是定论</h3><ul><li>各材料的单位切削力量级、高速钢推荐切削速度（刀具厂手册、机械手册）</li><li>反向间隙、伸出长度 3～4 倍直径这些经验</li><li>先对刀归零再进刀的操作方法</li></ul></div>
+      <div><h3><span class="ev t-sim">本页估算</span> 初步</h3><ul><li>闷车边界、切削功率、走刀时间</li><li>皮带轮 Φ18 : Φ48 取自本模型，不对应某个具体品牌</li></ul></div>
+      <div><h3><span class="ev t-guess">推测</span> 我的判断</h3><ul><li>电机按 24 V 96 W、额定 6000 rpm 估；传动效率 0.8</li><li>手摇进给能匀到什么程度</li></ul></div>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>来源</h2>
+    <ol class="src">
+      <li><a href="https://www.sandvik.coromant.com/en-gb/knowledge/machining-formulas-definitions/turning-formulas-definitions" target="_blank" rel="noopener">Sandvik Coromant：Turning formulas and definitions（切削速度、单位切削力、功率）</a></li>
+      <li><i>Machinery's Handbook</i>，第 31 版，Industrial Press，2020（高速钢切削速度、表面粗糙度）</li>
+      <li><a href="https://en.wikipedia.org/wiki/Lathe" target="_blank" rel="noopener">Wikipedia：Lathe</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Speeds_and_feeds" target="_blank" rel="noopener">Wikipedia：Speeds and feeds</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Surface_roughness" target="_blank" rel="noopener">Wikipedia：Surface roughness</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Backlash_(engineering)" target="_blank" rel="noopener">Wikipedia：Backlash (engineering)</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Numerical_control" target="_blank" rel="noopener">Wikipedia：Numerical control</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Belt_(mechanical)" target="_blank" rel="noopener">Wikipedia：Belt (mechanical)</a></li>
+    </ol>
+  </div></section>
+  <footer><div class="wrap">模型由 Blender 脚本 build_lathe.py 生成，84 个部件。是一台通用的 8 合 1 迷你桌面车床，不对应某个品牌。切削力、扭矩是按公式估算的。</div></footer>
+</main>
 
 <script>window.__GLB_B64="__GLB_BASE64__";</script>
 <script type="importmap">
@@ -250,12 +418,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-/* ═══════════════════════ shared viewer core ═══════════════════════
+/* ═══════════════════════ shared core ═══════════════════════
    The glb comes from the Blender build script. Every top-level node is one part with extras:
    part_no, name_cn, material_spec, desc, ex = [[dx, dy, dz, s], ...] (glTF axes, mm).
    Explode formula (same as Blender / Unreal): each leg eases in over T ∈ [0.6 s, 0.6 s + 0.4].
-   The project section further down (PROJ) adds the 原理 mode and its own panel. */
+   The page is a list of views (tabs). PROJ.views[key] = { dir, explode, cut, hide, fit, margin };
+   PROJ.enter(key) / leave(key) / tick(dt, key) / pose(key) do the project-specific part. */
 const $ = id => document.getElementById(id);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const D2R = Math.PI/180, MM = 0.001;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -263,9 +433,11 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
 const smooth = x => { x = clamp(x, 0, 1); return x*x*(3-2*x); };
 const prog = (t,s) => ease(clamp((t - s*.6)/.4, 0, 1));
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch { /* 隐私模式没有存储，不影响使用 */ } } };
+const fmt = (v, d = 0) => Number(v).toFixed(d);
 
 /* ───────── renderer / scene ───────── */
-const canvas = $('c');
+const canvas = $('c'), vp = $('viewport');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -293,8 +465,8 @@ const root = new THREE.Group(); scene.add(root);
 let cutPlane = new THREE.Plane(new THREE.Vector3(0,0,-1), 0);
 
 /* ───────── state ───────── */
-const st = { mode:'struct', t:1, tTarget:null, labels: innerWidth >= 760, sel:null, hover:null, moved:false,
-  running:!prefersReduced, speed:1, cut:false };
+const st = { view:null, mode:'model', t:0, tTarget:null, labels:true, sel:null, hover:null, moved:false,
+  running:!prefersReduced, speed:1, cut:false, unlocked:false };
 let PROJ = null;
 let parts = [], items = [], meshes = [], model = null;
 const itemByName = new Map(), partByNo = new Map();
@@ -314,7 +486,7 @@ async function load(){
       if(total) $('ld-b').style.width = (100*got/total).toFixed(0) + '%'; }
     b64 = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
   }
-  $('ld-t').textContent = '正在解码模型…';
+  $('ld-t').textContent = '正在装配模型…';
   await new Promise(r=>setTimeout(r, 30));
   const bin = atob(b64.trim()), buf = new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
@@ -332,7 +504,7 @@ function setup(gltf){
       p = { no:u.part_no, cn:u.name_cn, en, m:u.material_spec, desc:u.desc, items:[] }; partByNo.set(u.part_no, p);
     }
     const ex = JSON.parse(u.ex || '[]').map(e=>({ v:new THREE.Vector3(e[0],e[1],e[2]).multiplyScalar(MM), s:e[3] }));
-    // holder at the origin: explode moves it, the 原理 mode turns / slides it; the node keeps the file's transform
+    // holder at the origin: explode moves it, the views turn / slide it; the node keeps the file's transform
     const holder = new THREE.Group(); holder.name = node.name + '_holder'; model.add(holder); holder.add(node);
     const it = { obj:holder, node, name:node.name, ex, part:p, u, meshes:[] };
     p.items.push(it); items.push(it); itemByName.set(node.name, it);
@@ -349,7 +521,7 @@ function setup(gltf){
   PROJ.init && PROJ.init();
   buildUI();
   $('loading').hidden = true;
-  setMode('struct', true);
+  go(PROJ.first || 'look', true);
 }
 
 /* helpers for the project section */
@@ -370,8 +542,9 @@ function restBox(it){
   for(const me of it.meshes){ if(!me.geometry.boundingBox) me.geometry.computeBoundingBox(); b.union(me.geometry.boundingBox.clone().applyMatrix4(me.matrixWorld)); }
   return b;
 }
-/** colour overrides used by the 原理 mode: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
+/** colour overrides: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
 function setLook(it, look){
+  if(!it) return;
   for(const me of it.meshes) for(const m of [].concat(me.material)){
     const L = look || {};
     m.color.copy(L.color ?? m.userData.color0);
@@ -382,6 +555,7 @@ function setLook(it, look){
   }
   for(const me of it.meshes){ me.castShadow = !(look && look.opacity < 1); }
 }
+function resetLooks(){ for(const it of items){ setLook(it, null); it.obj.visible = true; } }
 
 /* ───────── pose ───────── */
 function applyPose(){
@@ -391,45 +565,33 @@ function applyPose(){
     it.obj.quaternion.identity();
     for(const e of it.ex) p.addScaledVector(e.v, prog(tt, e.s));
   }
-  if(PROJ.pose) PROJ.pose(st.mode);
+  if(PROJ.pose && st.mode !== 'struct') PROJ.pose(st.view);
 }
 function orientRoot(){
   const portrait = canvas.clientWidth / canvas.clientHeight < .85;
   root.rotation.set(0, 0, 0);
-  if(PROJ.portrait && st.mode !== 'principle' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
+  if(PROJ.portrait && st.mode === 'struct' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
   root.updateMatrixWorld(true);
 }
 
-/* ───────── camera fit ───────── */
-const ctrlEl = $('ctrl'), leftEl = document.querySelector('.left'), app = $('app');
-const view = { top:0, bottom:0, right:0, left:0 };
-function sidePanel(){ return st.mode === 'principle' ? $('pPanel') : $('bom'); }
+/* ───────── camera fit (with a short glide between views) ───────── */
+const view = { top:40, bottom:0, right:0, left:0 };
 function measure(){
-  const W = canvas.clientWidth, narrow = W < 760, ar = app.getBoundingClientRect();
-  const ch = Math.max(0, ar.bottom - ctrlEl.getBoundingClientRect().top);
-  document.documentElement.style.setProperty('--ctrl-h', ch + 'px');
-  const tb = document.querySelector('.tb').getBoundingClientRect();
-  view.bottom = ch; view.top = narrow ? Math.max(0, tb.bottom - ar.top) + 6 : 0;
-  const sp = sidePanel();
-  if(narrow){
-    if(!sp.hidden) view.bottom = Math.max(view.bottom, ar.bottom - sp.getBoundingClientRect().top + 6);
-    if(!$('info').hidden) view.bottom = Math.max(view.bottom, ar.bottom - $('info').getBoundingClientRect().top + 6);
-    view.right = 0; view.left = 0;
-  } else {
-    view.right = !sp.hidden ? sp.offsetWidth + 16 : 0;
-    view.left = W >= 900 ? Math.min(W*.3, leftEl.getBoundingClientRect().right - ar.left + 8) : 0;
-  }
-}
-function setOffset(){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  camera.setViewOffset(W, H, (view.right - view.left)/2, (view.bottom - view.top)/2, W, H);
+  const lg = document.querySelector('.legend-hud:not([hidden])');
+  view.top = 40;
+  view.bottom = lg ? lg.offsetHeight + 16 : 8;
 }
 function project(p3){ const v = p3.clone().project(camera); return [ (v.x+1)/2*canvas.clientWidth, (1-v.y)/2*canvas.clientHeight ]; }
-function fitMeshes(){ return PROJ.fitMeshes ? PROJ.fitMeshes(st.mode) : meshes; }
+function curView(){ return PROJ.views[st.view] || {}; }
+function fitMeshes(){
+  const f = curView().fit;
+  if(!f) return meshes;
+  return (typeof f === 'function' ? f() : f).flatMap(n => (itemByName.get(n) || { meshes:[] }).meshes);
+}
 function computeFit(tv, dir, margin){
   const tSave = st.t; st.t = tv; applyPose(); root.updateMatrixWorld(true); st.t = tSave;
   const W = canvas.clientWidth, H = canvas.clientHeight;
-  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin, ay1 = H - view.bottom - margin;
+  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin*.6, ay1 = H - view.bottom - margin*.6;
   const corners = [], bb = new THREE.Box3(), all = new THREE.Box3();
   for(const me of fitMeshes()){
     if(!visibleMesh(me)) continue;
@@ -438,57 +600,71 @@ function computeFit(tv, dir, margin){
     for(const x of [bb.min.x,bb.max.x]) for(const y of [bb.min.y,bb.max.y]) for(const z of [bb.min.z,bb.max.z]) corners.push(new THREE.Vector3(x,y,z));
   }
   applyPose(); root.updateMatrixWorld(true);
+  if(all.isEmpty()) return null;
   const target = all.getCenter(new THREE.Vector3());
   let dist = all.getSize(new THREE.Vector3()).length() * 1.6;
   const right = new THREE.Vector3(), up = new THREE.Vector3();
+  const cam = camera.clone();
   for(let k=0;k<7;k++){
-    camera.position.copy(target).addScaledVector(dir, dist); camera.lookAt(target);
-    camera.near = dist/60; camera.far = dist*8; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    cam.position.copy(target).addScaledVector(dir, dist); cam.lookAt(target);
+    cam.near = dist/60; cam.far = dist*8; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
     let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
-    for(const c of corners){ const [px,py] = project(c); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
+    for(const c of corners){ const v = c.clone().project(cam); const px = (v.x+1)/2*W, py = (1-v.y)/2*H; x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
     const sc = Math.max((x1-x0)/Math.max(60,ax1-ax0), (y1-y0)/Math.max(60,ay1-ay0));
-    const wpp = 2*dist*Math.tan(camera.fov*D2R/2)/H;
-    right.setFromMatrixColumn(camera.matrixWorld,0); up.setFromMatrixColumn(camera.matrixWorld,1);
+    const wpp = 2*dist*Math.tan(cam.fov*D2R/2)/H;
+    right.setFromMatrixColumn(cam.matrixWorld,0); up.setFromMatrixColumn(cam.matrixWorld,1);
     target.addScaledVector(right, ((x0+x1)/2 - (ax0+ax1)/2)*wpp).addScaledVector(up, -((y0+y1)/2 - (ay0+ay1)/2)*wpp);
     dist *= sc*.97;
   }
   return { target, dist, center: all.getCenter(new THREE.Vector3()), size: all.getSize(new THREE.Vector3()) };
 }
 let F0 = null, F1 = null, FDIR = null;
-function fit(){
-  orientRoot(); measure(); setOffset();
-  FDIR = PROJ.dirs[st.mode].clone().normalize();
-  const W = canvas.clientWidth;
+const glide = { on:false, k:1, p0:new THREE.Vector3(), t0:new THREE.Vector3() };
+function fit(animate){
+  orientRoot(); measure();
+  const V = curView();
+  FDIR = (V.dir || new THREE.Vector3(1,.6,1)).clone().normalize();
+  const W = canvas.clientWidth, m = V.margin ?? Math.min(48, W*.06);
   if(st.mode === 'struct'){ F0 = computeFit(0, FDIR, Math.min(64, W*.08)); F1 = computeFit(1, FDIR, st.labels ? 46 : 22); }
-  else { F0 = F1 = computeFit(0, FDIR, st.mode === 'principle' ? (PROJ.principleMargin ?? 36) : Math.min(56, W*.07)); }
+  else F0 = F1 = computeFit(0, FDIR, m);
+  if(!F0 || !F1) return;
+  if(animate && !prefersReduced){ glide.on = true; glide.k = 0; glide.p0.copy(camera.position); glide.t0.copy(controls.target); }
+  else glide.on = false;
   autoFrame(true);
-  // shadow camera follows the model size
   const c = F1.center, s = Math.max(F0.size.length(), F1.size.length()) * .75;
   key.position.copy(c).add(new THREE.Vector3(.2, 1, .4).multiplyScalar(s*1.4)); key.target.position.copy(c);
   Object.assign(key.shadow.camera, { left:-s, right:s, top:s, bottom:-s, near:s*.05, far:s*5 }); key.shadow.camera.updateProjectionMatrix();
   controls.maxDistance = Math.max(F0.dist, F1.dist) * 4; controls.minDistance = Math.min(F0.dist, F1.dist) * .08;
 }
-const _t = new THREE.Vector3();
+const _t = new THREE.Vector3(), _p = new THREE.Vector3();
 function autoFrame(force){
   if(!F0 || (st.moved && !force)) return;
   const k = st.mode === 'struct' ? ease(Math.min(1, st.t/.82)) : 0;
   _t.lerpVectors(F0.target, F1.target, k);
   const d = F0.dist + (F1.dist - F0.dist)*k;
-  controls.target.copy(_t); camera.position.copy(_t).addScaledVector(FDIR, d);
+  _p.copy(_t).addScaledVector(FDIR, d);
+  if(glide.on){
+    const g = smooth(glide.k);
+    // swing around the target instead of cutting through the model
+    const a = glide.p0.clone().sub(glide.t0), b = _p.clone().sub(_t), la = a.length(), lb = b.length();
+    const dirv = a.normalize().lerp(b.normalize(), g).normalize();
+    controls.target.lerpVectors(glide.t0, _t, g);
+    camera.position.copy(controls.target).addScaledVector(dirv, la + (lb - la)*g);
+  } else { controls.target.copy(_t); camera.position.copy(_p); }
   camera.near = d/60; camera.far = d*8; camera.updateProjectionMatrix();
 }
 function visibleMesh(me){ let o = me; while(o){ if(!o.visible) return false; o = o.parent; } return true; }
-function relayout(){ measure(); setOffset(); if(!st.moved) fit(); }
+function relayout(){ measure(); if(!st.moved) fit(false); }
 function resize(){
   const W = canvas.clientWidth, H = canvas.clientHeight; if(!W || !H) return;
   renderer.setSize(W, H, false); camera.aspect = W/H;
   if(!model){ camera.updateProjectionMatrix(); return; }
-  measure(); setOffset(); if(!st.moved) fit(); else camera.updateProjectionMatrix();
+  measure(); if(!st.moved) fit(false); else camera.updateProjectionMatrix();
   PROJ.resize && PROJ.resize();
 }
-controls.addEventListener('start', ()=>{ st.moved = true; });
+controls.addEventListener('start', ()=>{ st.moved = true; glide.on = false; });
 
-/* ───────── balloons ───────── */
+/* ───────── balloons (explode view) ───────── */
 const svgNS = 'http://www.w3.org/2000/svg';
 const leaders = $('leaders'), tagsEl = $('tags');
 let lab = [];
@@ -502,13 +678,15 @@ function buildUI(){
     lab.push({ p, b, ln, dot, x:0, y:0, init:false });
   }
   const list = $('bom-list');
-  $('bom-count').textContent = `${parts.length} 种 · ${parts.reduce((a,p)=>a+p.qty,0)} 件`;
   for(const p of parts){
-    const el = document.createElement('button'); el.className = 'row'; el.type = 'button';
-    el.innerHTML = `<span class="n">${p.no}</span><span class="nm"></span><span class="q">×${p.qty}</span><span class="m"></span>`;
-    el.querySelector('.nm').textContent = p.cn; el.querySelector('.m').textContent = p.m;
+    const el = document.createElement('button'); el.type = 'button';
+    el.innerHTML = `<b>${p.no}</b><span></span><span>×${p.qty}</span>`;
+    el.children[1].textContent = p.cn;
     el.addEventListener('click', ()=>select(p)); list.appendChild(el); p.row = el;
   }
+  // number the tabs
+  $$('#tabs .tab').forEach((t, i) => { t.querySelector('b').textContent = i + 1; t.addEventListener('click', () => go(t.dataset.tab)); });
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
   PROJ.buildUI && PROJ.buildUI();
 }
 const box = new THREE.Box3(), anchorBox = new THREE.Box3();
@@ -523,13 +701,13 @@ function updateLabels(){
     for(const L of lab){
       anchorBox.makeEmpty().expandByObject(L.p.items[0].obj);
       const [ax, ay] = project(anchorBox.getCenter(new THREE.Vector3()));
-      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W - view.right || ay < view.top || ay > H - view.bottom;
+      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W || ay < view.top || ay > H - view.bottom;
       let dx = ax - cx, dy = ay - cy; const dl = Math.hypot(dx,dy) || 1; dx/=dl; dy/=dl;
       L.tx = ax + dx*42; L.ty = ay + dy*38;
       if(!L.init){ L.x = L.tx; L.y = L.ty; }
       L.nx = L.x + (L.tx - L.x)*.5; L.ny = L.y + (L.ty - L.y)*.5;
     }
-    const minX = view.left + 12, maxX = W - view.right - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
+    const minX = 12, maxX = W - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
     for(let k=0;k<8;k++){
       for(let i=0;i<lab.length;i++) for(let j=i+1;j<lab.length;j++){
         const a = lab[i], b = lab[j]; if(a.off || b.off) continue;
@@ -549,24 +727,30 @@ function updateLabels(){
       const on = st.sel === L.p; L.b.classList.toggle('sel', on); L.ln.classList.toggle('sel', on); L.dot.classList.toggle('sel', on);
     }
   } else for(const L of lab) L.init = false;
-  PROJ.labels && PROJ.labels(st.mode === 'principle');
 }
-/* floating text tags used by the 原理 mode: tag(text, cls) → { el, pos:Vector3 (model space) } */
+/* floating 3D labels: tag(text) → { el, pos:Vector3 (model space), on } ; every view starts with all of them off */
 const tagList = [];
 function tag(text, style){
-  const el = document.createElement('span'); el.className = 'tag'; el.textContent = text; el.hidden = true;
+  const el = document.createElement('span'); el.className = 'lbl3d'; el.textContent = text; el.hidden = true;
   if(style) Object.assign(el.style, style);
-  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false }; tagList.push(T); return T;
+  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false, obj:null }; tagList.push(T); return T;
 }
+/** label that follows an item's bounding-box centre (plus an offset in metres) */
+function tagItem(text, it, off, style){ const T = tag(text, style); T.obj = it; T.off = off || ZERO; return T; }
 function placeTags(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
   for(const T of tagList){
-    const show = st.mode === 'principle' && T.on; T.el.hidden = !show; if(!show) continue;
-    const [x, y] = project(T.pos.clone().applyMatrix4(root.matrixWorld));
+    if(!T.on){ T.el.hidden = true; continue; }
+    if(T.obj){ anchorBox.makeEmpty().expandByObject(T.obj.obj); anchorBox.getCenter(T.pos); T.pos.add(T.off); }
+    const v = T.pos.clone().project(camera);
+    const x = (v.x+1)/2*W, y = (1-v.y)/2*H;
+    T.el.hidden = v.z > 1 || x < -40 || x > W + 40 || y < 0 || y > H;
     T.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
   }
 }
+const tagsOff = () => { for(const T of tagList) T.on = false; };
 
-/* ───────── selection ───────── */
+/* ───────── selection / part card / hover tip ───────── */
 const hl = new THREE.Color();
 function paint(){
   hl.set(css('--hl') || '#d6860b');
@@ -581,15 +765,12 @@ function paint(){
   }
 }
 function select(p){
-  if(st.mode === 'principle' && !PROJ.selectInPrinciple) p = null;
   st.sel = p; paint();
   for(const q of parts) q.row && q.row.classList.toggle('sel', q === p);
-  const info = $('info'), was = info.hidden;
-  if(!p){ info.hidden = true; $('hint').hidden = st.mode === 'principle'; if(!was && canvas.clientWidth < 760) relayout(); return; }
-  $('i-no').textContent = p.no; $('i-cn').textContent = p.cn; $('i-en').textContent = p.en;
-  $('i-mat').textContent = p.m; $('i-qty').textContent = p.qty + ' 件'; $('i-desc').textContent = p.desc;
-  info.hidden = false; $('hint').hidden = true;
-  if(canvas.clientWidth < 760){ if(!$('bom').hidden) toggleBom(false); else relayout(); }
+  if(!p){ $('partCard').hidden = true; return; }
+  $('i-cn').textContent = `${p.no}. ${p.cn}`; $('i-en').textContent = p.en;
+  $('i-mat').textContent = `${p.m}${p.qty > 1 ? ' · ' + p.qty + ' 件' : ''}`; $('i-desc').textContent = p.desc;
+  $('partCard').hidden = false;
 }
 $('i-close').addEventListener('click', ()=>select(null));
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -606,64 +787,121 @@ function pick(e){
   }
   return null;
 }
+const tipEl = $('tip');
 let down = null;
 canvas.addEventListener('pointerdown', e=>{ down = { x:e.clientX, y:e.clientY }; });
 canvas.addEventListener('pointerup', e=>{ if(model && down && Math.hypot(e.clientX-down.x, e.clientY-down.y) < 6) select(pick(e)); down = null; });
 canvas.addEventListener('pointermove', e=>{
   if(!model || e.pointerType !== 'mouse' || e.buttons) return;
-  if(st.mode === 'principle' && !PROJ.selectInPrinciple) return;
-  const p = pick(e); if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+  const p = pick(e);
+  if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+  if(p){ const r = vp.getBoundingClientRect(); tipEl.textContent = p.cn; tipEl.hidden = false;
+    tipEl.style.left = `${Math.min(e.clientX - r.left + 14, r.width - 140)}px`; tipEl.style.top = `${e.clientY - r.top + 14}px`; }
+  else tipEl.hidden = true;
 });
-canvas.addEventListener('pointerleave', ()=>{ if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
+canvas.addEventListener('pointerleave', ()=>{ tipEl.hidden = true; if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
 
-/* ───────── modes ───────── */
+/* ───────── views (tabs) ───────── */
 function applyClip(){
+  const V = curView();
   for(const me of meshes){
     const it = me.userData.item;
-    const cut = st.mode === 'model' && st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
-    const planes = cut ? [cutPlane] : (st.mode === 'principle' && me.userData.clip) || [];
+    const cut = st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
+    const planes = cut ? [cutPlane] : (me.userData.clip || []);
     for(const mt of [].concat(me.material)){ mt.clippingPlanes = planes; mt.clipIntersection = !cut && !!me.userData.clipIntersection; }
   }
 }
-function setMode(m, first){
-  const prev = st.mode;
-  if(!first && prev === 'principle' && m !== 'principle') PROJ.leave && PROJ.leave();
-  st.mode = m;
-  app.className = 'mode-' + m;
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t.dataset.mode === m)));
-  document.querySelector('.grp-struct').hidden = m !== 'struct';
-  document.querySelector('.grp-principle').hidden = m !== 'principle';
-  document.querySelector('.grp-model').hidden = m !== 'model';
-  $('cap').innerHTML = PROJ.caps[m];
-  $('pPanel').hidden = m !== 'principle';
-  if(m !== 'struct') $('bom').hidden = true, $('b-bom').setAttribute('aria-pressed','false');
-  for(const it of items) it.obj.visible = !(m === 'principle' && PROJ.hide && PROJ.hide.has(it.part.no));
-  if(m === 'principle'){ select(null); $('hint').hidden = true; if(prev !== 'principle' || first) PROJ.enter && PROJ.enter(); }
-  else { if(st.sel && !st.sel.items[0].obj.visible) select(null); $('hint').hidden = !$('info').hidden; }
+function go(k, first){
+  if(!PROJ.views[k]) return;
+  if(k !== (PROJ.first || 'look') && !st.unlocked) return;
+  const prev = st.view;
+  if(prev && prev !== k) PROJ.leave && PROJ.leave(prev);
+  st.view = k;
+  const V = PROJ.views[k];
+  st.mode = V.explode ? 'struct' : 'model';
+  $$('#tabs .tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === k)));
+  $$('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== k; });
+  tipEl.hidden = true;
+  resetLooks(); tagsOff();
+  for(const me of meshes) delete me.userData.clip;
+  st.cut = !!V.cut;
+  if(V.hide) for(const it of items) if(V.hide.has(it.part.no)) it.obj.visible = false;
+  if(st.sel && !st.sel.items[0].obj.visible) select(null);
+  if(V.explode){ st.t = 0; st.tTarget = prefersReduced ? null : 1; if(prefersReduced) st.t = 1; syncEx(); }
+  PROJ.enter && PROJ.enter(k, prev);
   applyClip();
-  ground.visible = m !== 'principle' || !!PROJ.groundInPrinciple;
+  ground.visible = V.ground !== false;
   st.moved = false;
   paint();
-  fit();
+  const lg = $$('.legend-hud'); lg.forEach(el => { el.hidden = el.dataset.view !== k; });
+  fit(!first);
+  if(!first && innerWidth < 960 && vp.getBoundingClientRect().top < -40) vp.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block:'start' });
 }
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(model && t.dataset.mode !== st.mode) setMode(t.dataset.mode); }));
-$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(); });
+$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(true); });
 
-/* struct controls */
-const rEx = $('r-ex'), oEx = $('o-ex'), playT = $('b-play-t');
-function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; playT.textContent = st.t > .5 ? '装配' : '爆炸'; }
+/* explode controls */
+const rEx = $('r-ex'), oEx = $('o-ex'), bPlay = $('b-play');
+function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; bPlay.textContent = st.t > .5 ? '装回去' : '拆开'; }
 rEx.addEventListener('input', ()=>{ st.tTarget = null; st.t = rEx.value/100; syncEx(); });
-$('b-play').addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
-const bLbl = $('b-lbl'); bLbl.setAttribute('aria-pressed', String(st.labels));
-bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); });
-function toggleBom(on){ $('bom').hidden = !on; $('b-bom').setAttribute('aria-pressed', String(on)); relayout(); }
-$('b-bom').addEventListener('click', ()=>toggleBom($('bom').hidden));
-$('bom-close').addEventListener('click', ()=>toggleBom(false));
+bPlay.addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
+const bLbl = $('b-lbl');
+bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); if(!st.moved) fit(false); });
 
-/* model controls */
-$('b-cut').addEventListener('click', e=>{
-  st.cut = !st.cut; e.currentTarget.setAttribute('aria-pressed', String(st.cut)); applyClip();
-});
+/* ───────── quizzes ─────────
+   markup: <div class="quiz" id="q1"><div class="q"><button data-a="a">…</button>…</div>
+           <button class="linkbtn" data-skip>不猜了，直接看答案</button><div class="qr" hidden><p class="qnote"></p>…</div></div> */
+function quiz(id, right, notes, onDone){
+  const box = $(id), btns = $$('.q button', box), skip = box.querySelector('[data-skip]'), qr = box.querySelector('.qr'), note = box.querySelector('.qnote');
+  const finish = (a, guessed) => {
+    btns.forEach(x => { x.disabled = true; x.classList.toggle('right', x.dataset.a === right); x.classList.toggle('wrong', guessed && x.dataset.a === a && a !== right); });
+    note.innerHTML = guessed ? notes[a] : (notes.answer || notes[right].replace(/^猜对了。/, '答案：'));
+    qr.hidden = false; if(skip) skip.hidden = true;
+    onDone && onDone(a, guessed);
+  };
+  btns.forEach(b => b.addEventListener('click', () => finish(b.dataset.a, true)));
+  skip && skip.addEventListener('click', () => finish(right, false));
+  return { reveal: () => finish(right, false) };
+}
+function unlock(){
+  if(st.unlocked) return;
+  st.unlocked = true;
+  $$('#tabs .tab').forEach(t => t.disabled = false);
+  $('after').hidden = false;
+  store.set(PROJ.key + '.q1', '1');
+  PROJ.unlocked && PROJ.unlocked();
+}
+
+/* ───────── small chart helper (2D canvas, theme tokens) ─────────
+   chart(canvas, { x:[x0,x1], y:[y0,y1], xt:[ticks], yt:[ticks], xf, yf, xl, yl,
+                   lines:[{ pts:[[x,y]…] , color, w, dash, fill }], bands:[{x0,x1,color}], marks:[{x,color,label}] }) */
+function chart(cv, o){
+  const dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if(!W || !H) return;
+  if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const L = o.left ?? 52, R = 12, T = 12, B = o.xl ? 40 : 26;
+  const X = v => L + (v - o.x[0])/(o.x[1]-o.x[0])*(W-L-R), Y = v => H - B - (v - o.y[0])/(o.y[1]-o.y[0])*(H-T-B);
+  const ink3 = css('--ink3'), line = css('--line'), ink = css('--ink');
+  g.font = `500 11px ${css('--mono')}`; g.fillStyle = ink3; g.strokeStyle = line; g.lineWidth = 1;
+  for(const b of o.bands || []){ g.fillStyle = b.color; g.fillRect(X(b.x0), T, X(b.x1)-X(b.x0), H-T-B); if(b.label){ g.fillStyle = ink3; g.textAlign = 'center'; g.fillText(b.label, (X(b.x0)+X(b.x1))/2, T + 11); } }
+  g.fillStyle = ink3;
+  for(const v of o.yt || []){ const y = Y(v); g.beginPath(); g.moveTo(L, y+.5); g.lineTo(W-R, y+.5); g.stroke(); g.textAlign = 'right'; g.fillText(o.yf ? o.yf(v) : v, L-6, y+4); }
+  for(const v of o.xt || []){ const x = X(v); g.textAlign = 'center'; g.fillText(o.xf ? o.xf(v) : v, x, H-B+15); g.beginPath(); g.moveTo(x+.5, H-B); g.lineTo(x+.5, H-B+4); g.stroke(); }
+  if(o.zero !== undefined){ g.strokeStyle = ink3; g.beginPath(); g.moveTo(L, Y(o.zero)+.5); g.lineTo(W-R, Y(o.zero)+.5); g.stroke(); }
+  g.save(); g.beginPath(); g.rect(L, T, W-L-R, H-T-B); g.clip();
+  for(const s of o.lines || []){
+    if(!s.pts.length) continue;
+    g.beginPath(); s.pts.forEach(([x,y], i) => i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y)));
+    if(s.fill){ g.lineTo(X(s.pts[s.pts.length-1][0]), Y(s.base ?? 0)); g.lineTo(X(s.pts[0][0]), Y(s.base ?? 0)); g.closePath(); g.fillStyle = s.fill; g.fill(); }
+    else { g.strokeStyle = s.color; g.lineWidth = s.w || 2; g.setLineDash(s.dash || []); g.stroke(); g.setLineDash([]); }
+  }
+  for(const m of o.marks || []){ g.strokeStyle = m.color || ink; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(m.x)+.5, T); g.lineTo(X(m.x)+.5, H-B); g.stroke(); if(m.label){ g.fillStyle = m.color || ink; g.textAlign = 'left'; g.fillText(m.label, X(m.x)+4, T+11); } }
+  g.restore();
+  g.fillStyle = ink3; g.font = `400 12px ${css('--sans')}`;
+  if(o.xl){ g.textAlign = 'center'; g.fillText(o.xl, L + (W-L-R)/2, H-4); }
+  if(o.yl){ g.save(); g.translate(12, T + (H-T-B)/2); g.rotate(-Math.PI/2); g.textAlign = 'center'; g.fillText(o.yl, 0, 0); g.restore(); }
+  return { X, Y };
+}
 
 /* theme */
 function themeSync(){ st.shadowA = parseFloat(css('--shadow-a')) || .22; if(model){ PROJ.theme && PROJ.theme(); paint(); } }
@@ -681,34 +919,37 @@ new MutationObserver(themeSync).observe(document.documentElement, { attributes:t
 const V3 = (x,y,z) => new THREE.Vector3(x,y,z);
 const SP = V3(0,.100,0), MP = V3(0,.040,.050), LP = V3(0,.032,.027), CP = V3(.010,.085,0);
 const R0 = 9, X_FREE = 10, X_END = 52, TIP_DZ = 3, TIP_X0 = 19, TIP_X1 = 23, DX0 = 4 - TIP_X1, DX1 = X_END - TIP_X1;
-const L = { motor:2400, div:25, ph:0, u:0, pass:1, rPrev:R0, rCur:R0 - 25*.02, dx:DX0, c:-2, thS:0, thM:0, spin:false };
-const PH = [ { dur:1.2 }, { dur:6 }, { dur:.8 }, { dur:2 }, { dur:.7 } ];
-let G = {};
+const VIS = 1/6, GRID = .02, RATIO = 48/18;
 const cutC = r => 9.5 - Math.sqrt(r*r - TIP_DZ*TIP_DZ);          // cross-slide travel that puts the tip on radius r
-const VIS = 1/6;                                                   // animation slow-down of the spindle
+const L = { motor:2400, div:25, ph:0, u:0, pass:1, rPrev:R0, rCur:R0 - 25*GRID, dx:DX0, c:cutC(R0) - 2.5, cFrom:null, thS:0, thM:0, run:!prefersReduced };
+const PH = [ { dur:1.2 }, { dur:6 }, { dur:.8 }, { dur:2 }, { dur:.7 } ];
+const PHN = ['进刀', '走刀', '退刀', '返回'];
+const HIDE = new Set([22, 35, 53]);
+let G = {};
 
 PROJ = {
+  key: 'lathe8',
   glbFile: 'lathe_glb.txt',
   portrait: { axis:'z', angle: Math.PI/2 },
-  dirs: { struct:V3(-.3,.5,.75), model:V3(-.3,.32,.62), principle:V3(-.3,.85,1) },
-  hide: new Set([22, 35, 53]),
-  caps: {
-    struct: '<b>结构</b>：拖动滑杆按拆机顺序拆开：先拆刀具和小件，最后抬起主轴箱、退出轴承。点编号或零件看材料和作用。',
-    principle: '<b>原理</b>：一次外圆车削：进刀、走刀、退刀、返回。<b>工件转，车刀只移动</b>。滑杆改电机转速和每刀吃刀量。',
-    model: '<b>模型</b>：装配状态自由旋转。“剖切”沿主轴轴线切掉靠你这半边，能看到主轴、前后轴承、卡盘里的平面螺纹盘。',
+  views: {
+    look:  { dir:V3(-.3,.5,.85), margin:48 },
+    spin:  { dir:V3(.75,.55,1), hide:HIDE, fit:['P07_Headstock','P09_Chuck','P11_Workpiece','P24_SpindlePulley','P25_MotorPulley','P27_Motor','P23_Belt','P17_ToolBit'], margin:30 },
+    depth: { dir:V3(-1,.55,.4), hide:new Set([...HIDE, 18, 19, 20, 21, 42, 43, 23, 25, 26, 27, 44, 45, 46, 47, 48]), fit:['P09_Chuck','P11_Workpiece','P13_CrossSlide','P15_ToolPost','P17_ToolBit','P14_CrossWheel'], margin:30 },
+    pass:  { dir:V3(-.3,.85,1), hide:HIDE, fit:['P07_Headstock','P09_Chuck','P11_Workpiece','P12_Carriage','P13_CrossSlide','P15_ToolPost','P17_ToolBit','P24_SpindlePulley','P27_Motor','P14_CrossWheel','P06_HandwheelZ'], margin:40 },
+    explode: { dir:V3(-.3,.5,.75), explode:true },
   },
   init(){
     cutPlane = new THREE.Plane(V3(0,0,-1), 0);
-    const N = s => I(s);
+    const N = s => I(s), NS = p => IS(p);
     G.spin = ['P08_Spindle','P09_Chuck','P10_Jaw_1','P10_Jaw_2','P10_Jaw_3','P11_Workpiece','P34_Scroll','P24_SpindlePulley','P32_SpindleNut'].map(N);
     G.motor = ['P45_Rotor','P25_MotorPulley'].map(N);
     G.lead = ['P05_LeadScrew','P06_HandwheelZ','P51_Handle_Z'].map(N);
     G.carriage = ['P12_Carriage','P36_RailBlock_Carriage','P37_LeadNut','P38_CrossScrew'].map(N);
-    G.cross = ['P13_CrossSlide','P15_ToolPost','P17_ToolBit','P41_PartingTool','P39_PostStud','P40_LeverNut', ...IS('P16_')].map(x => typeof x === 'string' ? N(x) : x);
+    G.cross = [...['P13_CrossSlide','P15_ToolPost','P17_ToolBit','P41_PartingTool','P39_PostStud','P40_LeverNut'].map(N), ...NS('P16_')];
     G.dial = ['P14_CrossWheel','P51_Handle_Cross','P52_Dial'].map(N);
-    G.ghost = ['P27_Motor','P44_MotorEndCap','P15_ToolPost','P40_LeverNut','P39_PostStud', ...IS('P48_').map(i=>i.name), ...IS('P16_').map(i=>i.name)].map(N);
+    G.housing = [...['P27_Motor','P44_MotorEndCap'].map(N), ...NS('P48_')];
+    G.post = [...['P15_ToolPost','P40_LeverNut','P39_PostStud'].map(N), ...NS('P16_')];
     G.work = N('P11_Workpiece');
-    G.fit = ['P07_Headstock','P09_Chuck','P11_Workpiece','P12_Carriage','P13_CrossSlide','P15_ToolPost','P17_ToolBit','P24_SpindlePulley','P25_MotorPulley','P27_Motor','P14_CrossWheel'].map(N);
     // turned surface: the original bar is clipped where it has been cut, and replaced by thinner cylinders + shoulder rings
     const brass = G.work.meshes[0].material;
     const mat = (Array.isArray(brass) ? brass[0] : brass).clone(); mat.clippingPlanes = [];
@@ -718,74 +959,107 @@ PROJ = {
     G.ringA = new THREE.Mesh(new THREE.BufferGeometry(), mat); G.ringB = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     G.cut.add(G.ringA, G.ringB);
     G.clipA = new THREE.Plane(V3(-1,0,0), X_FREE*MM - .0005); G.clipB = new THREE.Plane(V3(1,0,0), 0);
-    for(const me of G.work.meshes){ me.userData.clip = [G.clipA, G.clipB]; me.userData.clipIntersection = true; }
     // chips
     const chipGeo = new THREE.TorusGeometry(1.1*MM, .22*MM, 4, 10, Math.PI*1.4);
     const chipMat = new THREE.MeshStandardMaterial({ color:0xd2a548, metalness:.5, roughness:.35 });
     G.chips = []; for(let i=0;i<40;i++){ const m = new THREE.Mesh(chipGeo, chipMat); m.visible = false; model.add(m); G.chips.push({ m, v:V3(0,0,0), life:0, w:V3(0,0,0) }); }
     G.chipT = 0;
+    // labels
+    G.t = {
+      motor: tagItem('电机', N('P45_Rotor'), V3(0, .042, 0)),
+      small: tagItem('小轮 Φ18', N('P25_MotorPulley'), V3(.012, -.02, .02)),
+      big:   tagItem('大轮 Φ48', N('P24_SpindlePulley'), V3(.012, .035, 0)),
+      head:  tagItem('主轴箱（主轴在里面）', N('P07_Headstock'), V3(0, .06, 0)),
+      work:  tagItem('工件 Φ18', N('P11_Workpiece'), V3(-.01, .024, 0)),
+      tool:  tagItem('车刀', N('P17_ToolBit'), V3(0, .018, .006)),
+      dial:  tagItem('刻度环', N('P52_Dial'), V3(0, .03, 0)),
+      wz:    tagItem('纵向手轮', N('P06_HandwheelZ'), V3(.03, .04, 0)),
+    };
   },
-  fitMeshes(mode){ return mode === 'principle' ? G.fit.flatMap(it => it.meshes) : meshes; },
   buildUI(){
-    G.chipEls = [...document.querySelectorAll('#ph-chips .chip')];
-    $('b-run').addEventListener('click', ()=>{ st.running = !st.running; syncRun(); });
-    $('r-motor').addEventListener('input', e=>{ L.motor = +e.target.value; $('o-motor').textContent = L.motor + ' rpm'; panel(true); });
-    $('r-div').addEventListener('input', e=>{ L.div = +e.target.value; $('o-div').textContent = L.div + ' 格'; if(L.ph === 0 && L.u < .05 || L.ph === 4) setPass(L.pass, L.rPrev); panel(true); });
-    $('b-new').addEventListener('click', ()=>{ setPass(1, R0); L.ph = 0; L.u = 0; panel(true); });
-    $('b-spin').addEventListener('click', e=>{ L.spin = !L.spin; e.currentTarget.setAttribute('aria-pressed', String(L.spin)); });
+    quiz('q1', 'c', {
+      a: '刀进 0.1 mm，半径就少 0.1 mm，不会更少。而且工件在转，两边一起变薄，直径小 0.2 mm。',
+      b: '半径确实小了 0.1 mm。可工件在转，刀尖削掉的是一整圈，两边一起变薄，直径小 0.2 mm。新手第一刀车小了，多半是这么来的。',
+      c: '猜对了。工件在转，刀进 0.1 mm，削掉的是厚 0.1 mm 的一整圈，直径小 0.2 mm。所以也有车床的刻度环直接按直径刻。',
+      d: '转速和走刀快慢影响的是表面光不光、车得快不快。直径只看刀尖离轴线多远：进 0.1 mm，直径小 0.2 mm。',
+    }, unlock);
+    const runBtns = ['b-runs', 'b-runp'];
+    const syncRun = () => runBtns.forEach(id => $(id).textContent = L.run ? '暂停' : '播放');
+    runBtns.forEach(id => $(id).addEventListener('click', () => { L.run = !L.run; syncRun(); }));
     syncRun();
+    $('s-motor').addEventListener('input', e => { L.motor = +e.target.value; readings(true); });
+    $('d-div').addEventListener('input', e => { L.div = +e.target.value; setPass(L.pass, L.rPrev); readings(true); });
+    $('b-cut').addEventListener('click', () => { if(!L.run){ L.run = true; syncRun(); } go('pass'); });
+    $('b-new').addEventListener('click', () => { setPass(1, R0); L.ph = 0; L.u = 0; L.cFrom = null; readings(true); });
   },
-  enter(){
-    for(const it of G.ghost) setLook(it, { opacity:.22 });
-    G.cut.visible = true; panel(true);
-  },
-  leave(){
-    for(const it of G.ghost) setLook(it, null);
-    G.cut.visible = false; for(const c of G.chips){ c.m.visible = false; c.life = 0; }
-  },
-  tick(dt, mode){
-    const rps = L.motor * 18/48 / 60;
-    if(mode === 'model' && L.spin){ L.thS += dt * 2*Math.PI * rps * VIS; L.thM = L.thS * 48/18; }
-    if(mode !== 'principle') return;
-    if(st.running){
-      L.thS += dt * 2*Math.PI * rps * VIS; L.thM = L.thS * 48/18;
-      L.u += dt / PH[L.ph].dur;
-      if(L.u >= 1){ L.u = 0; L.ph = (L.ph + 1) % PH.length; if(L.ph === 0){ const d = L.div*.02; setPass(L.rCur - d < 5 ? 1 : L.pass + 1, L.rCur - d < 5 ? R0 : L.rCur); } panel(true); }
+  unlocked(){ if(G.labInit) return; G.labInit = true; initLab(); },
+  enter(k){
+    if(k === 'look' || k === 'explode') return;
+    for(const it of G.housing) setLook(it, { opacity:.22 });
+    for(const it of G.work.meshes){ it.userData.clip = [G.clipA, G.clipB]; it.userData.clipIntersection = true; }
+    G.cut.visible = true; surface();
+    if(k === 'spin'){
+      for(const T of ['motor','small','big','head','work','tool']) G.t[T].on = true;
+      G.t.work.el.textContent = `工件 Φ${(2*L.rPrev).toFixed(1)}`; G.t.tool.el.textContent = '车刀（不转）';
+    } else for(const it of G.post) setLook(it, { opacity:.22 });
+    if(k === 'depth'){
+      for(const n of ['P51_Handle_Tail','P36_RailBlock_Tailstock']) I(n).obj.visible = false;
+      if(L.ph >= 2 || (L.ph === 1 && L.u > .5)) nextPass();
+      L.ph = 0; L.u = 0;
+      G.t.dial.on = G.t.tool.on = G.t.work.on = true;
     }
-    const cc = cutC(L.rCur), cb = cc - 2.5, u = L.u, s = smooth(u);
-    if(L.ph === 0){ L.dx = DX0; L.c = cb + (cc - cb)*s; }
-    else if(L.ph === 1){ L.dx = DX0 + (DX1 - DX0)*u; L.c = cc; }
-    else if(L.ph === 2){ L.dx = DX1; L.c = cc + (cb - cc)*s; }
-    else if(L.ph === 3){ L.dx = DX1 + (DX0 - DX1)*s; L.c = cb; }
-    else { L.dx = DX0; L.c = cb; }
-    surface();
-    chips(dt, st.running && L.ph === 1 && TIP_X1 + L.dx > X_FREE);
-    panel(false);
+    if(k === 'pass'){ L.cFrom = null; G.t.tool.on = G.t.wz.on = true; }
+    G.t.tool.el.classList.toggle('hot', k !== 'spin');
+    readings(true);
   },
-  pose(mode){
-    if(mode === 'struct') return;
+  leave(){ G.cut.visible = false; for(const c of G.chips){ c.m.visible = false; c.life = 0; } },
+  tick(dt, k){
+    if(k === 'look' || k === 'explode') return;
+    if(L.run){ L.thS += dt*2*Math.PI*(L.motor/RATIO/60)*VIS; L.thM = L.thS*RATIO; }
+    if(k === 'spin'){ readings(false); return; }
+    const cc = cutC(L.rCur), cb = cc - 2.5;
+    if(k === 'depth'){
+      L.dx = DX0; L.c += (cc - L.c)*Math.min(1, dt*5);
+      surface(); readings(false); return;
+    }
+    if(L.run){
+      L.u += dt/PH[L.ph].dur;
+      if(L.u >= 1){ L.u = 0; L.ph = (L.ph + 1) % PH.length; L.cFrom = null; if(L.ph === 0) nextPass(); readings(true); }
+    }
+    const u = L.u, s = smooth(u);
+    const cc2 = cutC(L.rCur), cb2 = cc2 - 2.5;
+    if(L.ph === 0){ if(L.cFrom === null) L.cFrom = L.c; L.dx = DX0; L.c = L.cFrom + (cc2 - L.cFrom)*s; }
+    else if(L.ph === 1){ L.dx = DX0 + (DX1 - DX0)*u; L.c = cc2; }
+    else if(L.ph === 2){ L.dx = DX1; L.c = cc2 + (cb2 - cc2)*s; }
+    else if(L.ph === 3){ L.dx = DX1 + (DX0 - DX1)*s; L.c = cb2; }
+    else { L.dx = DX0; L.c = cb2; }
+    surface();
+    chips(dt, L.run && L.ph === 1 && TIP_X1 + L.dx > X_FREE);
+    readings(false);
+  },
+  pose(k){
+    if(k === 'look') return;
     for(const it of G.spin) place(it, SP, AX.x, L.thS);
     for(const it of G.motor) place(it, MP, AX.x, L.thM);
-    if(mode !== 'principle') return;
+    if(k === 'spin') return;
     const off = V3(L.dx*MM, 0, 0), offC = V3(L.dx*MM, 0, -L.c*MM);
     for(const it of G.carriage) it.obj.position.copy(off);
     for(const it of G.cross) it.obj.position.copy(offC);
     for(const it of G.lead) place(it, LP, AX.x, -(L.dx - DX0)/2 * 2*Math.PI);
     for(const it of G.dial) place(it, CP, AX.z, L.c * 2*Math.PI, off);
   },
+  resize(){ if(st.view === 'depth') drawSection(); },
+  theme(){ if(st.view === 'depth') drawSection(); },
 };
 PROJ.state = L;   // for debugging in the console: __viewer.PROJ().state
-function syncRun(){ $('b-run-t').textContent = st.running ? '暂停' : '播放'; }
-function setPass(n, rPrev){ L.pass = n; L.rPrev = rPrev; L.rCur = Math.max(4, rPrev - L.div*.02); }
+function setPass(n, rPrev){ L.pass = n; L.rPrev = rPrev; L.rCur = Math.max(4, rPrev - L.div*GRID); }
+function nextPass(){ const d = L.div*GRID; if(L.rCur - d < 5) setPass(1, R0); else setPass(L.pass + 1, L.rCur); }
 
 /* turned surface for the current pass */
-let ringKeyA = '', ringKeyB = '';
-function ring(mesh, rIn, rOut, x, keyName){
-  const k = rIn.toFixed(3) + '/' + rOut.toFixed(3);
-  if(k !== (keyName === 'A' ? ringKeyA : ringKeyB)){
-    mesh.geometry.dispose(); mesh.geometry = new THREE.RingGeometry(rIn*MM, rOut*MM, 56).rotateY(Math.PI/2);
-    if(keyName === 'A') ringKeyA = k; else ringKeyB = k;
-  }
+const ringKey = { A:'', B:'' };
+function ring(mesh, rIn, rOut, x, k){
+  const key = rIn.toFixed(3) + '/' + rOut.toFixed(3);
+  if(key !== ringKey[k]){ mesh.geometry.dispose(); mesh.geometry = new THREE.RingGeometry(rIn*MM, rOut*MM, 56).rotateY(Math.PI/2); ringKey[k] = key; }
   mesh.position.set(x*MM, SP.y, 0); mesh.visible = rOut - rIn > .005;
 }
 function surface(){
@@ -816,28 +1090,122 @@ function chips(dt, cutting){
   }
 }
 
-/* side panel */
+/* pane readings */
 const EXPL = [
-  (ap, d1) => `<b>① 进刀</b>：摇横向手轮，车刀往工件里进 <b>${ap.toFixed(2)} mm</b>（刻度环转 ${L.div} 格，一格 0.02 mm）。工件直径会小 <b>${(2*ap).toFixed(2)} mm</b>，因为一圈两边都被车掉。`,
-  (ap, d1) => `<b>② 走刀</b>：工件跟着主轴转，车刀不转。摇纵向手轮，丝杠带着大拖板往主轴箱方向走，刀尖把一圈圈黄铜剥成切屑，车出 Φ${d1.toFixed(2)} 的外圆。`,
-  (ap, d1) => `<b>③ 退刀</b>：先把车刀往外退一点，再往回走。不退的话，回程时刀尖会在刚车好的表面上划出一道螺旋纹。`,
-  (ap, d1) => `<b>④ 返回</b>：大拖板退回起点，准备下一刀。粗车每刀可以吃深一些，最后一刀精车只吃几格，表面才光。`,
+  (ap, d1) => `<b>① 进刀</b>：刀先停在工件端头外面，摇横向手轮进 <b>${L.div} 格 = ${ap.toFixed(2)} mm</b>。这一刀车完，直径小 <b>${(2*ap).toFixed(2)} mm</b>。`,
+  (ap, d1) => `<b>② 走刀</b>：工件转，刀不转。摇纵向手轮，丝杠带着大拖板往主轴箱方向走，刀尖把一圈圈黄铜剥成切屑，车出 Φ${d1.toFixed(2)} 的外圆。`,
+  (ap, d1) => `<b>③ 退刀</b>：先把刀往外退一点，再往回走。不退的话，回程时刀尖会在刚车好的表面上划出一道螺旋纹。`,
+  (ap, d1) => `<b>④ 返回</b>：大拖板退回起点，准备下一刀。粗车每刀可以吃深一些，最后一刀精车只吃几格、走得慢，表面才光。`,
 ];
 let lastPh = -1;
-function panel(force){
-  const n = L.motor * 18/48, ap = L.rPrev - L.rCur, d0 = 2*L.rPrev, d1 = 2*L.rCur;
-  if(force || L.ph !== lastPh){
-    const ph = Math.min(3, L.ph); lastPh = L.ph;
-    G.chipEls.forEach((el, i) => { el.classList.toggle('on', i === ph); el.classList.toggle('done', i < ph); });
-    $('expl').innerHTML = EXPL[ph](ap, d1);
-    $('pp-pass').textContent = `第 ${L.pass} 刀`;
-    $('v-motor').textContent = L.motor; $('v-spindle').textContent = Math.round(n);
-    $('v-vc').textContent = Math.round(Math.PI * d0 * n / 1000);
-    $('v-div').textContent = Math.round(ap/.02); $('v-ap').textContent = ap.toFixed(2);
-    $('v-d0').textContent = 'Φ' + d0.toFixed(2); $('v-d1').textContent = 'Φ' + d1.toFixed(2);
+function readings(force){
+  const k = st.view, n = L.motor/RATIO, ap = L.rPrev - L.rCur, d0 = 2*L.rPrev, d1 = 2*L.rCur;
+  if(k === 'spin' && force){
+    $('o-motor').textContent = `${L.motor} rpm`;
+    $('s-n').textContent = `${Math.round(n)} rpm`;
+    $('s-vc').textContent = `${Math.round(Math.PI*d0*n/1000)} m/min`;
   }
-  const feed = L.dx - DX0;
-  $('v-turns').textContent = (feed/2).toFixed(1); $('v-feed').textContent = feed.toFixed(0);
+  if(k === 'depth' && force){
+    $('o-div').textContent = `${L.div} 格`;
+    $('d-ap').textContent = `${L.div} × 0.02 = ${ap.toFixed(2)} mm`;
+    $('d-dia').textContent = `Φ${d0.toFixed(2)} → Φ${d1.toFixed(2)}`;
+    G.t.work.el.textContent = `Φ${d0.toFixed(2)} → Φ${d1.toFixed(2)}`;
+    G.t.dial.el.textContent = `刻度环 ${L.div} 格`;
+    G.t.tool.el.textContent = `车刀进 ${ap.toFixed(2)} mm`;
+    drawSection();
+  }
+  if(k === 'pass'){
+    if(force || L.ph !== lastPh){
+      const ph = Math.min(3, L.ph); lastPh = L.ph;
+      $$('#ph span').forEach((el, i) => { el.classList.toggle('on', i === ph); el.classList.toggle('done', i < ph); });
+      $('expl').innerHTML = EXPL[ph](ap, d1);
+      $('p-pass').textContent = `第 ${L.pass} 刀`;
+      $('p-dia').textContent = `Φ${d0.toFixed(2)} → Φ${d1.toFixed(2)}`;
+      G.t.tool.el.textContent = `车刀 · ${PHN[ph]}`;
+    }
+    const feed = L.dx - DX0;
+    $('p-turns').textContent = `${(feed/2).toFixed(1)} 圈 = ${feed.toFixed(0)} mm`;
+  }
+}
+
+/* cross-section of the bar: the ring this pass removes (thickness drawn 5× so 0.02 mm is visible) */
+function drawSection(){
+  const cv = $('c-sec'), dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if(!W || !H) return;
+  if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const EXA = 5, ap = L.rPrev - L.rCur, k = (H/2 - 24)/R0;
+  const ro = L.rPrev*k, ri = Math.max(L.rPrev*.35, L.rPrev - ap*EXA)*k;
+  const cx = R0*k + 16, cy = H/2;
+  const ink = css('--ink'), ink3 = css('--ink3'), cop = css('--copper'), brass = css('--c1');
+  g.fillStyle = `color-mix(in srgb, ${cop} 55%, transparent)`; g.beginPath(); g.arc(cx, cy, ro, 0, 2*Math.PI); g.fill();
+  g.fillStyle = `color-mix(in srgb, ${brass} 70%, transparent)`; g.beginPath(); g.arc(cx, cy, ri, 0, 2*Math.PI); g.fill();
+  g.strokeStyle = ink3; g.lineWidth = 1; g.setLineDash([3,3]); g.beginPath(); g.arc(cx, cy, ro, 0, 2*Math.PI); g.stroke(); g.setLineDash([]);
+  g.beginPath(); g.moveTo(cx-6, cy); g.lineTo(cx+6, cy); g.moveTo(cx, cy-6); g.lineTo(cx, cy+6); g.stroke();
+  // rotation arrow
+  g.strokeStyle = ink; g.lineWidth = 1.5; const ra = ro + 9;
+  g.beginPath(); g.arc(cx, cy, ra, -2.6, -1.2); g.stroke();
+  const ea = -1.2, ex = cx + ra*Math.cos(ea), ey = cy + ra*Math.sin(ea);
+  g.beginPath(); g.moveTo(ex, ey); g.lineTo(ex - 7, ey - 3); g.lineTo(ex - 2, ey + 6); g.closePath(); g.fillStyle = ink; g.fill();
+  // tool, coming in from the right
+  const tx = cx + ri;
+  g.fillStyle = css('--ink2'); g.beginPath(); g.moveTo(tx, cy); g.lineTo(tx + 34, cy - 10); g.lineTo(tx + 34, cy + 10); g.closePath(); g.fill();
+  // text column
+  const lx = cx + ro + 46; if(lx + 100 > W) return;
+  const line = (t, y, c, f) => { g.font = f || `500 12px ${css('--sans')}`; g.fillStyle = c || ink; g.textAlign = 'left'; g.fillText(t, lx, y); };
+  line('工件在转，刀削掉的', cy - 46, ink3);
+  line(`是厚 ${ap.toFixed(2)} mm 的一圈`, cy - 29, ink3);
+  line(`Φ${(2*L.rPrev).toFixed(2)}`, cy - 4, ink, `700 13px ${css('--mono')}`);
+  line(`→ Φ${(2*L.rCur).toFixed(2)}`, cy + 13, ink, `700 13px ${css('--mono')}`);
+  line(`直径小 ${(2*ap).toFixed(2)} mm`, cy + 36, cop, `700 12px ${css('--sans')}`);
+  line(`= 2 × ${ap.toFixed(2)} mm`, cy + 52, cop);
+  line('环的厚度画大了 5 倍', cy + 74, ink3, `400 11px ${css('--sans')}`);
+}
+
+/* ── lab: surface finish and how much the small motor can pull ── */
+function initLab(){
+  const MAT = { brass:{ kc:1000, v:[60,100] }, al:{ kc:800, v:[90,240] }, steel:{ kc:2500, v:[20,30] } };
+  const T_AV = .33, LEN = 42;
+  const Lb = { m:'brass', D:18, n:900, ap:.3, f:.1, re:.4 };
+  const seg = (id, key, num) => $$(`#${id} button`).forEach(b => b.addEventListener('click', () => { $$(`#${id} button`).forEach(x => x.setAttribute('aria-pressed', String(x === b))); Lb[key] = num ? +b.dataset.v : b.dataset.v; draw(); }));
+  seg('l-m', 'm', false); seg('l-re', 're', true);
+  for(const [id, key] of [['l-D','D'],['l-n','n'],['l-ap','ap'],['l-f','f']]) $(id).addEventListener('input', e => { Lb[key] = +e.target.value; draw(); });
+  quiz('q2', 'c', {
+    a: '刀尖圆弧确实有影响，可进给也有：相邻两道圆弧隔得越远，中间留下的尖峰越高。槽深跟进给的平方成正比，翻倍就是 4 倍。',
+    b: '槽的宽度是 2 倍，深度却是 4 倍：槽深 ≈ f² ÷（8 × 刀尖圆弧半径），跟进给的平方成正比。',
+    c: '猜对了。槽深 ≈ f² ÷（8 × 刀尖圆弧半径），进给翻倍，深度变 4 倍。下面已经把进给调到 0.2，拖动看看。',
+    d: '表面的纹路是刀尖圆弧一圈圈叠出来的几何形状，跟停留时间无关。进给翻倍，槽深变 4 倍。',
+    answer: '答案：4 倍。槽深 ≈ f² ÷（8 × 刀尖圆弧半径），跟进给的平方成正比。',
+  }, () => { $('labBody').hidden = false; Lb.f = .2; $('l-f').value = .2; draw(); });
+  function draw(){
+    const M = MAT[Lb.m];
+    $('o-D').textContent = `${Lb.D} mm`; $('o-n').textContent = `${Lb.n} rpm`;
+    $('o-ap').textContent = `${Lb.ap.toFixed(2)} mm`; $('o-f').textContent = `${Lb.f.toFixed(2)} mm/转`;
+    // surface
+    const Rt = Lb.f*Lb.f/(8*Lb.re)*1000, Ra = Rt/4;
+    const pts = [];
+    for(let x=0; x<=1.0001; x+=.002){ const xm = ((x % Lb.f) + Lb.f) % Lb.f - Lb.f/2; pts.push([x, (Lb.re - Math.sqrt(Lb.re*Lb.re - xm*xm))*1000]); }
+    chart($('l-prof'), { x:[0, 1], y:[0, 60], xt:[0, .25, .5, .75, 1], xf: v => v + ' mm', yt:[0, 20, 40, 60], yl:'μm', left:44,
+      lines:[{ pts, fill:`color-mix(in srgb, ${css('--c1')} 30%, transparent)` }, { pts, color:css('--c1'), w:2 }] });
+    $('l-rt').textContent = `${Rt < 10 ? Rt.toFixed(1) : Rt.toFixed(0)} μm`;
+    const grade = Ra <= .8 ? '很光' : Ra <= 1.6 ? '精车水平' : Ra <= 3.2 ? '一般' : Ra <= 6.3 ? '粗车水平' : '很毛';
+    $('l-ra').textContent = `${Ra.toFixed(Ra < 10 ? 1 : 0)} μm · ${grade}`;
+    $('l-ra').className = Ra <= 1.6 ? 'good' : Ra > 6.3 ? 'bad' : '';
+    // power
+    const vc = Math.PI*Lb.D*Lb.n/1000, Fc = M.kc*Lb.ap*Lb.f, Tq = Fc*Lb.D/2000, Pc = Fc*vc/60;
+    const vNote = vc < M.v[0] ? '偏慢，能车' : vc > M.v[1] ? '太快，刀会烧' : '合适';
+    $('l-vc').textContent = `${vc.toFixed(0)} m/min · ${vNote}`;
+    $('l-vc').className = vc > M.v[1] ? 'bad' : vc >= M.v[0] ? 'good' : '';
+    $('l-fc').textContent = `${Fc.toFixed(0)} N`;
+    const pct = Tq/T_AV*100;
+    $('l-tq').textContent = `${Tq.toFixed(2)} N·m · 额定的 ${pct.toFixed(0)}%${pct > 250 ? '，闷车' : pct > 100 ? '，吃力' : ''}`;
+    $('l-tq').className = pct > 250 ? 'bad' : pct <= 100 ? 'good' : '';
+    $('l-pc').textContent = `${Pc.toFixed(0)} W`;
+    const mmps = Lb.f*Lb.n/60;
+    $('l-t').textContent = `${(LEN/mmps).toFixed(0)} s · ${(mmps*60/2).toFixed(0)} 圈/分`;
+  }
+  draw();
+  addEventListener('resize', () => { if(!$('labBody').hidden) draw(); });
 }
 
 /* ───────── loop ───────── */
@@ -851,7 +1219,8 @@ function frame(now){
     if((d > 0 && st.t >= st.tTarget) || (d < 0 && st.t <= st.tTarget) || d === 0){ st.t = st.tTarget; st.tTarget = null; }
     syncEx();
   }
-  PROJ.tick && PROJ.tick(dt, st.mode);
+  if(glide.on){ glide.k = Math.min(1, glide.k + dt/0.9); if(glide.k >= 1) glide.on = false; }
+  PROJ.tick && PROJ.tick(dt, st.view);
   applyPose();
   autoFrame(false);
   root.updateMatrixWorld(true);
@@ -866,6 +1235,7 @@ function frame(now){
 new ResizeObserver(resize).observe(canvas);
 themeSync(); syncEx();
 requestAnimationFrame(frame);
+if(store.get(PROJ.key + '.q1')){ unlock(); const h = document.getElementById('q1hint'); if(h) h.hidden = false; }
 load().then(g=>{ setup(g); resize(); }).catch(err=>{ $('ld-t').textContent = '模型加载失败：' + (err && err.message || err); console.error(err); });
-window.__viewer = { st, setMode, camera, controls, items, parts, PROJ: () => PROJ };
+window.__viewer = { st, go, camera, controls, items, parts, PROJ: () => PROJ };
 </script>

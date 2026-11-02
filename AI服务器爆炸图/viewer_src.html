@@ -1,238 +1,445 @@
-<title>AI 服务器拆解</title>
+<title>八卡不等于八倍</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout (same family as the motor / drone / hand viewers): full-bleed 3D stage; drawing title block + part card
-   top-left, side panel (BOM / principle) right, mode tabs + controls in one strip at the bottom where the thumb is */
+/* 布局和「不转盘的微波炉」同一套：上半是一张检修台（左边机器、右边分步手册），下半是实验和讲解。
+   先猜题，猜完（或"不猜了"）才解锁后面的步骤和下半页。 */
 :root{
-  --bg:#e4e8ec; --bg2:#f5f7f9; --panel:rgba(247,249,251,.93); --panel-solid:#f7f9fb;
-  --fg:#161d26; --muted:#56616f; --line:#c2cad3; --accent:#a8521f; --accent-ink:#ffffff;
-  --hl:#d6860b; --hl-ink:#1b1204; --shadow-a:.2;
-  --c1:#c99400; --c2:#1f9447; --c3:#2a66cf; --c4:#d93b3b; --c5:#7b52c7; --off:#9aa4b0;
-  --f-cn:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --ctrl-h:120px;
+  --bg:#ECEFF1; --panel:#F8F9FA; --ink:#14181C; --ink2:#454E56; --ink3:#66707A; --line:#CFD6DB;
+  --stage:#DCE1E4; --copper:#A44A1F; --copper-bg:#F4E1D6; --on-copper:#FFFFFF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --hl:#D6860B; --hl-ink:#1B1204;
+  --c1:#B98500; --c2:#1F9447; --c3:#2A66CF; --c4:#D93B3B; --c5:#7B52C7; --off:#9AA4B0;
+  --s1:#EB6834; --s2:#2A78D6; --s3:#1BAF7A; --s4:#8C5BD0;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+  --shadow-a:.2;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
-  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
-  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
-  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --on-copper:#1A0D05;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --hl:#F2B13D;
+  --c1:#F2C230; --c2:#46C477; --c3:#5B94FF; --c4:#FF5D5D; --c5:#A985F0; --off:#5B6573;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A27BE0; --shadow-a:.45; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
-  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
-  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
-  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }
-
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --on-copper:#1A0D05;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --hl:#F2B13D;
+  --c1:#F2C230; --c2:#46C477; --c3:#5B94FF; --c4:#FF5D5D; --c5:#A985F0; --off:#5B6573;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A27BE0; --shadow-a:.45; color-scheme:dark}
+*{box-sizing:border-box}
 [hidden]{display:none!important}
-html{height:100%;box-sizing:border-box}
-*,*::before,*::after{box-sizing:inherit}
-body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-cn);-webkit-font-smoothing:antialiased}
-#app{position:relative;height:100%;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,var(--bg2),var(--bg) 72%)}
-#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity .2s}
-#leaders line{stroke:var(--fg);stroke-width:.9;opacity:.55}
-#leaders circle{fill:var(--fg);opacity:.7}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+p{margin:0}
+a{color:var(--copper);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+.top{padding-block:30px 22px}
+.top .wrap{display:flex;gap:28px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.top .wrap>div:first-child{min-width:0;flex:1 1 520px}
+.top h1{font-size:clamp(30px,5.2vw,54px);font-weight:900;letter-spacing:-.02em}
+.lead{color:var(--ink2);max-width:42em;margin-top:8px;font-size:16px}
+.spec{display:grid;grid-template-columns:auto auto;gap:2px 14px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px 14px;font-size:12.5px;color:var(--ink3);flex:none}
+.spec b{font:700 12.5px/1.6 var(--mono);color:var(--ink)}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 380px;background:var(--stage);border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:560px;height:min(72vh,720px);min-width:0;overflow:hidden}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;outline:none}
+#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#leaders line{stroke:var(--ink);stroke-width:.9;opacity:.5}
+#leaders circle{fill:var(--ink);opacity:.65}
 #leaders line.sel{stroke:var(--hl);opacity:1;stroke-width:1.4}
 #leaders circle.sel{fill:var(--hl);opacity:1}
-.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
-  border:1.25px solid var(--fg);background:var(--panel-solid);color:var(--fg);font:600 12.5px/1 var(--f-num);
-  display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;font-variant-numeric:tabular-nums;will-change:transform}
-.bln:hover{border-color:var(--accent);color:var(--accent)}
+.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1.25px solid var(--ink);background:var(--panel);color:var(--ink);font:700 11px/1 var(--mono);display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;will-change:transform}
+.bln:hover{border-color:var(--copper);color:var(--copper)}
 .bln.sel{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
-.tag{position:absolute;left:0;top:0;transform-origin:0 0;padding:2px 6px;border-radius:4px;white-space:nowrap;
-  font:600 11.5px/16px var(--f-cn);color:#fff;background:var(--fg);will-change:transform;opacity:.95;translate:-50% -50%}
-.bln:focus-visible,.btn:focus-visible,.row:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lbl3d{position:absolute;left:0;top:0;padding:1px 7px;border-radius:3px;white-space:nowrap;font:500 12px/18px var(--sans);color:var(--bg);background:var(--ink);will-change:transform;translate:-50% -50%;opacity:.92}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);font:500 14px var(--mono);z-index:3}
+#loading .barl{height:3px;background:var(--line);margin-top:8px;border-radius:2px;overflow:hidden}
+#loading .barl i{display:block;height:100%;width:0;background:var(--copper)}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:2px 8px;border-radius:3px;white-space:nowrap;z-index:2}
+.vhud{position:absolute;top:calc(10px + 0px);left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;pointer-events:none;z-index:2}
+.vhud>*{pointer-events:auto}
+.vbtn{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 88%,transparent);border-radius:4px;padding:3px 9px;font-size:12.5px;color:var(--ink2)}
+.vbtn:hover{border-color:var(--copper);color:var(--ink)}
+.vhint{font-size:12px;color:var(--ink3);padding-top:4px}
+.legend-hud{position:absolute;left:14px;bottom:12px;right:14px;font:500 12px/1.4 var(--sans);color:var(--ink2);display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;pointer-events:none;z-index:2}
+.legend-hud i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-2px}
 
-.hud{position:absolute;z-index:2}
-.left{top:12px;left:max(16px,env(safe-area-inset-left,0px));width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:10px}
-.tb{border:1.25px solid var(--fg);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;grid-template-columns:1fr auto;font-size:12px}
-.tb>div{padding:6px 9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
-.tb>div:nth-child(2n){border-right:0}
-.tb>div:nth-last-child(-n+2){border-bottom:0}
-.tb .name{grid-column:1/-1;border-right:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.tb h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.04em;text-wrap:balance}
-.tb .en{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.tb .k{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em}
-.tb .v{font:500 12px/1.35 var(--f-mono)}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;max-height:min(72vh,720px);min-height:560px}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border-bottom:1px solid var(--line);flex:none}
+.tab{border:0;background:none;padding:10px 2px 8px;font-size:12.5px;font-weight:500;color:var(--ink2);border-bottom:3px solid transparent;line-height:1.35}
+.tab b{display:block;font:700 11px var(--mono);color:var(--ink3)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--copper);font-weight:700}
+.tab:disabled{opacity:.42;cursor:not-allowed}
+.pane{padding:18px 18px 12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;flex:1}
+.pane>*{flex-shrink:0}
+.pane h2{font-size:19px;font-weight:700}
+.pane p{color:var(--ink2);font-size:14.5px}
+.pane p b{color:var(--ink)}
+.q{display:grid;gap:7px}
+.q button{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px 11px;font-size:14px;line-height:1.5}
+.q button:hover:not(:disabled){border-color:var(--copper)}
+.q button:disabled{cursor:default;color:var(--ink2)}
+.q button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ink)}
+.q button.wrong{background:var(--no-bg);border-color:var(--no);color:var(--ink)}
+.quiz{display:grid;gap:10px}
+.qr{display:grid;gap:10px}
+.qnote{color:var(--ink)!important}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:5px;padding:8px 14px;font-weight:700;font-size:14px}
+.btn.alt{background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.alt[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--copper);color:var(--copper)}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink3);text-decoration:underline;text-underline-offset:3px;font-size:13px;text-align:left;justify-self:start}
+.row-c{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reading{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13.5px;color:var(--ink2);align-items:baseline}
+.reading b{font:700 15px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
+.rng{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.rng output{font:700 13px var(--mono);color:var(--ink);min-width:4.5em;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--copper);min-width:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex-wrap:wrap;max-width:100%}
+.seg button{border:0;background:none;padding:5px 11px;font-size:13.5px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{border:1px solid var(--line);background:none;border-radius:3px;padding:2px 8px;font-size:13px;color:var(--ink2)}
+.chips button:hover{border-color:var(--copper);color:var(--ink)}
+.small{font-size:13px!important;color:var(--ink3)!important}
+.part{border-top:1px solid var(--line);padding:12px 18px 14px;flex:none;background:var(--panel);position:relative}
+.part h3{font-size:15px;color:var(--copper);padding-right:24px}
+.part h3 small{font:500 11.5px var(--mono);color:var(--ink3);margin-left:6px}
+.part .mat{font:500 12px/1.5 var(--mono);color:var(--ink3);margin-top:2px}
+.part p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:4px}
+.part .x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:18px;color:var(--ink3);line-height:1;padding:2px 4px}
+.bom{display:grid;gap:0;border-top:1px solid var(--line)}
+.bom button{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:5px 2px;font-size:13px;color:var(--ink2)}
+.bom button b{font:700 11.5px var(--mono);color:var(--ink3)}
+.bom button span:last-child{font:500 11.5px var(--mono);color:var(--ink3)}
+.bom button:hover,.bom button.sel{color:var(--ink);background:color-mix(in srgb,var(--hl) 14%,transparent)}
 
-.card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px}
-.card-head{display:flex;gap:10px;align-items:flex-start}
-.card-no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--hl);color:var(--hl-ink);display:grid;place-items:center;font:600 15px/1 var(--f-num)}
-.card h2{margin:0;font-size:16px;font-weight:700;line-height:1.25}
-.card .jp{font:500 11.5px var(--f-mono);color:var(--muted);margin-top:2px}
-.card .x{margin-left:auto;flex:none;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px}
-.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
-.card dt{color:var(--muted)} .card dd{margin:0;font-family:var(--f-mono);font-size:12px;min-width:0}
-.card p{margin:0;font-size:13px;line-height:1.6;max-width:60ch}
-.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.ev{display:inline-block;font:700 10.5px/1.6 var(--mono);padding:0 5px;border-radius:2px;vertical-align:1px;white-space:nowrap;margin-left:2px}
+.t-fact{background:var(--ok-bg);color:var(--ok)}
+.t-src{background:var(--copper-bg);color:var(--copper)}
+.t-sim{background:color-mix(in srgb,var(--s2) 18%,transparent);color:var(--s2)}
+.t-guess{background:var(--line);color:var(--ink2)}
 
-.side{top:12px;right:max(16px,env(safe-area-inset-right,0px));width:380px;bottom:calc(var(--ctrl-h) + 10px);
-  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;display:flex;flex-direction:column;min-height:0}
-.side-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
-.side-head h3{margin:0;font-size:14px;font-weight:700}
-.side-head h3 small{font:500 12px var(--f-mono);color:var(--muted);margin-left:6px}
-.scroll{overflow:auto;flex:1;min-height:0}
-.row{display:grid;grid-template-columns:26px 1fr auto;gap:2px 10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;color:var(--fg);font:inherit}
-.row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-.row.sel{background:color-mix(in srgb,var(--hl) 18%,transparent)}
-.row .n{grid-column:1;grid-row:1/3;width:22px;height:22px;border-radius:50%;border:1.25px solid var(--fg);display:grid;place-items:center;font:600 12px/1 var(--f-num)}
-.row.sel .n{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
-.row .nm{grid-column:2;grid-row:1;font-size:13px;font-weight:500;min-width:0}
-.row .q{grid-column:3;grid-row:1/3;font:500 12px var(--f-mono);color:var(--muted)}
-.row .m{grid-column:2;grid-row:2;font:400 11px/1.3 var(--f-mono);color:var(--muted);min-width:0}
-
-/* principle panel building blocks */
-.pp{padding:12px;display:flex;flex-direction:column;gap:10px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline;font-size:12.5px;margin:0}
-.kv dt{color:var(--muted)} .kv dd{margin:0;font:500 13px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
-.kv dd b{font:600 16px/1 var(--f-num);letter-spacing:.02em}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font:500 12.5px/1 var(--f-cn);padding:6px 9px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:transparent;text-align:center}
-.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-button.chip{cursor:pointer}
-button.chip:hover{border-color:var(--accent)}
-button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-.expl{font-size:13px;line-height:1.65;margin:0}
-.expl b{font-weight:600}
-.note{font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
-table.st{width:100%;border-collapse:collapse;font:500 12px/1.25 var(--f-mono);font-variant-numeric:tabular-nums}
-table.st th{font:500 11px var(--f-cn);color:var(--muted);text-align:center;padding:4px 2px;border-bottom:1px solid var(--line)}
-table.st td{text-align:center;padding:5px 2px;border-bottom:1px solid var(--line)}
-table.st td.l{text-align:left;font-family:var(--f-cn)}
-table.st tr.cur td{background:color-mix(in srgb,var(--hl) 22%,transparent);font-weight:600}
-.sub{font-size:12px;font-weight:700;margin:2px 0 -4px;color:var(--muted);letter-spacing:.06em}
-canvas.plot{width:100%;height:140px;display:block}
-
-.ctrl{left:0;right:0;bottom:0;padding-block:8px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.bar{max-width:1080px;margin:0 auto;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}
-.bar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tabs{display:inline-flex;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px;background:var(--panel-solid)}
-.tab{font:500 13px/1 var(--f-cn);padding:7px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
-.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.btn{font:500 13px/1 var(--f-cn);padding:8px 11px;border:1px solid var(--line);background:var(--panel-solid);color:var(--fg);border-radius:6px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
-.btn svg{width:13px;height:13px;fill:currentColor}
-select.btn{padding:7px 8px}
-.slider{display:flex;align-items:center;gap:8px;flex:1 1 200px;min-width:170px}
-.slider label{font-size:12px;color:var(--muted);white-space:nowrap}
-.slider input{flex:1;min-width:0;accent-color:var(--accent)}
-.slider output{font:500 12px var(--f-mono);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.cap{font-size:12.5px;line-height:1.55;color:var(--muted);min-width:0}
-.cap b{color:var(--fg);font-weight:500}
-.spacer{flex:1 1 0}
-
-.loading{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
-.loading div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-size:13px;min-width:220px}
-.loading .barl{height:4px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden}
-.loading .barl i{display:block;height:100%;width:0;background:var(--accent)}
-
-@media (max-width:760px){
-  .left{width:calc(100% - 32px)}
-  .tb .hidemob{display:none}
-  .tb{grid-template-columns:1fr 1fr}
-  #info{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(var(--ctrl-h) + 8px + env(safe-area-inset-bottom,0px));width:auto;max-height:40%;overflow:auto;z-index:3}
-  .side{left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;top:auto;max-height:56%;bottom:calc(var(--ctrl-h) + 8px)}
-  #pPanel{max-height:44%}
-  #app.mode-principle .left{display:none}
-  #app.mode-principle #cap{display:none}
-  .pp{gap:8px;padding:10px 12px}
-  .expl{font-size:12.5px;line-height:1.6}
-  .slider{flex-basis:100%}
-  .tab{padding:7px 12px}
-  .mob-hide{display:none}
+section.s{padding-block:44px 8px}
+.s>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em}
+.prose{max-width:46em;color:var(--ink2);margin-top:10px;display:grid;gap:10px}
+.prose b{color:var(--ink)}
+.note{font-size:13.5px;color:var(--ink2);border-left:3px solid var(--copper);padding-left:12px}
+.qbox{max-width:46em;margin-top:14px;display:grid;gap:10px}
+.lab{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:26px;margin-top:20px;align-items:start}
+.lab .ctrls{display:grid;gap:12px;align-content:start;min-width:0}
+.lab .out{display:grid;gap:12px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0}
+.panel h3{font-size:15px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:13.5px;color:var(--ink2)}
+.kv b{font:700 14px var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .big{font-size:22px}
+.kv .bad{color:var(--no)} .kv .good{color:var(--ok)}
+canvas.chart{display:block;width:100%;height:260px}
+canvas.chart.short{height:190px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:4px;border-radius:2px;display:block}
+.tscroll{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;font-size:13.5px;min-width:100%}
+th,td{text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-size:12.5px;color:var(--ink3);font-weight:500}
+tbody th{font-weight:500}
+td{font-variant-numeric:tabular-nums;color:var(--ink2)}
+details{margin-top:10px;font-size:14px;max-width:900px}
+summary{cursor:pointer;color:var(--ink2)}
+.routes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.route{padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;gap:7px;align-content:start;min-width:0}
+.route.main{border-color:var(--copper)}
+.route h3{font-size:16px}
+.route .st{font:700 11.5px var(--mono);color:var(--copper)}
+.route dl{margin:0;display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.route dt{font-weight:700;color:var(--ink);font-size:13px}
+.route dd{margin:0}
+.fail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 30px;margin:16px 0 0;padding:0;list-style:none;max-width:1000px}
+.fail li{font-size:14px;color:var(--ink2);min-width:0}
+.fail b{color:var(--ink);display:block}
+.tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.tiers h3{font-size:14px;margin-bottom:6px}
+.tiers ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink2);display:grid;gap:5px}
+.src{columns:2;column-gap:30px;font-size:13.5px;margin:14px 0 0;padding-left:18px;color:var(--ink2)}
+.src li{break-inside:avoid;margin-bottom:4px}
+footer{padding-block:40px 40px;color:var(--ink3);font-size:13px}
+@media (max-width:960px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:max(360px,70vw);min-height:0}
+  .manual{border-left:0;border-top:1px solid var(--line);max-height:none;min-height:0}
+  .lab,.routes{grid-template-columns:minmax(0,1fr)}
+  .tiers{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fail{grid-template-columns:minmax(0,1fr)}
+  .src{columns:1}
 }
-@media (prefers-reduced-motion: reduce){ #leaders,#tags{transition:none} }
-.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
-.steps li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:6px 8px;border-radius:5px;font-size:12.5px;line-height:1.45;color:var(--muted);cursor:pointer}
-.steps li b{color:var(--fg);font-weight:600}
-.steps li i{font-style:normal;width:20px;height:20px;border-radius:50%;border:1.25px solid currentColor;display:grid;place-items:center;font:600 11.5px/1 var(--f-num)}
-.steps li.cur{background:color-mix(in srgb,var(--hl) 20%,transparent);color:var(--fg)}
-.steps li.cur i{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
-.steps li:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+@media (max-width:520px){
+  .tiers{grid-template-columns:minmax(0,1fr)}
+  .spec{display:none}
+  .tab{font-size:12px}
+  .vhint{display:none}
+}
+.tl{display:flex;height:22px;border-radius:3px;overflow:hidden;background:var(--line);position:relative}
+.tl i{display:block;height:100%}
+.tl .cur{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.tl-cap{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--ink3)}
+.stack{display:flex;height:26px;border-radius:3px;overflow:hidden;background:var(--line)}
+.stack i{display:block;height:100%;min-width:0}
+#ring{width:100%;aspect-ratio:1/0.82;display:block;max-width:440px;border-radius:4px;background:var(--panel);border:1px solid var(--line)}
+.ringrow{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:26px;margin-top:20px;align-items:start}
+@media (max-width:960px){.ringrow{grid-template-columns:minmax(0,1fr)}}
 </style>
 
-<div id="app">
-  <canvas id="c" aria-label="八卡 AI 训练服务器三维模型，可拖动旋转"></canvas>
-  <svg id="leaders" aria-hidden="true"></svg>
-  <div id="tags"></div>
-  <div class="loading" id="loading"><div><span id="ld-t">正在加载模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
-
-  <div class="hud left">
-    <div class="tb" role="group" aria-label="图纸标题栏">
-      <div class="name"><h1>八卡 AI 训练服务器</h1><span class="en">8U · HGX 8-GPU · air cooled</span></div>
-      <div><span class="k">GPU</span><span class="v">8 × SXM5 · 700 W</span></div>
-      <div><span class="k">互连</span><span class="v">4 × NVSwitch · 900 GB/s</span></div>
-      <div class="hidemob"><span class="k">CPU / 内存</span><span class="v">2 路 · 32 × DDR5</span></div>
-      <div class="hidemob"><span class="k">网络 / 电源</span><span class="v">8 × 400G · 6 × 3 kW</span></div>
-    </div>
-    <div id="info" class="card" hidden aria-live="polite">
-      <div class="card-head">
-        <div class="card-no" id="i-no">1</div>
-        <div><h2 id="i-cn">—</h2><div class="jp" id="i-en">—</div></div>
-        <button class="x" id="i-close" aria-label="关闭说明">×</button>
-      </div>
-      <dl><dt>材料</dt><dd id="i-mat">—</dd><dt>数量</dt><dd id="i-qty">—</dd></dl>
-      <p id="i-desc"></p>
-    </div>
-    <div class="hint" id="hint">拖动旋转，滚轮或双指缩放。点零件或编号看说明。</div>
+<header class="top"><div class="wrap">
+  <div>
+    <h1>八块卡，为什么不是八倍快</h1>
+    <p class="lead">这台 8U 训练服务器塞了 8 块 700 W 的 GPU。可除了 GPU，里面还有 4 颗 NVSwitch 芯片、8 张 400G 网卡、10 个风扇。这些"配角"都在解决同一个问题：8 块卡一起训练同一个模型时，大家得不停地互相对答案。</p>
   </div>
+  <div class="spec"><span>GPU</span><b>8 × H100 SXM5</b><span>卡间互连</span><b>NVLink 900 GB/s</b><span>对外网络</span><b>8 × 400 Gb/s</b><span>整机功耗</span><b>约 10 kW</b></div>
+</div></header>
 
-  <section class="hud side" id="bom" hidden aria-label="零件表">
-    <div class="side-head"><h3>零件表<small id="bom-count"></small></h3><button class="btn" id="bom-close">收起</button></div>
-    <div class="scroll" id="bom-list"></div>
-  </section>
-
-  <section class="hud side" id="pPanel" hidden aria-label="训练一步">
-    <div class="side-head"><h3>训练一步<small id="pp-step">1 / 6</small></h3></div>
-    <div class="scroll"><div class="pp">
-      <ol class="steps" id="steps"></ol>
-      <p class="expl" id="expl"></p>
-      <dl class="kv" id="kv"></dl>
-      <div class="legend"><span><i style="background:var(--c3)"></i>数据（PCIe）</span><span><i style="background:var(--c1)"></i>计算</span><span><i style="background:var(--c2)"></i>NVLink</span><span><i style="background:var(--c5)"></i>网络</span><span><i style="background:var(--c4)"></i>供电</span></div>
-      <p class="note">顶盖隐藏，机箱和 GPU 散热器画成半透明；讲到下层主板的几步，GPU 托盘也变半透明。连线是按拓扑画的示意，不是真实走线；带宽、功耗是 H100 这一级服务器的公开典型值。</p>
-    </div></div>
-  </section>
-
-  <div class="hud ctrl" id="ctrl">
-    <div class="bar">
-      <div class="bar-row">
-        <div class="tabs" role="tablist" aria-label="模式">
-          <button class="tab" role="tab" data-mode="struct" aria-selected="true">结构</button>
-          <button class="tab" role="tab" data-mode="principle" aria-selected="false">原理</button>
-          <button class="tab" role="tab" data-mode="model" aria-selected="false">模型</button>
+<div class="bench">
+  <div class="viewport" id="viewport">
+    <canvas id="c" aria-label="八卡 AI 训练服务器三维模型，可拖动旋转，点零件看说明"></canvas>
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="tags"></div>
+    <div class="vhud"><button class="vbtn" id="b-view">复位视角</button><span class="vhint">拖动旋转，滚轮或双指缩放，点零件看说明</span></div>
+    <div class="legend-hud" data-view="gpu" hidden><span><i style="background:var(--c1)"></i>在计算</span><span><i style="background:var(--c2)"></i>在对答案（同步梯度）</span></div>
+    <div class="legend-hud" data-view="nvs" hidden><span><i style="background:var(--c2)"></i>NVLink：GPU ↔ NVSwitch</span><span><i style="background:var(--c4)"></i>只有 PCIe 时走的路</span></div>
+    <div class="legend-hud" data-view="lower" hidden><span><i style="background:var(--c3)"></i>训练数据</span><span><i style="background:var(--c5)"></i>跨机器同步</span></div>
+    <div class="legend-hud" data-view="heat" hidden><span><i style="background:#6fb6ff"></i>冷风</span><span><i style="background:#ff8a3c"></i>带走热以后</span><span><i style="background:var(--c4)"></i>供电</span></div>
+    <div id="loading"><div><span id="ld-t">正在装配模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
+    <div id="tip" hidden></div>
+  </div>
+  <aside class="manual">
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="look" aria-selected="true"><b></b>先猜</button>
+      <button class="tab" role="tab" data-tab="gpu" aria-selected="false" disabled><b></b>各算各的</button>
+      <button class="tab" role="tab" data-tab="nvs" aria-selected="false" disabled><b></b>对答案</button>
+      <button class="tab" role="tab" data-tab="lower" aria-selected="false" disabled><b></b>下层</button>
+      <button class="tab" role="tab" data-tab="heat" aria-selected="false" disabled><b></b>10 kW</button>
+      <button class="tab" role="tab" data-tab="explode" aria-selected="false" disabled><b></b>拆开看</button>
+    </div>
+    <div class="pane" data-pane="look">
+      <h2>先猜：换成 8 卡，一小时能多训练多少？</h2>
+      <p>一块 GPU 一小时能训练 1 亿个 token（文字片段）。同样的模型、同样的代码，换到这台 8 卡服务器上，一小时能训练多少？</p>
+      <div class="quiz" id="q1">
+        <div class="q">
+          <button data-a="a">正好 8 亿，8 块卡就是 8 倍</button>
+          <button data-a="b">接近 8 亿，但要靠卡和卡之间专门的高速连线，只走普通 PCIe 会明显打折</button>
+          <button data-a="c">还是 1 亿左右，一个模型没法分给 8 块卡一起算</button>
+          <button data-a="d">超过 8 亿，因为显存一下多了 8 倍</button>
         </div>
-        <span class="spacer"></span>
-        <button class="btn" id="b-view">复位</button>
+        <button class="linkbtn" data-skip>不猜了，直接看答案</button>
+        <p class="small" id="q1hint" hidden>上次已经答过，后面的步骤都打开了。</p>
+        <div class="qr" hidden>
+          <p class="qnote"></p>
+          <div class="row-c"><button class="btn" data-go="gpu">打开顶盖看 8 块卡</button></div>
+        </div>
       </div>
-      <div class="bar-row grp-struct">
-        <button class="btn primary" id="b-play"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z"/></svg><span id="b-play-t">装配</span></button>
-        <div class="slider"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
-        <button class="btn" id="b-lbl" aria-pressed="true">编号</button>
-        <button class="btn" id="b-bom" aria-pressed="false">零件表</button>
-      </div>
-      <div class="bar-row grp-principle" hidden>
-        <button class="btn primary" id="b-run"><span id="b-run-t">暂停</span></button>
-        <button class="btn" id="b-next">下一步</button>
-        <button class="btn" id="b-air" aria-pressed="false">风道</button>
-        <button class="btn" id="b-pwr" aria-pressed="false">供电</button>
-        <div class="slider"><label for="r-sp">速度</label><input id="r-sp" type="range" min="30" max="250" value="100"><output id="o-sp">1.0×</output></div>
-      </div>
-      <div class="bar-row grp-model" hidden>
-        <button class="btn" id="b-cut" aria-pressed="false">剖切</button>
-
-      </div>
-      <div class="cap" id="cap"></div>
     </div>
-  </div>
+
+    <div class="pane" data-pane="gpu" hidden>
+      <h2>每块卡都有一整份模型，各算一份数据</h2>
+      <p>顶盖拿掉，散热器画成半透明，下面就是 8 块 GPU。最常见的多卡训练叫<b>数据并行</b>：每块卡放一份完整的模型，这一步的训练数据切成 8 份，每块卡算自己那份。<span class="ev t-fact">公认</span></p>
+      <p>每块卡算完会得到一份<b>梯度</b>，也就是"每个参数该往哪边改、改多少"。8 份数据不一样，8 份梯度也不一样。要是各改各的，8 份模型很快就不是同一个模型了，所以每一步都得先把梯度加起来取平均，大家用同一份结果去改。这一步叫<b>同步梯度</b>，同步的时候谁也不能往下算。<span class="ev t-fact">公认</span></p>
+      <div class="tl" id="tl"><i id="tl-c" style="background:var(--c1)"></i><i id="tl-s" style="background:var(--c2)"></i><span class="cur" id="tl-cur"></span></div>
+      <div class="tl-cap"><span id="tl-a">计算</span><span id="tl-b">同步</span></div>
+      <div class="seg" role="group" aria-label="卡间连接"><button data-link="nvlink" aria-pressed="true">有 NVLink</button><button data-link="pcie" aria-pressed="false">只有 PCIe</button></div>
+      <div class="reading"><b id="g-c">—</b><span>算一步（7B 模型，每卡 16k token）</span><b id="g-s">—</b><span>同步梯度</span><b id="g-x">—</b><span>8 卡相当于几块卡</span></div>
+      <p class="small">时间条按比例画，数字按 H100 的公开规格估算，假设写在下半页的实验里。<span class="ev t-sim">本页估算</span></p>
+    </div>
+
+    <div class="pane" data-pane="nvs" hidden>
+      <h2>对答案靠 4 颗 NVSwitch</h2>
+      <p>GPU 托盘中间那排 4 颗芯片就是 NVSwitch。每块 GPU 拉出 18 条 NVLink，分别连到这 4 颗交换芯片上，所以任意两块 GPU 之间都能满速互传，单块卡对外合计 <b>900 GB/s</b>。<span class="ev t-src">资料</span></p>
+      <p>没有 NVLink 的服务器，GPU 之间只能走主板上的 PCIe，一路要绕过 PCIe 交换芯片，有时还要经过 CPU。PCIe 5.0 ×16 单向约 <b>64 GB/s</b>，实际能用上的更少。<span class="ev t-fact">公认</span></p>
+      <div class="seg" role="group" aria-label="同步走哪条路"><button data-route="nvlink" aria-pressed="true">走 NVLink</button><button data-route="pcie" aria-pressed="false">假如只有 PCIe</button></div>
+      <div class="reading"><b id="n-bw">—</b><span>同步时每块卡的有效带宽（估）</span><b id="n-t">—</b><span>7B 模型同步一次梯度（14 GB）</span></div>
+      <p>对答案时每块卡要发出多少数据？不是"把自己的梯度发给另外 7 块"那么多。下半页有个小动画讲环形同步，每块卡只要发出大约 2 份梯度的量，卡再多也一样。<span class="ev t-fact">公认</span></p>
+    </div>
+
+    <div class="pane" data-pane="lower" hidden>
+      <h2>下层：CPU 喂数据，网卡连别的机器</h2>
+      <p>GPU 托盘变成半透明，下面是主板托盘：两颗 CPU、32 根内存、4 颗 PCIe 交换芯片、8 张 400G 网卡。</p>
+      <div class="seg" role="group" aria-label="看哪条路"><button data-path="data" aria-pressed="true">训练数据怎么来</button><button data-path="net" aria-pressed="false">跨机器怎么同步</button></div>
+      <p id="low-x"></p>
+    </div>
+
+    <div class="pane" data-pane="heat" hidden>
+      <h2>10 kW 的热，全靠风吹出去</h2>
+      <p>8 块 GPU 满载约 5.6 kW，加上 CPU、内存、网卡、交换芯片和风扇自己，整机满载约 10 kW，相当于 5 台 2 kW 的电暖器一起开。<span class="ev t-src">资料</span></p>
+      <p>前面 10 个大风扇把冷风抽进来，穿过 GPU 散热器的鳍片，从后面电源旁边吹出去。下层 CPU 区有自己的 4 个风扇。6 个 3 kW 电源是 4 + 2：坏两个还能满载跑。<span class="ev t-src">资料</span></p>
+      <div class="ctl"><input type="checkbox" id="h-full" checked><label for="h-full">满载训练（关掉是空闲）</label></div>
+      <div class="reading"><b id="h-p">—</b><span>整机功耗（估）</span><b id="h-dt">—</b><span>出风比进风热多少（估，按风量 1300 m³/h）</span></div>
+      <p class="small">风扇一坏、进风太热，GPU 会自动降频。同步训练里大家每步都要等最慢的那块卡，一块卡降频，8 块一起慢。<span class="ev t-fact">公认</span></p>
+    </div>
+    <div class="pane" data-pane="explode" hidden>
+      <h2>全部拆开</h2>
+      <p>按维修顺序拆开。点模型上的零件、编号，或下面的名字，都能看到它是干什么的。拆装路线和 Blender 动画是同一份数据。</p>
+      <div class="rng"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
+      <div class="row-c"><button class="btn" id="b-play">装回去</button><button class="btn alt" id="b-lbl" aria-pressed="true">编号</button></div>
+      <div class="bom" id="bom-list"></div>
+    </div>
+    <div class="part" id="partCard" hidden><button class="x" id="i-close" aria-label="关闭说明">×</button><h3><span id="i-cn"></span><small id="i-en"></small></h3><div class="mat" id="i-mat"></div><p id="i-desc"></p></div>
+  </aside>
 </div>
+
+<main id="after" hidden>
+  <section class="s"><div class="wrap">
+    <h2>对答案，每块卡要发多少数据？</h2>
+    <div class="prose">
+      <p>直觉上，8 块卡对答案，每块卡要把自己的梯度发给另外 7 块，卡越多发得越多。实际常用的是<b>环形同步</b>（Ring All-Reduce）：8 块卡排成一个环，梯度切成 8 份，每次只往下一块卡传一份，传 14 次就人人都有了平均好的结果。<span class="ev t-fact">公认</span></p>
+      <p>点"下一步"一格一格看。格子里的数字是"已经加进来几块卡的结果"，到 8 就是加齐了。</p>
+    </div>
+    <div class="ringrow">
+      <canvas id="ring" width="880" height="720" aria-label="环形同步动画"></canvas>
+      <div class="prose" style="margin-top:0">
+        <div class="row-c"><button class="btn" id="r-step">下一步</button><button class="btn alt" id="r-auto" aria-pressed="false">自动播放</button><button class="btn alt" id="r-reset">重来</button>
+          <div class="seg" role="group" aria-label="卡数"><button data-rn="4" aria-pressed="false">4 块卡</button><button data-rn="8" aria-pressed="true">8 块卡</button></div></div>
+        <p id="r-phase" style="font-weight:700;color:var(--ink)"></p>
+        <div class="kv"><span>每块卡已发出</span><b id="r-sent">—</b><span>每块卡要发出的总量</span><b id="r-total">—</b><span>直接"发给其他每一块"要发</span><b id="r-naive">—</b></div>
+        <p>前一半叫 Reduce-Scatter：每传一次，接收的卡把收到的那份加到自己身上。传完 N − 1 次，每块卡各有一份加齐了的梯度。后一半叫 All-Gather：把加齐的那份再沿着环传一圈，人人都拿到全部。<span class="ev t-fact">公认</span></p>
+        <p>每块卡一共发出 2(N − 1) 份，每份是梯度的 1/N，合计 2(N − 1)/N 份梯度。8 块卡是 1.75 份，64 块卡也才 1.97 份。所以同步的快慢主要看<b>每块卡的带宽</b>，而不是卡有多少。<span class="ev t-fact">公认</span></p>
+        <p class="note">真实库（NCCL）会按拓扑选环、树或者让 NVSwitch 自己做加法（NVLink SHARP），但"每块卡要搬约 2 份梯度"这个量级不变。<span class="ev t-src">资料</span></p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>再猜一题：哪个改动影响最大？</h2>
+    <div class="prose"><p>同样 8 块卡，每块卡每步算的数据量不变。下面哪个改动对"8 卡相当于几块卡"影响最大？</p></div>
+    <div class="qbox quiz" id="q2">
+      <div class="q">
+        <button data-a="a">模型从 70 亿参数（7B）换成 700 亿（70B），要同步的梯度多了 10 倍</button>
+        <button data-a="b">卡间连接从 NVLink 换成只有 PCIe</button>
+        <button data-a="c">两个改动差不多</button>
+        <button data-a="d">都影响不大，同步本来就只占一小部分</button>
+      </div>
+      <button class="linkbtn" data-skip>不猜了，直接看</button>
+      <div class="qr" hidden><p class="qnote" style="font-weight:700"></p></div>
+    </div>
+
+    <div id="labBody" hidden>
+      <div class="lab">
+        <div class="ctrls">
+          <div><div class="small">模型大小</div><div class="seg" role="group" aria-label="模型大小" id="l-p"><button data-v="1" aria-pressed="false">1B</button><button data-v="7" aria-pressed="true">7B</button><button data-v="13" aria-pressed="false">13B</button><button data-v="70" aria-pressed="false">70B</button></div></div>
+          <div class="rng"><label for="l-tok">每卡每步</label><input type="range" id="l-tok" min="10" max="16" step="1" value="14"><output id="o-tok">16k token</output></div>
+          <div><div class="small">GPU 数（每台机器 8 块）</div><div class="seg" role="group" aria-label="GPU 数" id="l-n"><button data-v="1">1</button><button data-v="2">2</button><button data-v="4">4</button><button data-v="8" aria-pressed="true">8</button><button data-v="16">16</button><button data-v="32">32</button><button data-v="64">64</button></div></div>
+          <div><div class="small">机器里卡和卡之间</div><div class="seg" role="group" aria-label="机内连接" id="l-intra"><button data-v="nvlink" aria-pressed="true">NVLink + NVSwitch</button><button data-v="pcie" aria-pressed="false">只有 PCIe</button></div></div>
+          <div><div class="small">机器和机器之间（超过 8 卡才用到）</div><div class="seg" role="group" aria-label="机间网络" id="l-nic"><button data-v="8" aria-pressed="true">每块卡一张 400G</button><button data-v="1" aria-pressed="false">整台机器一张 400G</button></div></div>
+          <div class="ctl"><input type="checkbox" id="l-ov"><label for="l-ov">边算边传（反向计算时先同步已经算好的那部分梯度）</label></div>
+        </div>
+        <div class="out">
+          <div class="panel">
+            <h3>一步用时</h3>
+            <div class="stack" id="l-bar"><i style="background:var(--c1)"></i><i style="background:var(--c4)"></i></div>
+            <div class="legend"><span><i style="background:var(--c1)"></i>计算（前向 + 反向）</span><span><i style="background:var(--c4)"></i>等同步（没藏住的那部分）</span></div>
+            <div class="kv">
+              <span>相当于几块卡</span><b class="big" id="l-sp">—</b>
+              <span>扩展效率</span><b id="l-eff">—</b>
+              <span>一步：计算 + 等同步</span><b id="l-t">—</b>
+              <span>同步一次要传的梯度（BF16）</span><b id="l-g">—</b>
+              <span>每块卡要放下的模型状态</span><b id="l-mem">—</b>
+            </div>
+            <p class="small" id="l-memnote"></p>
+          </div>
+          <div class="panel">
+            <h3>卡越多，相当于几块卡（当前设置）</h3>
+            <canvas class="chart" id="l-chart" aria-label="加速比随 GPU 数变化的曲线"></canvas>
+            <div class="legend"><span><i style="background:var(--ink3)"></i>理想：N 块就是 N 倍</span><span><i style="background:var(--s3)"></i>NVLink</span><span><i style="background:var(--s1)"></i>只有 PCIe</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="prose" style="max-width:52em;margin-top:22px">
+        <p><b>模型大小几乎不改变比例。</b>数据并行时，一步的计算量约是 6 × 参数量 × token 数，要同步的梯度是 2 字节 × 参数量。两边都跟参数量成正比，模型变大 10 倍，计算和同步都变长 10 倍，"相当于几块卡"不变。<span class="ev t-fact">公认</span></p>
+        <p><b>真正改变比例的是带宽和每卡每步的数据量。</b>同步时间 ÷ 计算时间 ≈ 算力 ÷（3 × 每卡 token 数 × 带宽），参数量约掉了。把每卡 token 数拖小，或者换成 PCIe，红色那段立刻变长。<span class="ev t-sim">本页估算</span></p>
+        <p><b>模型大小管的是"放不放得下"。</b>混合精度训练，每个参数要占约 16 字节（参数、梯度、优化器状态）。7B 就要 112 GB，超过一块 H100 的 80 GB，只能把这些状态切开分给 8 块卡（ZeRO / FSDP），代价是同步量变成约 1.5 倍。<span class="ev t-src">资料</span></p>
+        <p><b>跨机器时网卡数量很关键。</b>先在机器里用 NVLink 加好，再让每块卡只把自己负责的 1/8 通过自己的网卡发出去。整台机器只有一张网卡的话，这 8 份要排队，切到"整台机器一张"看看 64 卡的效率掉多少。<span class="ev t-sim">本页估算</span></p>
+      </div>
+      <details><summary>这个估算用了哪些假设</summary>
+        <div class="prose" style="max-width:52em"><p>算力：H100 的 BF16 稠密算力 989 TFLOPS，按 40% 的利用率算（Llama 3 在 H100 上报告 38%–43%）。计算量：前向 + 反向 ≈ 6 × 参数量 × token 数。同步：环形同步，每块卡搬 2(N − 1)/N × 梯度大小；有效带宽 NVLink 取 360 GB/s（单向理论值 450 GB/s 的 80%），PCIe 取 25 GB/s（单向理论 64 GB/s，要绕交换芯片和 CPU，这个值是我的估计），400G 网卡取 40 GB/s。跨机器：先在机内同步，再每块卡用自己的网卡同步 1/8；只有一张网卡时整份梯度从这一张卡走。边算边传：反向计算约占一步的 2/3，假设其中 70% 的时间能用来藏通信，且至少有 10% 的通信藏不住（最后一批梯度算完才能传）。显存：只算参数、梯度和 Adam 状态，没算激活值；超过 64 GB（留 16 GB 给激活）就自动切开。没算流水线并行、张量并行，没算数据加载、检查点和故障重启。</p></div>
+      </details>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>让一群 GPU 像一块大 GPU，三条路线</h2>
+    <div class="routes">
+      <article class="route main">
+        <div class="st">训练服务器的主流做法（本机）</div>
+        <h3>机内 NVSwitch 全互连</h3>
+        <dl><dt>做法</dt><dd>8 块 SXM 形态的 GPU 焊在一块基板上，用 NVLink 连到几颗 NVSwitch，任意两块之间满速互传。跨机器靠每卡一张 400G 网卡。<span class="ev t-src">资料</span></dd>
+          <dt>好处</dt><dd>机内同步几乎不拖后腿，8 卡效率能到九成以上。<span class="ev t-sim">本页估算</span></dd>
+          <dt>代价</dt><dd>GPU 只能整板买，单机 10 kW 级，要专门的机房供电和散热。</dd>
+          <dt>失效</dt><dd>超过 8 块就要过网卡，带宽从每卡 450 GB/s 掉到 50 GB/s，要靠分层同步把跨机流量压小。</dd></dl>
+      </article>
+      <article class="route">
+        <div class="st">便宜，多见于推理和小模型（我的判断）</div>
+        <h3>只靠 PCIe</h3>
+        <dl><dt>做法</dt><dd>插卡式 GPU 插在主板 PCIe 槽里，卡间数据走 PCIe 交换芯片。<span class="ev t-fact">公认</span></dd>
+          <dt>好处</dt><dd>机器和 GPU 都便宜、好买，能用普通机架和电源。</dd>
+          <dt>代价</dt><dd>卡间带宽小一个数量级，每卡数据量一小，同步就成了大头。<span class="ev t-sim">本页估算</span></dd>
+          <dt>失效</dt><dd>大模型放不下单卡、必须切开时，切分方式越多同步越频繁，PCIe 最先撑不住。<span class="ev t-guess">推测</span></dd></dl>
+      </article>
+      <article class="route">
+        <div class="st">新一代，正在铺开</div>
+        <h3>整柜一个 NVLink 域</h3>
+        <dl><dt>做法</dt><dd>把 NVSwitch 做成独立的交换托盘，一整个机柜 72 块 GPU 都用 NVLink 互连（GB200 NVL72）。<span class="ev t-src">资料</span></dd>
+          <dt>好处</dt><dd>72 块卡之间都是 NVLink 级带宽，更大的模型可以在柜内切开算。</dd>
+          <dt>代价</dt><dd>一个机柜一百多千瓦，要液冷。<span class="ev t-src">资料</span></dd>
+          <dt>失效</dt><dd>柜和柜之间还是网络，问题只是往外推了一层。<span class="ev t-guess">推测</span></dd></dl>
+      </article>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>依赖哪些前提，什么时候会失效</h2>
+    <ul class="fail">
+      <li><b>每块卡放得下模型</b>纯数据并行要求每块卡放一整份模型和优化器状态（约每参数 16 字节）。放不下就得切开（ZeRO / FSDP、张量并行、流水线并行），同步更频繁，效率要重新算。<span class="ev t-src">资料</span></li>
+      <li><b>每块卡每步有足够多的数据</b>同步时间和数据量无关，计算时间和数据量成正比。卡越加越多、总批量又不能无限变大时，每卡分到的数据变少，同步占比就上来了。<span class="ev t-fact">公认</span></li>
+      <li><b>8 块卡一样快</b>同步训练每一步都要等最慢的那块。一块卡过热降频、一条链路降速，整台机器跟着慢。<span class="ev t-fact">公认</span></li>
+      <li><b>不出故障</b>同步训练里一块卡坏了，整个任务都要停下，从最近的检查点重来。Llama 3 训练的 54 天里有 419 次意外中断，大约八成是硬件问题。<span class="ev t-src">资料</span></li>
+      <li><b>散热跟得上</b>前面风扇墙一停、机房进风太热，GPU 先降频保护自己。风冷 8 卡大约就是 10 kW 级，再往上就得换液冷。<span class="ev t-guess">推测</span></li>
+      <li><b>数据喂得上</b>CPU 读盘、解码、切词跟不上的话，GPU 再快也在空等。这一点本页的估算没算进去。</li>
+    </ul>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>这页内容的证据强弱</h2>
+    <div class="tiers">
+      <div><h3><span class="ev t-fact">公认</span> 教科书级</h3><ul><li>数据并行每步要同步梯度</li><li>环形同步每卡搬 2(N − 1)/N 份梯度</li><li>训练计算量约 6 × 参数量 × token 数</li><li>同步训练要等最慢的卡</li></ul></div>
+      <div><h3><span class="ev t-src">资料</span> 有来源，不是定论</h3><ul><li>H100、NVLink、DGX H100 的规格来自 NVIDIA 官方页面，是标称值</li><li>每参数 16 字节来自 ZeRO 论文的混合精度 Adam</li><li>Llama 3 的利用率和故障次数是一次训练的报告</li></ul></div>
+      <div><h3><span class="ev t-sim">本页估算</span> 初步</h3><ul><li>实验里的用时和效率是按公式算的，不是实测</li><li>有效带宽（NVLink 360、PCIe 25、网卡 40 GB/s）是按理论值打折取的</li><li>"边算边传"能藏住多少是粗略假设</li></ul></div>
+      <div><h3><span class="ev t-guess">推测</span> 我的判断</h3><ul><li>PCIe 机型多用于推理</li><li>整柜 NVLink 把瓶颈推到柜间</li><li>风冷 10 kW 级是上限附近</li></ul></div>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>来源</h2>
+    <ol class="src">
+      <li><a href="https://www.nvidia.com/en-us/data-center/h100/" target="_blank" rel="noopener">NVIDIA H100 Tensor Core GPU（规格表）</a></li>
+      <li><a href="https://docs.nvidia.com/dgx/dgxh100-user-guide/introduction-to-dgxh100.html" target="_blank" rel="noopener">NVIDIA DGX H100 User Guide：硬件概览</a></li>
+      <li><a href="https://github.com/NVIDIA/nccl-tests/blob/master/doc/PERFORMANCE.md" target="_blank" rel="noopener">NCCL Tests：algbw 与 busbw 的换算</a></li>
+      <li><a href="https://arxiv.org/abs/1802.05799" target="_blank" rel="noopener">Sergeev & Del Balso 2018：Horovod（环形同步）</a></li>
+      <li><a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noopener">Kaplan et al. 2020：Scaling Laws（计算量 ≈ 6ND）</a></li>
+      <li><a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">Rajbhandari et al. 2020：ZeRO（每参数 16 字节）</a></li>
+      <li><a href="https://arxiv.org/abs/2006.15704" target="_blank" rel="noopener">Li et al. 2020：PyTorch DDP（边算边传）</a></li>
+      <li><a href="https://arxiv.org/abs/2407.21783" target="_blank" rel="noopener">Llama Team 2024：The Llama 3 Herd of Models</a></li>
+      <li><a href="https://www.nvidia.com/en-us/data-center/gb200-nvl72/" target="_blank" rel="noopener">NVIDIA GB200 NVL72</a></li>
+    </ol>
+  </div></section>
+  <footer><div class="wrap">模型由 Blender 脚本 build_ai_server.py 生成，32 个零件。外形参照 HGX H100 八卡服务器的公开资料，不对应某一款具体产品。实验里的数字是按公式估算的。</div></footer>
+</main>
 
 <script>window.__GLB_B64="__GLB_BASE64__";</script>
 <script type="importmap">
@@ -247,12 +454,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-/* ═══════════════════════ shared viewer core ═══════════════════════
+/* ═══════════════════════ shared core ═══════════════════════
    The glb comes from the Blender build script. Every top-level node is one part with extras:
    part_no, name_cn, material_spec, desc, ex = [[dx, dy, dz, s], ...] (glTF axes, mm).
    Explode formula (same as Blender / Unreal): each leg eases in over T ∈ [0.6 s, 0.6 s + 0.4].
-   The project section further down (PROJ) adds the 原理 mode and its own panel. */
+   The page is a list of views (tabs). PROJ.views[key] = { dir, explode, cut, hide, fit, margin };
+   PROJ.enter(key) / leave(key) / tick(dt, key) / pose(key) do the project-specific part. */
 const $ = id => document.getElementById(id);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const D2R = Math.PI/180, MM = 0.001;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -260,9 +469,11 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
 const smooth = x => { x = clamp(x, 0, 1); return x*x*(3-2*x); };
 const prog = (t,s) => ease(clamp((t - s*.6)/.4, 0, 1));
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch { /* 隐私模式没有存储，不影响使用 */ } } };
+const fmt = (v, d = 0) => Number(v).toFixed(d);
 
 /* ───────── renderer / scene ───────── */
-const canvas = $('c');
+const canvas = $('c'), vp = $('viewport');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -290,8 +501,8 @@ const root = new THREE.Group(); scene.add(root);
 let cutPlane = new THREE.Plane(new THREE.Vector3(0,0,-1), 0);
 
 /* ───────── state ───────── */
-const st = { mode:'struct', t:1, tTarget:null, labels: innerWidth >= 760, sel:null, hover:null, moved:false,
-  running:!prefersReduced, speed:1, cut:false };
+const st = { view:null, mode:'model', t:0, tTarget:null, labels:true, sel:null, hover:null, moved:false,
+  running:!prefersReduced, speed:1, cut:false, unlocked:false };
 let PROJ = null;
 let parts = [], items = [], meshes = [], model = null;
 const itemByName = new Map(), partByNo = new Map();
@@ -311,7 +522,7 @@ async function load(){
       if(total) $('ld-b').style.width = (100*got/total).toFixed(0) + '%'; }
     b64 = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
   }
-  $('ld-t').textContent = '正在解码模型…';
+  $('ld-t').textContent = '正在装配模型…';
   await new Promise(r=>setTimeout(r, 30));
   const bin = atob(b64.trim()), buf = new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
@@ -329,7 +540,7 @@ function setup(gltf){
       p = { no:u.part_no, cn:u.name_cn, en, m:u.material_spec, desc:u.desc, items:[] }; partByNo.set(u.part_no, p);
     }
     const ex = JSON.parse(u.ex || '[]').map(e=>({ v:new THREE.Vector3(e[0],e[1],e[2]).multiplyScalar(MM), s:e[3] }));
-    // holder at the origin: explode moves it, the 原理 mode turns / slides it; the node keeps the file's transform
+    // holder at the origin: explode moves it, the views turn / slide it; the node keeps the file's transform
     const holder = new THREE.Group(); holder.name = node.name + '_holder'; model.add(holder); holder.add(node);
     const it = { obj:holder, node, name:node.name, ex, part:p, u, meshes:[] };
     p.items.push(it); items.push(it); itemByName.set(node.name, it);
@@ -346,7 +557,7 @@ function setup(gltf){
   PROJ.init && PROJ.init();
   buildUI();
   $('loading').hidden = true;
-  setMode('struct', true);
+  go(PROJ.first || 'look', true);
 }
 
 /* helpers for the project section */
@@ -367,8 +578,9 @@ function restBox(it){
   for(const me of it.meshes){ if(!me.geometry.boundingBox) me.geometry.computeBoundingBox(); b.union(me.geometry.boundingBox.clone().applyMatrix4(me.matrixWorld)); }
   return b;
 }
-/** colour overrides used by the 原理 mode: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
+/** colour overrides: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
 function setLook(it, look){
+  if(!it) return;
   for(const me of it.meshes) for(const m of [].concat(me.material)){
     const L = look || {};
     m.color.copy(L.color ?? m.userData.color0);
@@ -379,6 +591,7 @@ function setLook(it, look){
   }
   for(const me of it.meshes){ me.castShadow = !(look && look.opacity < 1); }
 }
+function resetLooks(){ for(const it of items){ setLook(it, null); it.obj.visible = true; } }
 
 /* ───────── pose ───────── */
 function applyPose(){
@@ -388,45 +601,33 @@ function applyPose(){
     it.obj.quaternion.identity();
     for(const e of it.ex) p.addScaledVector(e.v, prog(tt, e.s));
   }
-  if(PROJ.pose) PROJ.pose(st.mode);
+  if(PROJ.pose && st.mode !== 'struct') PROJ.pose(st.view);
 }
 function orientRoot(){
   const portrait = canvas.clientWidth / canvas.clientHeight < .85;
   root.rotation.set(0, 0, 0);
-  if(PROJ.portrait && st.mode !== 'principle' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
+  if(PROJ.portrait && st.mode === 'struct' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
   root.updateMatrixWorld(true);
 }
 
-/* ───────── camera fit ───────── */
-const ctrlEl = $('ctrl'), leftEl = document.querySelector('.left'), app = $('app');
-const view = { top:0, bottom:0, right:0, left:0 };
-function sidePanel(){ return st.mode === 'principle' ? $('pPanel') : $('bom'); }
+/* ───────── camera fit (with a short glide between views) ───────── */
+const view = { top:40, bottom:0, right:0, left:0 };
 function measure(){
-  const W = canvas.clientWidth, narrow = W < 760, ar = app.getBoundingClientRect();
-  const ch = Math.max(0, ar.bottom - ctrlEl.getBoundingClientRect().top);
-  document.documentElement.style.setProperty('--ctrl-h', ch + 'px');
-  const tb = document.querySelector('.tb').getBoundingClientRect();
-  view.bottom = ch; view.top = narrow ? Math.max(0, tb.bottom - ar.top) + 6 : 0;
-  const sp = sidePanel();
-  if(narrow){
-    if(!sp.hidden) view.bottom = Math.max(view.bottom, ar.bottom - sp.getBoundingClientRect().top + 6);
-    if(!$('info').hidden) view.bottom = Math.max(view.bottom, ar.bottom - $('info').getBoundingClientRect().top + 6);
-    view.right = 0; view.left = 0;
-  } else {
-    view.right = !sp.hidden ? sp.offsetWidth + 16 : 0;
-    view.left = W >= 900 ? Math.min(W*.3, leftEl.getBoundingClientRect().right - ar.left + 8) : 0;
-  }
-}
-function setOffset(){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  camera.setViewOffset(W, H, (view.right - view.left)/2, (view.bottom - view.top)/2, W, H);
+  const lg = document.querySelector('.legend-hud:not([hidden])');
+  view.top = 40;
+  view.bottom = lg ? lg.offsetHeight + 16 : 8;
 }
 function project(p3){ const v = p3.clone().project(camera); return [ (v.x+1)/2*canvas.clientWidth, (1-v.y)/2*canvas.clientHeight ]; }
-function fitMeshes(){ return PROJ.fitMeshes ? PROJ.fitMeshes(st.mode) : meshes; }
+function curView(){ return PROJ.views[st.view] || {}; }
+function fitMeshes(){
+  const f = curView().fit;
+  if(!f) return meshes;
+  return (typeof f === 'function' ? f() : f).flatMap(n => (itemByName.get(n) || { meshes:[] }).meshes);
+}
 function computeFit(tv, dir, margin){
   const tSave = st.t; st.t = tv; applyPose(); root.updateMatrixWorld(true); st.t = tSave;
   const W = canvas.clientWidth, H = canvas.clientHeight;
-  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin, ay1 = H - view.bottom - margin;
+  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin*.6, ay1 = H - view.bottom - margin*.6;
   const corners = [], bb = new THREE.Box3(), all = new THREE.Box3();
   for(const me of fitMeshes()){
     if(!visibleMesh(me)) continue;
@@ -435,57 +636,71 @@ function computeFit(tv, dir, margin){
     for(const x of [bb.min.x,bb.max.x]) for(const y of [bb.min.y,bb.max.y]) for(const z of [bb.min.z,bb.max.z]) corners.push(new THREE.Vector3(x,y,z));
   }
   applyPose(); root.updateMatrixWorld(true);
+  if(all.isEmpty()) return null;
   const target = all.getCenter(new THREE.Vector3());
   let dist = all.getSize(new THREE.Vector3()).length() * 1.6;
   const right = new THREE.Vector3(), up = new THREE.Vector3();
+  const cam = camera.clone();
   for(let k=0;k<7;k++){
-    camera.position.copy(target).addScaledVector(dir, dist); camera.lookAt(target);
-    camera.near = dist/60; camera.far = dist*8; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    cam.position.copy(target).addScaledVector(dir, dist); cam.lookAt(target);
+    cam.near = dist/60; cam.far = dist*8; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
     let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
-    for(const c of corners){ const [px,py] = project(c); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
+    for(const c of corners){ const v = c.clone().project(cam); const px = (v.x+1)/2*W, py = (1-v.y)/2*H; x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
     const sc = Math.max((x1-x0)/Math.max(60,ax1-ax0), (y1-y0)/Math.max(60,ay1-ay0));
-    const wpp = 2*dist*Math.tan(camera.fov*D2R/2)/H;
-    right.setFromMatrixColumn(camera.matrixWorld,0); up.setFromMatrixColumn(camera.matrixWorld,1);
+    const wpp = 2*dist*Math.tan(cam.fov*D2R/2)/H;
+    right.setFromMatrixColumn(cam.matrixWorld,0); up.setFromMatrixColumn(cam.matrixWorld,1);
     target.addScaledVector(right, ((x0+x1)/2 - (ax0+ax1)/2)*wpp).addScaledVector(up, -((y0+y1)/2 - (ay0+ay1)/2)*wpp);
     dist *= sc*.97;
   }
   return { target, dist, center: all.getCenter(new THREE.Vector3()), size: all.getSize(new THREE.Vector3()) };
 }
 let F0 = null, F1 = null, FDIR = null;
-function fit(){
-  orientRoot(); measure(); setOffset();
-  FDIR = PROJ.dirs[st.mode].clone().normalize();
-  const W = canvas.clientWidth;
+const glide = { on:false, k:1, p0:new THREE.Vector3(), t0:new THREE.Vector3() };
+function fit(animate){
+  orientRoot(); measure();
+  const V = curView();
+  FDIR = (V.dir || new THREE.Vector3(1,.6,1)).clone().normalize();
+  const W = canvas.clientWidth, m = V.margin ?? Math.min(48, W*.06);
   if(st.mode === 'struct'){ F0 = computeFit(0, FDIR, Math.min(64, W*.08)); F1 = computeFit(1, FDIR, st.labels ? 46 : 22); }
-  else { F0 = F1 = computeFit(0, FDIR, st.mode === 'principle' ? (PROJ.principleMargin ?? 36) : Math.min(56, W*.07)); }
+  else F0 = F1 = computeFit(0, FDIR, m);
+  if(!F0 || !F1) return;
+  if(animate && !prefersReduced){ glide.on = true; glide.k = 0; glide.p0.copy(camera.position); glide.t0.copy(controls.target); }
+  else glide.on = false;
   autoFrame(true);
-  // shadow camera follows the model size
   const c = F1.center, s = Math.max(F0.size.length(), F1.size.length()) * .75;
   key.position.copy(c).add(new THREE.Vector3(.2, 1, .4).multiplyScalar(s*1.4)); key.target.position.copy(c);
   Object.assign(key.shadow.camera, { left:-s, right:s, top:s, bottom:-s, near:s*.05, far:s*5 }); key.shadow.camera.updateProjectionMatrix();
   controls.maxDistance = Math.max(F0.dist, F1.dist) * 4; controls.minDistance = Math.min(F0.dist, F1.dist) * .08;
 }
-const _t = new THREE.Vector3();
+const _t = new THREE.Vector3(), _p = new THREE.Vector3();
 function autoFrame(force){
   if(!F0 || (st.moved && !force)) return;
   const k = st.mode === 'struct' ? ease(Math.min(1, st.t/.82)) : 0;
   _t.lerpVectors(F0.target, F1.target, k);
   const d = F0.dist + (F1.dist - F0.dist)*k;
-  controls.target.copy(_t); camera.position.copy(_t).addScaledVector(FDIR, d);
+  _p.copy(_t).addScaledVector(FDIR, d);
+  if(glide.on){
+    const g = smooth(glide.k);
+    // swing around the target instead of cutting through the model
+    const a = glide.p0.clone().sub(glide.t0), b = _p.clone().sub(_t), la = a.length(), lb = b.length();
+    const dirv = a.normalize().lerp(b.normalize(), g).normalize();
+    controls.target.lerpVectors(glide.t0, _t, g);
+    camera.position.copy(controls.target).addScaledVector(dirv, la + (lb - la)*g);
+  } else { controls.target.copy(_t); camera.position.copy(_p); }
   camera.near = d/60; camera.far = d*8; camera.updateProjectionMatrix();
 }
 function visibleMesh(me){ let o = me; while(o){ if(!o.visible) return false; o = o.parent; } return true; }
-function relayout(){ measure(); setOffset(); if(!st.moved) fit(); }
+function relayout(){ measure(); if(!st.moved) fit(false); }
 function resize(){
   const W = canvas.clientWidth, H = canvas.clientHeight; if(!W || !H) return;
   renderer.setSize(W, H, false); camera.aspect = W/H;
   if(!model){ camera.updateProjectionMatrix(); return; }
-  measure(); setOffset(); if(!st.moved) fit(); else camera.updateProjectionMatrix();
+  measure(); if(!st.moved) fit(false); else camera.updateProjectionMatrix();
   PROJ.resize && PROJ.resize();
 }
-controls.addEventListener('start', ()=>{ st.moved = true; });
+controls.addEventListener('start', ()=>{ st.moved = true; glide.on = false; });
 
-/* ───────── balloons ───────── */
+/* ───────── balloons (explode view) ───────── */
 const svgNS = 'http://www.w3.org/2000/svg';
 const leaders = $('leaders'), tagsEl = $('tags');
 let lab = [];
@@ -499,13 +714,15 @@ function buildUI(){
     lab.push({ p, b, ln, dot, x:0, y:0, init:false });
   }
   const list = $('bom-list');
-  $('bom-count').textContent = `${parts.length} 种 · ${parts.reduce((a,p)=>a+p.qty,0)} 件`;
   for(const p of parts){
-    const el = document.createElement('button'); el.className = 'row'; el.type = 'button';
-    el.innerHTML = `<span class="n">${p.no}</span><span class="nm"></span><span class="q">×${p.qty}</span><span class="m"></span>`;
-    el.querySelector('.nm').textContent = p.cn; el.querySelector('.m').textContent = p.m;
+    const el = document.createElement('button'); el.type = 'button';
+    el.innerHTML = `<b>${p.no}</b><span></span><span>×${p.qty}</span>`;
+    el.children[1].textContent = p.cn;
     el.addEventListener('click', ()=>select(p)); list.appendChild(el); p.row = el;
   }
+  // number the tabs
+  $$('#tabs .tab').forEach((t, i) => { t.querySelector('b').textContent = i + 1; t.addEventListener('click', () => go(t.dataset.tab)); });
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
   PROJ.buildUI && PROJ.buildUI();
 }
 const box = new THREE.Box3(), anchorBox = new THREE.Box3();
@@ -520,13 +737,13 @@ function updateLabels(){
     for(const L of lab){
       anchorBox.makeEmpty().expandByObject(L.p.items[0].obj);
       const [ax, ay] = project(anchorBox.getCenter(new THREE.Vector3()));
-      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W - view.right || ay < view.top || ay > H - view.bottom;
+      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W || ay < view.top || ay > H - view.bottom;
       let dx = ax - cx, dy = ay - cy; const dl = Math.hypot(dx,dy) || 1; dx/=dl; dy/=dl;
       L.tx = ax + dx*42; L.ty = ay + dy*38;
       if(!L.init){ L.x = L.tx; L.y = L.ty; }
       L.nx = L.x + (L.tx - L.x)*.5; L.ny = L.y + (L.ty - L.y)*.5;
     }
-    const minX = view.left + 12, maxX = W - view.right - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
+    const minX = 12, maxX = W - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
     for(let k=0;k<8;k++){
       for(let i=0;i<lab.length;i++) for(let j=i+1;j<lab.length;j++){
         const a = lab[i], b = lab[j]; if(a.off || b.off) continue;
@@ -546,24 +763,30 @@ function updateLabels(){
       const on = st.sel === L.p; L.b.classList.toggle('sel', on); L.ln.classList.toggle('sel', on); L.dot.classList.toggle('sel', on);
     }
   } else for(const L of lab) L.init = false;
-  PROJ.labels && PROJ.labels(st.mode === 'principle');
 }
-/* floating text tags used by the 原理 mode: tag(text, cls) → { el, pos:Vector3 (model space) } */
+/* floating 3D labels: tag(text) → { el, pos:Vector3 (model space), on } ; every view starts with all of them off */
 const tagList = [];
 function tag(text, style){
-  const el = document.createElement('span'); el.className = 'tag'; el.textContent = text; el.hidden = true;
+  const el = document.createElement('span'); el.className = 'lbl3d'; el.textContent = text; el.hidden = true;
   if(style) Object.assign(el.style, style);
-  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false }; tagList.push(T); return T;
+  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false, obj:null }; tagList.push(T); return T;
 }
+/** label that follows an item's bounding-box centre (plus an offset in metres) */
+function tagItem(text, it, off, style){ const T = tag(text, style); T.obj = it; T.off = off || ZERO; return T; }
 function placeTags(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
   for(const T of tagList){
-    const show = st.mode === 'principle' && T.on; T.el.hidden = !show; if(!show) continue;
-    const [x, y] = project(T.pos.clone().applyMatrix4(root.matrixWorld));
+    if(!T.on){ T.el.hidden = true; continue; }
+    if(T.obj){ anchorBox.makeEmpty().expandByObject(T.obj.obj); anchorBox.getCenter(T.pos); T.pos.add(T.off); }
+    const v = T.pos.clone().project(camera);
+    const x = (v.x+1)/2*W, y = (1-v.y)/2*H;
+    T.el.hidden = v.z > 1 || x < -40 || x > W + 40 || y < 0 || y > H;
     T.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
   }
 }
+const tagsOff = () => { for(const T of tagList) T.on = false; };
 
-/* ───────── selection ───────── */
+/* ───────── selection / part card / hover tip ───────── */
 const hl = new THREE.Color();
 function paint(){
   hl.set(css('--hl') || '#d6860b');
@@ -578,15 +801,12 @@ function paint(){
   }
 }
 function select(p){
-  if(st.mode === 'principle' && !PROJ.selectInPrinciple) p = null;
   st.sel = p; paint();
   for(const q of parts) q.row && q.row.classList.toggle('sel', q === p);
-  const info = $('info'), was = info.hidden;
-  if(!p){ info.hidden = true; $('hint').hidden = st.mode === 'principle'; if(!was && canvas.clientWidth < 760) relayout(); return; }
-  $('i-no').textContent = p.no; $('i-cn').textContent = p.cn; $('i-en').textContent = p.en;
-  $('i-mat').textContent = p.m; $('i-qty').textContent = p.qty + ' 件'; $('i-desc').textContent = p.desc;
-  info.hidden = false; $('hint').hidden = true;
-  if(canvas.clientWidth < 760){ if(!$('bom').hidden) toggleBom(false); else relayout(); }
+  if(!p){ $('partCard').hidden = true; return; }
+  $('i-cn').textContent = `${p.no}. ${p.cn}`; $('i-en').textContent = p.en;
+  $('i-mat').textContent = `${p.m}${p.qty > 1 ? ' · ' + p.qty + ' 件' : ''}`; $('i-desc').textContent = p.desc;
+  $('partCard').hidden = false;
 }
 $('i-close').addEventListener('click', ()=>select(null));
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -603,64 +823,121 @@ function pick(e){
   }
   return null;
 }
+const tipEl = $('tip');
 let down = null;
 canvas.addEventListener('pointerdown', e=>{ down = { x:e.clientX, y:e.clientY }; });
 canvas.addEventListener('pointerup', e=>{ if(model && down && Math.hypot(e.clientX-down.x, e.clientY-down.y) < 6) select(pick(e)); down = null; });
 canvas.addEventListener('pointermove', e=>{
   if(!model || e.pointerType !== 'mouse' || e.buttons) return;
-  if(st.mode === 'principle' && !PROJ.selectInPrinciple) return;
-  const p = pick(e); if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+  const p = pick(e);
+  if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+  if(p){ const r = vp.getBoundingClientRect(); tipEl.textContent = p.cn; tipEl.hidden = false;
+    tipEl.style.left = `${Math.min(e.clientX - r.left + 14, r.width - 140)}px`; tipEl.style.top = `${e.clientY - r.top + 14}px`; }
+  else tipEl.hidden = true;
 });
-canvas.addEventListener('pointerleave', ()=>{ if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
+canvas.addEventListener('pointerleave', ()=>{ tipEl.hidden = true; if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
 
-/* ───────── modes ───────── */
+/* ───────── views (tabs) ───────── */
 function applyClip(){
+  const V = curView();
   for(const me of meshes){
     const it = me.userData.item;
-    const cut = st.mode === 'model' && st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
-    const planes = cut ? [cutPlane] : (st.mode === 'principle' && me.userData.clip) || [];
+    const cut = st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
+    const planes = cut ? [cutPlane] : (me.userData.clip || []);
     for(const mt of [].concat(me.material)){ mt.clippingPlanes = planes; mt.clipIntersection = !cut && !!me.userData.clipIntersection; }
   }
 }
-function setMode(m, first){
-  const prev = st.mode;
-  if(!first && prev === 'principle' && m !== 'principle') PROJ.leave && PROJ.leave();
-  st.mode = m;
-  app.className = 'mode-' + m;
-  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t.dataset.mode === m)));
-  document.querySelector('.grp-struct').hidden = m !== 'struct';
-  document.querySelector('.grp-principle').hidden = m !== 'principle';
-  document.querySelector('.grp-model').hidden = m !== 'model';
-  $('cap').innerHTML = PROJ.caps[m];
-  $('pPanel').hidden = m !== 'principle';
-  if(m !== 'struct') $('bom').hidden = true, $('b-bom').setAttribute('aria-pressed','false');
-  for(const it of items) it.obj.visible = !(m === 'principle' && PROJ.hide && PROJ.hide.has(it.part.no));
-  if(m === 'principle'){ select(null); $('hint').hidden = true; if(prev !== 'principle' || first) PROJ.enter && PROJ.enter(); }
-  else { if(st.sel && !st.sel.items[0].obj.visible) select(null); $('hint').hidden = !$('info').hidden; }
+function go(k, first){
+  if(!PROJ.views[k]) return;
+  if(k !== (PROJ.first || 'look') && !st.unlocked) return;
+  const prev = st.view;
+  if(prev && prev !== k) PROJ.leave && PROJ.leave(prev);
+  st.view = k;
+  const V = PROJ.views[k];
+  st.mode = V.explode ? 'struct' : 'model';
+  $$('#tabs .tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === k)));
+  $$('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== k; });
+  tipEl.hidden = true;
+  resetLooks(); tagsOff();
+  for(const me of meshes) delete me.userData.clip;
+  st.cut = !!V.cut;
+  if(V.hide) for(const it of items) if(V.hide.has(it.part.no)) it.obj.visible = false;
+  if(st.sel && !st.sel.items[0].obj.visible) select(null);
+  if(V.explode){ st.t = 0; st.tTarget = prefersReduced ? null : 1; if(prefersReduced) st.t = 1; syncEx(); }
+  PROJ.enter && PROJ.enter(k, prev);
   applyClip();
-  ground.visible = m !== 'principle' || !!PROJ.groundInPrinciple;
+  ground.visible = V.ground !== false;
   st.moved = false;
   paint();
-  fit();
+  const lg = $$('.legend-hud'); lg.forEach(el => { el.hidden = el.dataset.view !== k; });
+  fit(!first);
+  if(!first && innerWidth < 960 && vp.getBoundingClientRect().top < -40) vp.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block:'start' });
 }
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(model && t.dataset.mode !== st.mode) setMode(t.dataset.mode); }));
-$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(); });
+$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(true); });
 
-/* struct controls */
-const rEx = $('r-ex'), oEx = $('o-ex'), playT = $('b-play-t');
-function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; playT.textContent = st.t > .5 ? '装配' : '爆炸'; }
+/* explode controls */
+const rEx = $('r-ex'), oEx = $('o-ex'), bPlay = $('b-play');
+function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; bPlay.textContent = st.t > .5 ? '装回去' : '拆开'; }
 rEx.addEventListener('input', ()=>{ st.tTarget = null; st.t = rEx.value/100; syncEx(); });
-$('b-play').addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
-const bLbl = $('b-lbl'); bLbl.setAttribute('aria-pressed', String(st.labels));
-bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); });
-function toggleBom(on){ $('bom').hidden = !on; $('b-bom').setAttribute('aria-pressed', String(on)); relayout(); }
-$('b-bom').addEventListener('click', ()=>toggleBom($('bom').hidden));
-$('bom-close').addEventListener('click', ()=>toggleBom(false));
+bPlay.addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
+const bLbl = $('b-lbl');
+bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); if(!st.moved) fit(false); });
 
-/* model controls */
-$('b-cut').addEventListener('click', e=>{
-  st.cut = !st.cut; e.currentTarget.setAttribute('aria-pressed', String(st.cut)); applyClip();
-});
+/* ───────── quizzes ─────────
+   markup: <div class="quiz" id="q1"><div class="q"><button data-a="a">…</button>…</div>
+           <button class="linkbtn" data-skip>不猜了，直接看答案</button><div class="qr" hidden><p class="qnote"></p>…</div></div> */
+function quiz(id, right, notes, onDone){
+  const box = $(id), btns = $$('.q button', box), skip = box.querySelector('[data-skip]'), qr = box.querySelector('.qr'), note = box.querySelector('.qnote');
+  const finish = (a, guessed) => {
+    btns.forEach(x => { x.disabled = true; x.classList.toggle('right', x.dataset.a === right); x.classList.toggle('wrong', guessed && x.dataset.a === a && a !== right); });
+    note.innerHTML = guessed ? notes[a] : (notes.answer || notes[right].replace(/^猜对了。/, '答案：'));
+    qr.hidden = false; if(skip) skip.hidden = true;
+    onDone && onDone(a, guessed);
+  };
+  btns.forEach(b => b.addEventListener('click', () => finish(b.dataset.a, true)));
+  skip && skip.addEventListener('click', () => finish(right, false));
+  return { reveal: () => finish(right, false) };
+}
+function unlock(){
+  if(st.unlocked) return;
+  st.unlocked = true;
+  $$('#tabs .tab').forEach(t => t.disabled = false);
+  $('after').hidden = false;
+  store.set(PROJ.key + '.q1', '1');
+  PROJ.unlocked && PROJ.unlocked();
+}
+
+/* ───────── small chart helper (2D canvas, theme tokens) ─────────
+   chart(canvas, { x:[x0,x1], y:[y0,y1], xt:[ticks], yt:[ticks], xf, yf, xl, yl,
+                   lines:[{ pts:[[x,y]…] , color, w, dash, fill }], bands:[{x0,x1,color}], marks:[{x,color,label}] }) */
+function chart(cv, o){
+  const dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
+  if(!W || !H) return;
+  if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const L = o.left ?? 52, R = 12, T = 12, B = o.xl ? 40 : 26;
+  const X = v => L + (v - o.x[0])/(o.x[1]-o.x[0])*(W-L-R), Y = v => H - B - (v - o.y[0])/(o.y[1]-o.y[0])*(H-T-B);
+  const ink3 = css('--ink3'), line = css('--line'), ink = css('--ink');
+  g.font = `500 11px ${css('--mono')}`; g.fillStyle = ink3; g.strokeStyle = line; g.lineWidth = 1;
+  for(const b of o.bands || []){ g.fillStyle = b.color; g.fillRect(X(b.x0), T, X(b.x1)-X(b.x0), H-T-B); if(b.label){ g.fillStyle = ink3; g.textAlign = 'center'; g.fillText(b.label, (X(b.x0)+X(b.x1))/2, T + 11); } }
+  g.fillStyle = ink3;
+  for(const v of o.yt || []){ const y = Y(v); g.beginPath(); g.moveTo(L, y+.5); g.lineTo(W-R, y+.5); g.stroke(); g.textAlign = 'right'; g.fillText(o.yf ? o.yf(v) : v, L-6, y+4); }
+  for(const v of o.xt || []){ const x = X(v); g.textAlign = 'center'; g.fillText(o.xf ? o.xf(v) : v, x, H-B+15); g.beginPath(); g.moveTo(x+.5, H-B); g.lineTo(x+.5, H-B+4); g.stroke(); }
+  if(o.zero !== undefined){ g.strokeStyle = ink3; g.beginPath(); g.moveTo(L, Y(o.zero)+.5); g.lineTo(W-R, Y(o.zero)+.5); g.stroke(); }
+  g.save(); g.beginPath(); g.rect(L, T, W-L-R, H-T-B); g.clip();
+  for(const s of o.lines || []){
+    if(!s.pts.length) continue;
+    g.beginPath(); s.pts.forEach(([x,y], i) => i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y)));
+    if(s.fill){ g.lineTo(X(s.pts[s.pts.length-1][0]), Y(s.base ?? 0)); g.lineTo(X(s.pts[0][0]), Y(s.base ?? 0)); g.closePath(); g.fillStyle = s.fill; g.fill(); }
+    else { g.strokeStyle = s.color; g.lineWidth = s.w || 2; g.setLineDash(s.dash || []); g.stroke(); g.setLineDash([]); }
+  }
+  for(const m of o.marks || []){ g.strokeStyle = m.color || ink; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(m.x)+.5, T); g.lineTo(X(m.x)+.5, H-B); g.stroke(); if(m.label){ g.fillStyle = m.color || ink; g.textAlign = 'left'; g.fillText(m.label, X(m.x)+4, T+11); } }
+  g.restore();
+  g.fillStyle = ink3; g.font = `400 12px ${css('--sans')}`;
+  if(o.xl){ g.textAlign = 'center'; g.fillText(o.xl, L + (W-L-R)/2, H-4); }
+  if(o.yl){ g.save(); g.translate(12, T + (H-T-B)/2); g.rotate(-Math.PI/2); g.textAlign = 'center'; g.fillText(o.yl, 0, 0); g.restore(); }
+  return { X, Y };
+}
 
 /* theme */
 function themeSync(){ st.shadowA = parseFloat(css('--shadow-a')) || .22; if(model){ PROJ.theme && PROJ.theme(); paint(); } }
@@ -669,7 +946,7 @@ new MutationObserver(themeSync).observe(document.documentElement, { attributes:t
 
 /* ═══════════════════════ project section ═══════════════════════ */
 /* ── AI 服务器 ──
-   Blender: +Z up, -Y = front panel (fans, drives), +Y = back (PSUs, NIC ports); Z 0 = chassis floor, lid top 355.6.
+   Blender: +Z up, -Y = front panel (fans, drives), +Y = back (PSUs, NIC ports); Z 0 = chassis floor.
    Upper level: GPU tray (HGX baseboard Z ≈ 185, 8 GPUs in 2 rows at Y -190 / 110, 4 NVSwitch at Y -40).
    Lower level: motherboard (Z ≈ 12): 2 CPUs, 4 DIMM rows, 4 PCIe switches at Y 110, 2 × 4 NICs at the back.
    glTF (x, y, z) = (x, z, -y). Points below are Blender mm. */
@@ -684,54 +961,56 @@ const PT = {
   nic: [B(-161,335,60), B(170,335,60)], out: [B(-161,620,60), B(170,620,60)],
   psu: B(0,330,230), gtray: B(0,-40,186), mtray: B(0,60,14),
 };
-const STEPS = [
-  { t:'读数据', col:'--c3', lower:true, parts:['P05_Drives','P23_CPU_1','P23_CPU_2','P25_DIMM_A','P25_DIMM_B','P25_DIMM_C','P25_DIMM_D'],
-    arcs:() => [[PT.drives, PT.cpu[0]], [PT.drives, PT.cpu[1]], [PT.cpu[0], PT.dimm[0]], [PT.cpu[0], PT.dimm[1]], [PT.cpu[1], PT.dimm[2]], [PT.cpu[1], PT.dimm[3]]],
-    x:'CPU 从 NVMe 硬盘读下一批训练数据（图片、文本），解码、切块、做数据增强，先放在 DDR5 内存里。这一步 GPU 帮不上忙，所以 CPU 核多、内存大。',
-    kv:[['NVMe 读速', '8 块 × 约 10 GB/s'], ['内存', '32 根 DDR5，约 2 TB']] },
-  { t:'送进 GPU', col:'--c3', lower:true, parts:['P23_CPU_1','P23_CPU_2','P21_MbTray','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
-    arcs:() => [...[0,1,2,3].map(i => [PT.cpu[i < 2 ? 0 : 1], PT.sw[i]]), ...[0,1,2,3].flatMap(i => [[PT.sw[i], PT.gpu[i]], [PT.sw[i], PT.gpu[i+4]]])],
-    x:'整理好的一批数据经 PCIe 交换芯片分给 8 块 GPU，每块拿 1/8（数据并行）。交换芯片把 CPU 的 PCIe 通道“分叉”，每颗连 2 块 GPU 和 2 张网卡。',
-    kv:[['PCIe 5.0 ×16', '约 64 GB/s（每个方向）'], ['每块 GPU 拿到', '这一批的 1/8']] },
-  { t:'前向 + 反向计算', col:'--c1', parts:['P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'], heat:1,
-    arcs:() => [],
-    x:'每块 GPU 用自己那份数据跑一遍模型（前向），算出误差，再反过来算每个参数该怎么改（反向，得到梯度）。90% 以上是矩阵乘法，交给 Tensor Core。数据和参数都在紧贴芯片的 HBM 里，搬得够快芯片才不会闲着。',
-    kv:[['HBM3 带宽', '约 3.35 TB/s（每块）'], ['每块功耗', '约 700 W'], ['8 块合计', '约 5.6 kW']] },
-  { t:'NVLink 同步梯度', col:'--c2', parts:['P09_GpuTray','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
-    arcs:() => PT.gpu.flatMap(g => PT.nvs.map(n => [g, n])), both:true,
-    x:'8 块 GPU 各自算出的梯度不一样，要加起来取平均（All-Reduce），大家才能用同一份结果更新参数。每块 GPU 拉 18 条 NVLink 到 4 颗 NVSwitch，任意两块之间都能满速互传，比走 PCIe 快十几倍。',
-    kv:[['NVLink（每块 GPU）', '900 GB/s'], ['NVSwitch', '4 颗，全互连']] },
-  { t:'跨机器同步', col:'--c5', lower:true, parts:['P21_MbTray','P26_NIC_L','P26_NIC_R','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
-    arcs:() => [...[0,1,2,3].flatMap(i => [[PT.gpu[i], PT.sw[i]], [PT.gpu[i+4], PT.sw[i]]]), ...[0,1,2,3].map(i => [PT.sw[i], PT.nic[i < 2 ? 0 : 1]]), [PT.nic[0], PT.out[0]], [PT.nic[1], PT.out[1]]], both:true,
-    x:'大模型要几十上百台机器一起训练，机器之间也得交换梯度。一块 GPU 配一张 400G 网卡，网卡用 RDMA 直接读写对方 GPU 的显存（GPUDirect），数据不用绕到 CPU。',
-    kv:[['每张网卡', '400 Gb/s ≈ 50 GB/s'], ['整机', '8 张 = 3.2 Tb/s']] },
-  { t:'更新参数', col:'--c1', parts:['P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'], heat:.6,
-    arcs:() => [],
-    x:'每块 GPU 用平均后的梯度更新自己那份参数，8 块卡的参数又一模一样了。然后回到第 1 步取下一批数据。一次训练要重复几十万到几百万步。',
-    kv:[['一步用时', '几百毫秒到几秒'], ['一次训练', '几十万步以上']] },
-];
-const S = { k:0, t:0, air:false, pwr:false, heat:0 };
+const GPUS = [1,2,3,4,5,6,7,8].map(i => 'P11_GPU_' + i);
+
+/* ── training-step model (shared by the 3D timeline and the lab) ── */
+const TF = 989e12 * 0.40, BWI = { nvlink:360e9, pcie:25e9 }, NICBW = 40e9;
+function stepModel({ P, tok, N, intra, nics, overlap }){
+  const comp = 6*P*tok/TF;
+  const need = 16*P;                       // bytes of weights + grads + Adam states
+  const fsdp = need > 64e9 && N > 1;
+  const S = 2*P * (fsdp ? 1.5 : 1);        // bytes each GPU must move ~ per all-reduce (× 2(N-1)/N below)
+  let comm = 0;
+  if(N > 1 && N <= 8) comm = 2*(N-1)/N * S / BWI[intra];
+  else if(N > 8){
+    const nn = N/8;
+    comm = 2*7/8 * S / BWI[intra] + 2*(nn-1)/nn * (S/8) / (NICBW * nics/8);
+  }
+  const hide = overlap ? Math.max(comm*.1, comm - comp*(2/3)*.7) : comm;
+  const T = comp + hide;
+  return { comp, comm, exposed:hide, T, sp: N*comp/T, eff: comp/T, mem: (fsdp ? need/N : need), fsdp, need };
+}
+
+const S = { link:'nvlink', route:'nvlink', path:'data', full:true, ph:0, phT:0 };
 let G = {};
-const STEP_T = 4.2;
 
 PROJ = {
+  key: 'aisrv',
   glbFile: 'ai_server_glb.txt',
-  dirs: { struct:V3(1,.8,.45), model:V3(1,.55,.6), principle:V3(1,.95,.3) },
-  hide: new Set([2]),
-  principleMargin: 18,
-  caps: {
-    struct: '<b>结构</b>：滑杆按维修顺序拆开：掀顶盖 → 拔风扇和硬盘 → 抽电源 → GPU 托盘往前抽、8 块 GPU 排成两层看台 → 主板托盘往后抽。点部件看它在整台机器里干什么。',
-    principle: '<b>原理</b>：训练一步，数据在机器里怎么走：读数据 → 送进 GPU → 计算 → NVLink 同步 → 跨机同步 → 更新。“风道”看风怎么把 10 kW 的热带走。',
-    model: '<b>模型</b>：装配状态自由旋转。“剖切”竖着切掉一半（沿前后方向），看上下两层托盘、风扇墙和电源的位置。',
+  views: {
+    look:  { dir:V3(.75,.55,1), margin:40 },
+    gpu:   { dir:V3(.55,1.25,.75), hide:new Set([2]), fit:['P09_GpuTray', ...GPUS], margin:28 },
+    nvs:   { dir:V3(.25,1.6,.55), hide:new Set([2]), fit:['P09_GpuTray', ...GPUS], margin:56 },
+    lower: { dir:V3(.6,1.05,.85), hide:new Set([2,15]), fit:['P21_MbTray','P05_Drives','P26_NIC_L','P26_NIC_R'], margin:56 },
+    heat:  { dir:V3(1,.6,.4), hide:new Set([2]), margin:60 },
+    explode: { dir:V3(1,.8,.45), explode:true },
   },
   init(){
     cutPlane = new THREE.Plane(V3(-1,0,0), 0);
-    G.ghost = [['P01_Chassis', .12], ['P03_GpuFanWall', .35], ['P04_CpuFans', .35], ...IS('P15_GpuHeatsink').map(it => [it.name, .28])].map(([n, o]) => [I(n), o]);
-    G.sinks = IS('P15_GpuHeatsink');
-    G.arcs = new THREE.Group(); G.arcs.visible = false; model.add(G.arcs);
-    G.air = new THREE.Group(); G.air.visible = false; model.add(G.air);
+    G.arcs = new THREE.Group(); model.add(G.arcs); G.dotList = [];
     G.dotGeo = new THREE.SphereGeometry(5.5*MM, 10, 8);
+    G.sinks = IS('P15_GpuHeatsink');
+    // labels
+    G.tGpu = GPUS.map((n, i) => tagItem('GPU ' + (i+1), I(n), V3(0, .03, 0)));
+    G.tNvs = PT.nvs.map((p, i) => { const T = tag(i === 0 ? 'NVSwitch' : 'NVSwitch'); T.pos.copy(p).add(V3(0, .012, 0)); return T; });
+    G.tLow = [
+      ['CPU', PT.cpu[0]], ['CPU', PT.cpu[1]], ['内存', PT.dimm[1]], ['PCIe 交换芯片', PT.sw[1]], ['PCIe 交换芯片', PT.sw[2]],
+      ['4 张 400G 网卡', PT.nic[0]], ['4 张 400G 网卡', PT.nic[1]], ['NVMe 硬盘', PT.drives],
+    ].map(([t, p]) => { const T = tag(t); T.pos.copy(p).add(V3(0, .02, 0)); return T; });
+    G.tHeat = [['风扇墙（10 个）', I('P03_GpuFanWall'), V3(0,.04,.02)], ['电源 × 6', I('P07_PSUs'), V3(0,.05,0)], ['CPU 风扇', I('P04_CpuFans'), V3(0,.02,0)]]
+      .map(([t, it, o]) => tagItem(t, it, o));
     // airflow streaks: GPU level and CPU level, front (+z) to back (-z)
+    G.air = new THREE.Group(); G.air.visible = false; model.add(G.air);
     const streak = new THREE.BoxGeometry(4*MM, 4*MM, 26*MM);
     G.airDots = [];
     for(let i=0;i<160;i++){
@@ -741,73 +1020,277 @@ PROJ = {
       G.airDots.push({ m, up, x:(Math.random()*2-1)*.2, y: up ? .2 + Math.random()*.13 : .03 + Math.random()*.13, z: .46 - Math.random()*.92, v: .16 + Math.random()*.06 });
     }
   },
-  fitMeshes(mode){ return mode === 'principle' ? ['P09_GpuTray','P21_MbTray','P07_PSUs','P03_GpuFanWall','P05_Drives'].flatMap(n => I(n).meshes) : meshes; },
   buildUI(){
-    const ol = $('steps');
-    G.stepEls = STEPS.map((s, i) => { const li = document.createElement('li'); li.innerHTML = `<i>${i+1}</i><span><b>${s.t}</b></span>`; li.addEventListener('click', () => go(i)); ol.appendChild(li); return li; });
-    $('b-run').addEventListener('click', () => { st.running = !st.running; syncRun(); });
-    $('b-next').addEventListener('click', () => go((S.k + 1) % STEPS.length));
-    $('b-air').addEventListener('click', e => { S.air = !S.air; e.currentTarget.setAttribute('aria-pressed', String(S.air)); G.air.visible = S.air && st.mode === 'principle'; });
-    $('b-pwr').addEventListener('click', e => { S.pwr = !S.pwr; e.currentTarget.setAttribute('aria-pressed', String(S.pwr)); go(S.k, true); });
-    $('r-sp').addEventListener('input', e => { st.speed = e.target.value/100; $('o-sp').textContent = st.speed.toFixed(1) + '×'; });
-    syncRun();
+    const segBind = (attr, fn) => $$(`[data-${attr}]`).forEach(b => b.addEventListener('click', () => {
+      $$(`[data-${attr}]`).forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset[attr]); }));
+    segBind('link', v => { S.link = v; S.ph = 0; S.phT = 0; timeline(); });
+    segBind('route', v => { S.route = v; drawNvs(); });
+    segBind('path', v => { S.path = v; drawLower(); });
+    $('h-full').addEventListener('change', e => { S.full = e.target.checked; heatRead(); });
+    quiz('q1', 'b', {
+      a: '差一点。8 块卡各算一份数据，算完必须先对一遍答案（同步梯度），这段时间谁都不能往下走。这台机器的 NVLink 能把这段时间压到几个百分点，但不是零。',
+      b: '猜对了。每一步算完，8 块卡都要把各自的梯度加起来取平均。这台机器专门为这一步装了 4 颗 NVSwitch，下面一步步拆开看。',
+      c: '其实可以：每块卡放一份完整的模型，各算一份不同的数据，这叫数据并行，是最常见的做法。代价是每一步都要停下来对一次答案。',
+      d: '显存多了确实能用更大的批量，偶尔会有超过 8 倍的情况。但每一步都要停下来对答案，一般拿不到 8 倍以上。',
+    }, unlock);
+    timeline(); heatRead();
   },
-  theme(){ if(st.mode === 'principle') go(S.k, true); },
-  enter(){ for(const [it, o] of G.ghost) setLook(it, { opacity:o }); G.arcs.visible = true; G.air.visible = S.air; go(S.k, true); },
-  leave(){ for(const it of items) setLook(it, null); G.arcs.visible = false; G.air.visible = false; paint(); },
-  tick(dt, mode){
-    if(mode !== 'principle') return;
-    if(st.running){ S.t += dt*st.speed; if(S.t > STEP_T) go((S.k + 1) % STEPS.length); }
-    const sp = st.speed;
-    for(const d of G.dotList){ d.u = (d.u + dt*d.speed*sp) % 1; d.curve.getPointAt(d.both && d.rev ? 1 - d.u : d.u, d.m.position); }
-    // heat follows the compute steps, heat sinks glow with it
-    const target = STEPS[S.k].heat ?? .25;
-    S.heat += (target - S.heat) * Math.min(1, dt*1.5);
-    const hot = new THREE.Color(css('--c4')), pulse = STEPS[S.k].heat ? .75 + .25*Math.sin(performance.now()/180) : 1;
-    for(const it of G.sinks) for(const me of it.meshes) for(const m of [].concat(me.material)){ m.userData.glow = hot; m.userData.glowI = S.heat * .55 * pulse; }
-    if(S.air) for(const a of G.airDots){
-      a.z -= a.v*dt*sp; if(a.z < -.47){ a.z = .46; a.x = (Math.random()*2-1)*.2; }
-      a.m.position.set(a.x, a.y, a.z);
-      // warms up after crossing the heat sinks (GPU level) or the CPU coolers
-      const warm = a.up ? clamp((.27 - a.z)/.45, 0, 1) * (.3 + S.heat) : clamp((.11 - a.z)/.2, 0, 1) * .5;
-      a.m.material.color.setRGB(.44 + .56*clamp(warm,0,1), .71 - .3*clamp(warm,0,1), 1 - .75*clamp(warm,0,1));
+  unlocked(){ if(G.labInit) return; G.labInit = true; initRing(); initLab(); },
+  enter(k){
+    G.arcs.clear(); G.dotList = []; G.air.visible = false;
+    const ghost = (n, o) => setLook(I(n), { opacity:o });
+    if(k === 'look') return;
+    if(k !== 'explode') ghost('P01_Chassis', .12);
+    if(k === 'gpu' || k === 'nvs'){
+      for(const it of G.sinks) setLook(it, { opacity:.18 });
+      ghost('P03_GpuFanWall', .3); ghost('P04_CpuFans', .3); ghost('P07_PSUs', .35);
+      G.tGpu.forEach(T => T.on = true);
+      if(k === 'gpu'){ S.ph = 0; S.phT = 0; timeline(); }
+      if(k === 'nvs'){ G.tNvs.forEach(T => T.on = true); G.tGpu.forEach((T, i) => T.on = i === 0 || i === 7); drawNvs(); }
     }
-    paint();
+    if(k === 'lower'){
+      ghost('P09_GpuTray', .14); GPUS.forEach(n => ghost(n, .14)); ghost('P03_GpuFanWall', .25); ghost('P07_PSUs', .3);
+      G.tLow.forEach(T => T.on = true); drawLower();
+    }
+    if(k === 'heat'){
+      for(const it of G.sinks) setLook(it, { opacity:.5 });
+      G.air.visible = true; G.tHeat.forEach(T => T.on = true); heatRead();
+    }
+  },
+  leave(){ G.arcs.clear(); G.dotList = []; G.air.visible = false; },
+  theme(){ if(st.view && st.view !== 'explode') go(st.view); },
+  tick(dt, k){
+    const sp = prefersReduced ? 0 : 1;
+    for(const d of G.dotList){ d.u = (d.u + dt*d.speed*sp) % 1; d.curve.getPointAt(d.both && d.rev ? 1 - d.u : d.u, d.m.position); }
+    if(k === 'gpu') cycle(dt);
+    if(k === 'heat'){
+      const hot = S.full ? 1 : .15;
+      const pulse = .8 + .2*Math.sin(performance.now()/300);
+      const c = new THREE.Color(css('--c4'));
+      for(const it of G.sinks) for(const me of it.meshes) for(const m of [].concat(me.material)){ m.userData.glow = c; m.userData.glowI = .45*hot*pulse; }
+      for(const a of G.airDots){
+        a.z -= a.v*dt*(prefersReduced ? 0 : 1); if(a.z < -.47){ a.z = .46; a.x = (Math.random()*2-1)*.2; }
+        a.m.position.set(a.x, a.y, a.z);
+        const warm = a.up ? clamp((.27 - a.z)/.45, 0, 1) * (.15 + .85*hot) : clamp((.11 - a.z)/.2, 0, 1) * .5*hot;
+        a.m.material.color.setRGB(.44 + .56*warm, .71 - .25*warm, 1 - .78*warm);
+      }
+      paint();
+    }
   },
 };
-PROJ.state = S;
-function syncRun(){ $('b-run-t').textContent = st.running ? '暂停' : '播放'; }
 
-function go(k, force){
-  S.k = k; S.t = 0;
-  const s = STEPS[k];
-  G.stepEls.forEach((el, i) => el.classList.toggle('cur', i === k));
-  $('pp-step').textContent = `${k+1} / ${STEPS.length}`;
-  $('expl').innerHTML = `<b>${k+1}. ${s.t}</b>：${s.x}` + (S.pwr ? ' <b>供电</b>：6 个 3 kW 电源（4 + 2 冗余）经配电板和铜排送到两层托盘，GPU 上的供电模块再把电压降到 1 V 左右、几百安培。' : '');
-  $('kv').innerHTML = [...s.kv, ...(S.pwr ? [['整机满载', '约 10 kW']] : [])].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
-  for(const it of items) if(!G.ghost.some(([g]) => g === it)) setLook(it, null);
-  for(const [it, o] of G.ghost) setLook(it, { opacity:o });
-  const col = css(s.col);
-  for(const n of s.parts){ const it = I(n); if(it && !G.ghost.some(([g]) => g === it)) setLook(it, { emissive:col, ei:.45 }); }
-  if(S.pwr){ const it = I('P07_PSUs'); setLook(it, { emissive:css('--c4'), ei:.35 }); }
-  if(s.lower) setLook(I('P09_GpuTray'), { opacity:.22 });   // see through the GPU tray down to the motherboard
-  // arcs + moving dots
+/* arcs with moving dots */
+function arc(a, b, color, both, slow){
+  const mid = a.clone().lerp(b, .5); mid.y += Math.max(.03, a.distanceTo(b) * .25);
+  const curve = new THREE.QuadraticBezierCurve3(a, mid, b), len = curve.getLength();
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 2*MM, 6, false), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.45, depthWrite:false, depthTest:false }));
+  tube.renderOrder = 3; G.arcs.add(tube);
+  const n = Math.max(2, Math.round(len/.06));
+  for(let j=0;j<n;j++){
+    const m = new THREE.Mesh(G.dotGeo, new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.95, depthWrite:false, depthTest:false }));
+    m.renderOrder = 4; G.arcs.add(m);
+    G.dotList.push({ m, curve, u:j/n, speed:(slow ? .03 : .14)/len, both, rev: both && j % 2 === 1 });
+  }
+}
+const glowParts = (names, col, ei = .5) => names.forEach(n => setLook(I(n), { emissive:col, ei }));
+
+/* step 2: one training step as a loop: compute (amber) → sync (green) */
+function timeline(){
+  const m = stepModel({ P:7e9, tok:16384, N:8, intra:S.link, nics:8, overlap:false });
+  const tot = m.comp + m.comm;
+  $('tl-c').style.width = (100*m.comp/tot).toFixed(1) + '%';
+  $('tl-s').style.width = (100*m.comm/tot).toFixed(1) + '%';
+  $('g-c').textContent = m.comp.toFixed(2) + ' s'; $('g-s').textContent = m.comm.toFixed(2) + ' s';
+  $('g-x').textContent = m.sp.toFixed(1) + ' 块';
+  $('tl-a').textContent = `计算 ${(100*m.comp/tot).toFixed(0)}%`; $('tl-b').textContent = `同步 ${(100*m.comm/tot).toFixed(0)}%`;
+  G.cyc = { comp:3.2, sync: Math.max(.35, 3.2*m.comm/m.comp), frac: m.comp/tot };
+}
+function cycle(dt){
+  if(!G.cyc) return;
+  S.phT += dt * (prefersReduced ? 0 : 1);
+  const c = G.cyc, total = c.comp + c.sync + .25;
+  if(S.phT > total) S.phT = 0;
+  const inSync = S.phT > c.comp && S.phT <= c.comp + c.sync;
+  const u = S.phT <= c.comp ? (S.phT/c.comp)*c.frac : inSync ? c.frac + (S.phT - c.comp)/c.sync*(1 - c.frac) : 1;
+  $('tl-cur').style.left = `calc(${(100*u).toFixed(1)}% - 1px)`;
+  const ph = inSync ? 1 : 0;
+  if(ph !== S.ph || !G.dotList.length && ph === 1){
+    S.ph = ph; G.arcs.clear(); G.dotList = [];
+    if(ph === 1){
+      const col = new THREE.Color(css('--c2'));
+      if(S.link === 'nvlink') for(const g of PT.gpu) for(const n of PT.nvs) arc(g, n, col, true);
+      else { const red = new THREE.Color(css('--c4')); PT.gpu.forEach((g, i) => arc(g, PT.sw[i % 4], red, true, true)); PT.sw.forEach((s, i) => arc(s, PT.cpu[i < 2 ? 0 : 1], red, true, true)); }
+      glowParts(GPUS, css('--c2'), .45);
+    } else glowParts(GPUS, css('--c1'), .55);
+    for(const it of G.sinks) setLook(it, { opacity:.18 });
+    paint();
+  }
+  if(ph === 0){
+    const p = .75 + .25*Math.sin(performance.now()/160);
+    for(const n of GPUS) for(const me of I(n).meshes) for(const m of [].concat(me.material)) m.userData.glowI = .5*p;
+    paint();
+  }
+}
+
+/* step 3: NVLink vs PCIe routes */
+function drawNvs(){
   G.arcs.clear(); G.dotList = [];
-  const add = (a, b, color, both) => {
-    const mid = a.clone().lerp(b, .5); mid.y += Math.max(.03, a.distanceTo(b) * .25);
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b), len = curve.getLength();
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 2*MM, 6, false), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.45, depthWrite:false, depthTest:false }));
-    tube.renderOrder = 3; G.arcs.add(tube);
-    const n = Math.max(2, Math.round(len/.06));
-    for(let j=0;j<n;j++){
-      const m = new THREE.Mesh(G.dotGeo, new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.95, depthWrite:false, depthTest:false }));
-      m.renderOrder = 4; G.arcs.add(m);
-      G.dotList.push({ m, curve, u:j/n, speed:.12/len, both, rev: both && j % 2 === 1 });
-    }
-  };
-  for(const [a, b] of s.arcs()) add(a, b, new THREE.Color(col), !!s.both);
-  if(S.pwr) for(const t of [PT.gtray, PT.mtray]) add(PT.psu, t, new THREE.Color(css('--c4')), false);
+  const m = stepModel({ P:7e9, tok:16384, N:8, intra:S.route, nics:8, overlap:false });
+  if(S.route === 'nvlink'){
+    const col = new THREE.Color(css('--c2'));
+    for(const g of PT.gpu) for(const n of PT.nvs) arc(g, n, col, true);
+    glowParts(['P09_GpuTray'], css('--c2'), .25); setLook(I('P21_MbTray'), null);
+  } else {
+    const red = new THREE.Color(css('--c4'));
+    PT.gpu.forEach((g, i) => arc(g, PT.sw[i % 4], red, true, true)); PT.sw.forEach((s, i) => arc(s, PT.cpu[i < 2 ? 0 : 1], red, true, true));
+    setLook(I('P09_GpuTray'), { opacity:.3 }); glowParts(['P23_CPU_1','P23_CPU_2'], css('--c4'), .35);
+  }
+  $('n-bw').textContent = (BWI[S.route]/1e9).toFixed(0) + ' GB/s';
+  $('n-t').textContent = m.comm.toFixed(2) + ' s';
   paint();
+}
+
+/* step 4: lower deck paths */
+function drawLower(){
+  G.arcs.clear(); G.dotList = [];
+  for(const n of ['P05_Drives','P23_CPU_1','P23_CPU_2','P25_DIMM_A','P25_DIMM_B','P25_DIMM_C','P25_DIMM_D','P26_NIC_L','P26_NIC_R','P21_MbTray']) setLook(I(n), null);
+  if(S.path === 'data'){
+    const c = new THREE.Color(css('--c3'));
+    [[PT.drives, PT.cpu[0]], [PT.drives, PT.cpu[1]], [PT.cpu[0], PT.dimm[1]], [PT.cpu[1], PT.dimm[3]]].forEach(([a, b]) => arc(a, b, c, false));
+    PT.sw.forEach((s, i) => { arc(PT.cpu[i < 2 ? 0 : 1], s, c, false); arc(s, PT.gpu[i], c, false); arc(s, PT.gpu[i + 4], c, false); });
+    glowParts(['P05_Drives','P23_CPU_1','P23_CPU_2','P25_DIMM_A','P25_DIMM_B','P25_DIMM_C','P25_DIMM_D'], css('--c3'), .4);
+    $('low-x').innerHTML = 'CPU 从 NVMe 硬盘读下一批训练数据，解码、切词、打乱，先放进内存，再经 PCIe 交换芯片分给 8 块 GPU。这一步 GPU 帮不上忙，所以 CPU 核多、内存大（这类机器常配 2 TB）。<span class="ev t-src">资料</span> 数据要是喂不上，GPU 再快也在空等。';
+  } else {
+    const c = new THREE.Color(css('--c5'));
+    PT.sw.forEach((s, i) => { arc(PT.gpu[i], s, c, true); arc(PT.gpu[i + 4], s, c, true); arc(s, PT.nic[i < 2 ? 0 : 1], c, true); });
+    PT.nic.forEach((n, i) => arc(n, PT.out[i], c, true));
+    glowParts(['P26_NIC_L','P26_NIC_R'], css('--c5'), .45);
+    $('low-x').innerHTML = '一台机器 8 块卡不够时，几十上百台机器一起训练，机器之间也要对答案。每块 GPU 配一张 400G 网卡，和它挂在同一颗 PCIe 交换芯片下。网卡用 RDMA 直接读写对方机器 GPU 的显存，数据不用绕到 CPU。<span class="ev t-src">资料</span> 400 Gb/s 约 50 GB/s，比 NVLink 慢得多，所以先在机器里用 NVLink 加好，每块卡只把 1/8 送出去。';
+  }
+  paint();
+}
+
+/* step 5: power and heat */
+function heatRead(){
+  const p = S.full ? 10.2 : 2.4;
+  $('h-p').textContent = `约 ${p.toFixed(1)} kW`;
+  // ΔT = P / (ρ c_p Q): air 1.2 kg/m³, 1005 J/(kg·K), 1300 m³/h
+  $('h-dt').textContent = `约 ${(p*1000/(1.2*1005*1300/3600)).toFixed(0)} °C`;
+  glowParts(['P07_PSUs'], css('--c4'), S.full ? .35 : .1);
+  paint();
+}
+
+/* ── ring all-reduce toy ── */
+function initRing(){
+  const cv = $('ring'), g = cv.getContext('2d');
+  const R = { n:8, step:0, t:1, auto:false, sent:0 };
+  let acc = [], full = [];
+  const reset = () => { R.step = 0; R.t = 1; R.sent = 0; acc = []; for(let i=0;i<R.n;i++){ acc.push(Array(R.n).fill(1)); } paintRing(); readR(); };
+  const total = () => 2*(R.n - 1);
+  function readR(){
+    const ph = R.step === 0 ? '还没开始：每块卡只有自己那份梯度（每格都是 1）' : R.step <= R.n - 1 ? `第一半 Reduce-Scatter：第 ${R.step} / ${R.n - 1} 次传递，收到的那份加到自己身上` : `第二半 All-Gather：第 ${R.step - R.n + 1} / ${R.n - 1} 次传递，把加齐的那份抄一圈`;
+    $('r-phase').textContent = R.step === total() ? `完成：每块卡的 ${R.n} 格都是 ${R.n}，人人拿到同一份平均梯度` : ph;
+    $('r-sent').textContent = `${R.step} 份 = ${(R.step/R.n).toFixed(2)} 个梯度`;
+    $('r-total').textContent = `${total()} 份 = ${(total()/R.n).toFixed(2)} 个梯度`;
+    $('r-naive').textContent = `${R.n - 1} 个梯度`;
+  }
+  function doStep(){
+    if(R.step >= total()) return;
+    const s = R.step, next = acc.map(r => r.slice());
+    for(let i=0;i<R.n;i++){
+      const to = (i + 1) % R.n;
+      if(s < R.n - 1){ const c = ((i - s) % R.n + R.n) % R.n; next[to][c] = acc[to][c] + acc[i][c]; }
+      else { const c = ((i + 1 - (s - R.n + 1)) % R.n + R.n) % R.n; next[to][c] = acc[i][c]; }
+    }
+    G.ringPrev = acc; acc = next; R.step++; R.t = 0; readR();
+  }
+  function chunkOf(i, s){ return s < R.n - 1 ? ((i - s) % R.n + R.n) % R.n : ((i + 1 - (s - R.n + 1)) % R.n + R.n) % R.n; }
+  function paintRing(){
+    const dpr = 1, W = cv.width, H = cv.height; g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
+    const cx = W/2, cy = H/2 + 6, rad = Math.min(W, H)*.36;
+    const ink = css('--ink'), ink3 = css('--ink3'), line = css('--line'), panel = css('--bg');
+    const cols = [css('--s1'), css('--s2'), css('--s3'), css('--s4'), css('--c1'), css('--c5'), css('--c2'), css('--c4')];
+    const pos = i => { const a = -Math.PI/2 + i*2*Math.PI/R.n; return [cx + rad*Math.cos(a), cy + rad*Math.sin(a)]; };
+    g.strokeStyle = line; g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, rad, 0, Math.PI*2); g.stroke();
+    const cw = R.n === 8 ? 17 : 28, bw = cw*R.n + 10, bh = 58;
+    for(let i=0;i<R.n;i++){
+      const [x, y] = pos(i);
+      g.fillStyle = panel; g.strokeStyle = ink3; g.lineWidth = 1.5;
+      g.beginPath(); g.roundRect(x - bw/2, y - bh/2, bw, bh, 6); g.fill(); g.stroke();
+      g.fillStyle = ink; g.font = `700 15px ${css('--mono')}`; g.textAlign = 'center'; g.fillText(`GPU ${i+1}`, x, y - 10);
+      for(let c=0;c<R.n;c++){
+        const v = acc[i][c], fx = x - bw/2 + 5 + c*cw;
+        g.globalAlpha = .18 + .82*(v/R.n); g.fillStyle = cols[c]; g.fillRect(fx, y + 2, cw - 2, 20); g.globalAlpha = 1;
+        g.fillStyle = v === R.n ? '#fff' : ink; g.font = `700 ${R.n === 8 ? 11 : 13}px ${css('--mono')}`; g.fillText(v, fx + (cw-2)/2, y + 17);
+      }
+    }
+    // chunks in flight
+    if(R.t < 1 && R.step > 0){
+      const s = R.step - 1, k = smooth(R.t);
+      for(let i=0;i<R.n;i++){
+        const [x0, y0] = pos(i), [x1, y1] = pos((i + 1) % R.n), c = chunkOf(i, s);
+        const a0 = Math.atan2(y0 - cy, x0 - cx), a1 = a0 + 2*Math.PI/R.n, a = a0 + (a1 - a0)*k;
+        const x = cx + rad*Math.cos(a), y = cy + rad*Math.sin(a);
+        g.fillStyle = cols[c]; g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); g.roundRect(x - 11, y - 11, 22, 22, 4); g.fill(); g.stroke();
+      }
+    }
+    g.fillStyle = ink3; g.font = `500 14px ${css('--sans')}`; g.textAlign = 'center';
+    g.fillText('每次所有卡同时往顺时针下一块传一格', cx, cy + 5);
+  }
+  let lastT = performance.now(), autoT = 0;
+  function loop(now){
+    const dt = Math.min(.05, (now - lastT)/1000); lastT = now;
+    if(R.t < 1){ R.t = Math.min(1, R.t + dt/(prefersReduced ? .01 : .7)); paintRing(); }
+    if(R.auto && R.t >= 1){ autoT += dt; if(autoT > .5){ autoT = 0; if(R.step >= total()){ R.auto = false; $('r-auto').setAttribute('aria-pressed','false'); } else doStep(); } }
+    requestAnimationFrame(loop);
+  }
+  $('r-step').addEventListener('click', () => { if(R.step >= total()) reset(); else doStep(); });
+  $('r-auto').addEventListener('click', e => { R.auto = !R.auto; e.currentTarget.setAttribute('aria-pressed', String(R.auto)); if(R.auto && R.step >= total()) reset(); });
+  $('r-reset').addEventListener('click', reset);
+  $$('[data-rn]').forEach(b => b.addEventListener('click', () => { $$('[data-rn]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); R.n = +b.dataset.rn; reset(); }));
+  G.ringPaint = paintRing;
+  reset(); requestAnimationFrame(loop);
+}
+
+/* ── lab ── */
+function initLab(){
+  const L = { P:7, tok:16384, N:8, intra:'nvlink', nics:8, overlap:false };
+  const seg = (id, key, num) => $$(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    $$(`#${id} button`).forEach(x => x.setAttribute('aria-pressed', String(x === b))); L[key] = num ? +b.dataset.v : b.dataset.v; draw(); }));
+  seg('l-p', 'P', true); seg('l-n', 'N', true); seg('l-intra', 'intra', false); seg('l-nic', 'nics', true);
+  $$('#l-n button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === 8)));
+  $('l-tok').addEventListener('input', e => { L.tok = 2 ** +e.target.value; draw(); });
+  $('l-ov').addEventListener('change', e => { L.overlap = e.target.checked; draw(); });
+  quiz('q2', 'b', {
+    a: '直觉上大模型要同步的多，可它每一步要算的也按同样的比例变多，两边一起变长，比例几乎不变。下面拖一下"模型大小"看看。',
+    b: '猜对了。计算量和要同步的梯度都跟参数量成正比，模型变大两边一起变大；换成 PCIe 只让同步变慢，比例一下就变了。',
+    c: '换 PCIe 影响大得多。模型变大时计算和同步一起变长，比例几乎不变。',
+    d: '有 NVLink 时同步确实只占几个百分点，可一换成 PCIe 就会占到三成以上。',
+    answer: '答案：换 PCIe 影响大。模型变大时，计算和同步按同样比例变长，比例几乎不变。',
+  }, () => { $('labBody').hidden = false; draw(); });
+  function draw(){
+    const P = L.P*1e9, m = stepModel({ ...L, P });
+    $('o-tok').textContent = `${L.tok >= 1024 ? (L.tok/1024).toFixed(0) + 'k' : L.tok} token`;
+    const bar = $('l-bar').children; bar[0].style.width = (100*m.comp/m.T) + '%'; bar[1].style.width = (100*m.exposed/m.T) + '%';
+    $('l-sp').textContent = L.N === 1 ? '1 块' : m.sp.toFixed(1) + ' 块';
+    $('l-eff').textContent = (100*m.eff).toFixed(0) + '%';
+    $('l-eff').className = m.eff > .85 ? 'good' : m.eff < .6 ? 'bad' : '';
+    $('l-t').textContent = `${m.comp.toFixed(2)} + ${m.exposed.toFixed(2)} s`;
+    $('l-g').textContent = (2*P/1e9).toFixed(0) + ' GB';
+    $('l-mem').textContent = (m.mem/1e9).toFixed(0) + ' GB / 80 GB';
+    $('l-mem').className = m.mem > 64e9 ? 'bad' : '';
+    $('l-memnote').textContent = L.N === 1 && m.need > 64e9 ? `一块卡放不下 ${L.P}B 模型的训练状态（要 ${(m.need/1e9).toFixed(0)} GB），这里的"1 块卡"只是按假如放得下算。`
+      : m.fsdp ? `整份训练状态要 ${(m.need/1e9).toFixed(0)} GB，一块卡放不下，已自动切开分给 ${L.N} 块卡（FSDP），同步量按 1.5 倍算。` + (m.mem > 64e9 ? ' 切开以后还是放不下，要再加卡或者换别的切法。' : '')
+      : '每块卡放得下一整份模型，用最简单的数据并行。';
+    // speed-up curve for both intra-node options, current settings
+    const Ns = [1,2,4,8,16,32,64], cv = $('l-chart');
+    const pts = intra => Ns.map(n => [Math.log2(n), stepModel({ ...L, P, N:n, intra }).sp]);
+    chart(cv, { x:[0, 6], y:[0, 64], xt:[0,1,2,3,4,5,6], xf: v => 2**v, yt:[0,8,16,32,48,64], xl:'GPU 数', yl:'相当于几块卡', left:44,
+      lines:[ { pts: Ns.map(n => [Math.log2(n), n]), color:css('--ink3'), w:1.5, dash:[5,4] }, { pts: pts('pcie'), color:css('--s1'), w:2.5 }, { pts: pts('nvlink'), color:css('--s3'), w:2.5 } ],
+      marks:[{ x:Math.log2(L.N), color:css('--ink'), label:`${L.N} 卡` }] });
+  }
+  G.labDraw = draw;
+  addEventListener('resize', () => { if(!$('labBody').hidden) draw(); });
 }
 
 /* ───────── loop ───────── */
@@ -821,7 +1304,8 @@ function frame(now){
     if((d > 0 && st.t >= st.tTarget) || (d < 0 && st.t <= st.tTarget) || d === 0){ st.t = st.tTarget; st.tTarget = null; }
     syncEx();
   }
-  PROJ.tick && PROJ.tick(dt, st.mode);
+  if(glide.on){ glide.k = Math.min(1, glide.k + dt/0.9); if(glide.k >= 1) glide.on = false; }
+  PROJ.tick && PROJ.tick(dt, st.view);
   applyPose();
   autoFrame(false);
   root.updateMatrixWorld(true);
@@ -836,6 +1320,7 @@ function frame(now){
 new ResizeObserver(resize).observe(canvas);
 themeSync(); syncEx();
 requestAnimationFrame(frame);
+if(store.get(PROJ.key + '.q1')){ unlock(); const h = document.getElementById('q1hint'); if(h) h.hidden = false; }
 load().then(g=>{ setup(g); resize(); }).catch(err=>{ $('ld-t').textContent = '模型加载失败：' + (err && err.message || err); console.error(err); });
-window.__viewer = { st, setMode, camera, controls, items, parts, PROJ: () => PROJ };
+window.__viewer = { st, go, camera, controls, items, parts, PROJ: () => PROJ };
 </script>
