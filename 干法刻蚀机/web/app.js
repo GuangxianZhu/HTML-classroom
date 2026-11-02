@@ -1,0 +1,1381 @@
+// ICP 刻蚀机 · 跑一片晶圆
+// 机台在这里用代码搭（不读 glb），工艺用一个简化模型：趋势对、数量级对，系数是估计值。
+// 坐标：米，+Y 向上；晶圆传送平面 Y = H；工艺腔 PM1 在传输腔后面（-Z）。
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {
+  PRESETS, FIELDS, model, newEtch, etchTick, oesTick, evaluate, MAIN_TIMEOUT, fillText,
+  STEP_TEXT, EXPLAIN, RESULT_TEXT, VERDICT, PARTICLE_NAMES, SERIES_TEXT, PART_INFO,
+} from './etch_core.js';
+
+const $ = s => document.querySelector(s);
+const H = 0.95;
+const PM_Z = -1.05;
+const POS = {
+  foup: new THREE.Vector3(-0.55, H, 2.40),
+  aligner: new THREE.Vector3(0.70, H, 1.80),
+  ll: new THREE.Vector3(-0.32, H, 1.00),
+  pm: new THREE.Vector3(0, H, PM_Z),
+};
+const ease = p => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+// ================= 配方和工艺模型 =================
+// 配方、模型公式、讲解文字都在 etch_core.js（和虚幻 MyVRToyBox 共用）
+
+let R = { ...PRESETS[0].r };
+let MDL = model(R);
+
+// ================= 三维场景 =================
+
+const stage = $('#stage');
+// 手机、平板：关掉阴影、降低分辨率，保证流畅
+const LOW = matchMedia('(pointer: coarse)').matches || innerWidth < 900;
+const canvas = $('#c');
+// 手机不支持 WebGL2 时 three.js 会报错：这时只关掉 3D，按钮、剖面、曲线照常能用
+let renderer, has3D = true;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+catch (e) {
+  has3D = false;
+  renderer = { setPixelRatio() {}, setSize() {}, render() {} };
+  const m = document.createElement('div');
+  m.className = 'no3d';
+  m.textContent = '这台设备的浏览器不支持 3D（WebGL2），3D 机台显示不了。工艺照样能跑：看下面的步骤说明、剖面和曲线。';
+  stage.appendChild(m);
+  document.querySelector('#labels').checked = false;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, LOW ? 1.5 : 2));
+renderer.localClippingEnabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+const scene = new THREE.Scene();
+if (has3D) scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+// 光：暖色主光（投影）+ 冷色补光 + 背后轮廓光，环境光压暗一点，立体感才出来
+scene.add(new THREE.HemisphereLight(0xdbe6f2, 0x2a2f35, 0.35));
+const sun = new THREE.DirectionalLight(0xfff1e0, 2.4);
+sun.position.set(3.5, 7, 4.5);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xcfdcff, 0.35);
+fill.position.set(-4, 3, -2);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.6);
+rim.position.set(-1, 4, -5);
+scene.add(rim);
+if (has3D && !LOW) {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(4096, 4096);
+  Object.assign(sun.shadow.camera, { left: -3.6, right: 3.6, top: 3.6, bottom: -3.6, near: 1, far: 20 });
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.015;
+}
+const camera = new THREE.PerspectiveCamera(40, 1, 0.02, 60);
+camera.position.set(3.2, 4.3, 3.3);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 0.6, 0.3);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.minDistance = 0.3;
+controls.maxDistance = 12;
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.className = 'labels';
+stage.insertBefore(labelRenderer.domElement, $('#caption'));
+
+// ---------- 材质 ----------
+const CUT = new THREE.Plane(new THREE.Vector3(0, 0, -1), PM_Z); // 剖开时只留 z ≤ PM_Z 的后半个腔
+function std(color, metalness = 0.15, roughness = 0.55, extra = {}) {
+  return new THREE.MeshStandardMaterial({ color, metalness, roughness, ...extra });
+}
+function clipped(m) {
+  const c = m.clone();
+  c.side = THREE.DoubleSide;
+  c.clippingPlanes = [CUT];
+  c.userData.clip = true;
+  c.clipShadows = true;
+  return c;
+}
+const MAT = {
+  floor: std(0xffffff, 0, 0.8),
+  panel: std(0x9aa2aa, 0.05, 0.55),
+  dark: std(0x3f454c, 0.1, 0.6),
+  alu: std(0xa9b1b9, 0.45, 0.32),
+  anod: std(0x8e98a2, 0.45, 0.36),
+  ceramic: std(0xebe3cf, 0, 0.45),
+  quartz: std(0xf2f5f7, 0, 0.2, { transparent: true, opacity: 0.85 }),
+  copper: std(0xcf8448, 0.55, 0.3),
+  si: std(0x4b5261, 0.4, 0.3),
+  white: std(0xb4bac1, 0, 0.5),
+  orange: std(0xe07a2e, 0.1, 0.5),
+  green: std(0x3e9b62, 0.1, 0.5),
+  liner: std(0x9fa8b2, 0.3, 0.5),
+  blue: std(0x2f6fb3, 0.2, 0.5),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xd8ecf5, roughness: 0.05, transparent: true, opacity: 0.13, depthWrite: false, side: THREE.DoubleSide }),
+  foup: new THREE.MeshPhysicalMaterial({ color: 0x8fa4b8, roughness: 0.3, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide }),
+};
+MAT.glass.userData.noPick = true;
+
+// ---------- 程序生成的纹理（不用图片文件，离线版也能用） ----------
+// 模型的贴图坐标是 1 m = 4 个单位，一张纹理对应 25 cm。
+function canvasTex(size, draw, srgb = false) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const TEX = {
+  // 拉丝金属：横向细纹，做粗糙度和凹凸
+  brushed: canvasTex(512, (g, n) => {
+    const r = rng(7);
+    g.fillStyle = '#c4c4c4'; g.fillRect(0, 0, n, n);
+    for (let i = 0; i < 6000; i++) {
+      const y = r() * n, x = r() * n * 1.2 - n * 0.2, len = 40 + r() * 300, v = (140 + r() * 115) | 0;
+      g.strokeStyle = `rgba(${v},${v},${v},0.35)`; g.lineWidth = 0.5 + r() * 0.9;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y); g.stroke();
+    }
+  }),
+  // 喷粉外壳：细颗粒
+  powder: canvasTex(256, (g, n) => {
+    const r = rng(3), im = g.createImageData(n, n);
+    for (let i = 0; i < n * n; i++) { const v = 205 + ((r() * 50) | 0); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+    g.putImageData(im, 0, 0);
+  }),
+  // 洁净室架空地板：60 cm 一块，满布通风孔
+  floor: canvasTex(512, (g, n) => {
+    const r = rng(11);
+    g.fillStyle = '#7d848b'; g.fillRect(0, 0, n, n);
+    for (let i = 0; i < 4000; i++) { const v = (110 + r() * 40) | 0; g.fillStyle = `rgba(${v},${v + 4},${v + 8},0.25)`; g.fillRect(r() * n, r() * n, 2, 2); }
+    g.fillStyle = '#4c5258';
+    const k = 14, pad = 40, step = (n - 2 * pad) / (k - 1);
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) { g.beginPath(); g.arc(pad + i * step, pad + j * step, 5.5, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = '#3a3f44'; g.lineWidth = 6; g.strokeRect(0, 0, n, n);
+    g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = 2; g.strokeRect(5, 5, n - 10, n - 10);
+  }, true),
+};
+TEX.floorBump = TEX.floor.clone();
+TEX.floorBump.colorSpace = THREE.NoColorSpace;
+const KIND_BY_NAME = {
+  '阳极氧化铝': 'brushed', '铝': 'brushed', '不锈钢': 'brushed', '转子': 'brushed',
+  '喷粉浅灰': 'powder', '喷粉灰': 'powder', '机架灰': 'powder', '气体盒蓝灰': 'powder', '深灰塑料': 'powder',
+  '氧化铝陶瓷': 'powder', '氧化钇涂层': 'powder',
+};
+function dress(m, kind, repeat = 1) {
+  if (!m || !m.isMeshStandardMaterial || !kind) return;
+  let t = TEX[kind];
+  if (repeat !== 1) { t = t.clone(); t.repeat.set(repeat, repeat); t.needsUpdate = true; }
+  m.roughnessMap = t;
+  m.bumpMap = t;
+  m.bumpScale = kind === 'brushed' ? 0.35 : 0.6;
+  m.needsUpdate = true;
+}
+// 代码搭的简模：盒子的贴图坐标是每个面 0~1，多重复几次，颗粒才不会太粗
+dress(MAT.panel, 'powder', 6); dress(MAT.white, 'powder', 6); dress(MAT.dark, 'powder', 4);
+dress(MAT.alu, 'brushed', 3); dress(MAT.anod, 'brushed', 3);
+MAT.floor.map = TEX.floor; MAT.floor.bumpMap = TEX.floorBump; MAT.floor.bumpScale = 1.2;
+for (const t of [TEX.floor, TEX.floorBump]) { t.repeat.set(10 / 0.6, 10 / 0.6); t.needsUpdate = true; }
+// ---------- 几何体小工具 ----------
+function mesh(geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
+const box = (w, h, d, mat, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+const cyl = (r, h, mat, x, y, z, seg = 48) => mesh(new THREE.CylinderGeometry(r, r, h, seg), mat, x, y, z);
+const cylY = (r, y0, y1, mat, x = 0, z = 0) => cyl(r, y1 - y0, mat, x, (y0 + y1) / 2, z);
+function ring(rIn, rOut, y0, y1, mat, x = 0, z = 0) {
+  const h = y1 - y0;
+  const pts = [[rIn, 0], [rOut, 0], [rOut, h], [rIn, h], [rIn, 0]].map(p => new THREE.Vector2(p[0], p[1]));
+  return mesh(new THREE.LatheGeometry(pts, 72), mat, x, y0, z);
+}
+function group(...objs) { const g = new THREE.Group(); objs.forEach(o => g.add(o)); return g; }
+function spiral(r0, r1, turns, y, mat) {
+  const pts = [];
+  for (let i = 0; i <= 160; i++) {
+    const t = i / 160, a = t * turns * Math.PI * 2, r = r0 + (r1 - r0) * t;
+    pts.push(new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a)));
+  }
+  return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, 0.008, 8, false), mat);
+}
+function pipe(points, r, mat) {
+  const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.05);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve, 64, r, 8, false), mat);
+}
+
+// ---------- 零件表 ----------
+const PARTS = {};
+for (const [id, grp, name, desc] of PART_INFO) PARTS[id] = { id, grp, name, desc, objs: [] };
+function addPart(id, obj) {
+  PARTS[id].objs.push(obj);
+  obj.userData.baseY = obj.position.y;
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    o.userData.part = id;
+    o.material = o.material.clone();
+    if (o.material.userData.clip) o.material.clippingPlanes = [CUT];
+  });
+  return obj;
+}
+const labels = [];
+function label(text, x, y, z, main = false) {
+  const d = document.createElement('div');
+  d.className = 'lab' + (main ? ' main' : '');
+  d.textContent = text;
+  const o = new CSS2DObject(d);
+  o.position.set(x, y, z);
+  scene.add(o);
+  labels.push(o);
+}
+
+// ---------- 地面 ----------
+const floor = mesh(new THREE.PlaneGeometry(10, 10), MAT.floor);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(10, 17, 0xa7b0b9, 0xbfc7ce);
+grid.position.y = 0.002;
+scene.add(grid);
+
+// ---------- EFEM、晶圆盒、对准器 ----------
+{
+  const z0 = 1.4, z1 = 2.2, h = 2.0, cz = 1.8;
+  const g = group(box(2.2, 0.04, 0.8, MAT.dark, 0, 0.02, cz), box(2.2, 0.2, 0.8, MAT.white, 0, h - 0.1, cz));
+  for (const [x, z] of [[-1.1, z0], [1.1, z0], [-1.1, z1], [1.1, z1]]) g.add(box(0.05, h, 0.05, MAT.panel, x, h / 2, z));
+  g.add(box(2.2, 0.55, 0.015, MAT.panel, 0, 0.275, z1), box(2.2, 0.55, 0.015, MAT.panel, 0, 0.275, z0));
+  g.add(box(2.2, h - 0.75, 0.01, MAT.glass, 0, 0.55 + (h - 0.75) / 2, z1), box(2.2, h - 0.75, 0.01, MAT.glass, 0, 0.55 + (h - 0.75) / 2, z0));
+  g.add(box(0.01, h - 0.2, 0.8, MAT.glass, -1.1, (h - 0.2) / 2, cz), box(0.01, h - 0.2, 0.8, MAT.glass, 1.1, (h - 0.2) / 2, cz));
+  // FFU 格栅
+  for (let i = -5; i <= 5; i++) g.add(box(0.01, 0.005, 0.7, MAT.dark, i * 0.18, h - 0.2, cz));
+  scene.add(addPart('efem', g));
+  label('EFEM 前端模块（大气）', 0, 2.12, cz);
+
+  const al = group(box(0.18, 0.12, 0.18, MAT.panel, 0.7, H - 0.075, 1.8), cylY(0.04, H - 0.015, H - 0.004, MAT.dark, 0.7, 1.8),
+    cylY(0.03, 0.02, H - 0.135, MAT.dark, 0.7, 1.8));
+  scene.add(addPart('aligner', al));
+  label('对准器', 0.7, 1.08, 1.8);
+}
+const foupDoors = [];
+for (const x of [-0.55, 0.55]) {
+  const lp = group(box(0.5, H - 0.17, 0.42, MAT.panel, x, (H - 0.17) / 2, 2.40), box(0.48, 0.5, 0.02, MAT.dark, x, 0.5, 2.205));
+  scene.add(addPart('loadport', lp));
+  const f = group(box(0.40, 0.34, 0.38, MAT.foup, x, H + 0.0, 2.40), box(0.22, 0.03, 0.10, MAT.dark, x, H + 0.185, 2.40));
+  for (let i = 0; i < 7; i++) if (!(x < 0 && i === 3)) f.add(cyl(0.15, 0.003, std(0xa08a5c, 0.5, 0.2), x, H + (i - 3) * 0.01, 2.40, 48));
+  const door = box(0.40, 0.33, 0.02, MAT.dark, x, H, 2.205);
+  f.add(door);
+  scene.add(addPart('foup', f));
+  if (x < 0) foupDoors.push(door);
+}
+label('晶圆盒', -0.55, 1.25, 2.4, true);
+
+// ---------- 负载锁 ----------
+const doorObjs = {};
+for (const x of [-0.32, 0.32]) {
+  const g = group(box(0.5, 0.78, 0.8, MAT.dark, x, 0.39, 1.0), box(0.5, 0.03, 0.8, MAT.alu, x, 0.795, 1.0),
+    box(0.03, 0.32, 0.8, MAT.alu, x - 0.235, 0.97, 1.0), box(0.03, 0.32, 0.8, MAT.alu, x + 0.235, 0.97, 1.0),
+    box(0.5, 0.02, 0.8, MAT.glass, x, 1.135, 1.0));
+  for (let k = 0; k < 3; k++) {
+    const a = k * Math.PI * 2 / 3 + Math.PI / 2;
+    g.add(cylY(0.006, 0.81, H - 0.0015, MAT.ceramic, x + 0.09 * Math.cos(a), 1.0 + 0.09 * Math.sin(a)));
+  }
+  const outer = box(0.42, 0.16, 0.02, MAT.alu, x, H, 1.39), inner = box(0.42, 0.16, 0.02, MAT.alu, x, H, 0.61);
+  g.add(outer, inner);
+  scene.add(addPart('loadlock', g));
+  if (x < 0) { doorObjs.llOuter = outer; doorObjs.llInner = inner; }
+}
+label('负载锁 ×2', 0, 1.3, 1.0);
+
+// ---------- 真空传输腔 ----------
+{
+  const g = group(box(1.2, 0.75, 1.2, MAT.dark, 0, 0.375, 0), box(1.2, 0.03, 1.2, MAT.alu, 0, 0.765, 0),
+    box(1.2, 0.02, 1.2, MAT.glass, 0, 1.15, 0));
+  for (const s of [-1, 1]) {
+    g.add(box(1.2, 0.36, 0.04, MAT.glass, 0, 0.96, s * 0.58), box(0.04, 0.36, 1.2, MAT.glass, s * 0.58, 0.96, 0));
+    g.add(box(1.2, 0.04, 0.04, MAT.alu, 0, 1.14, s * 0.58), box(0.04, 0.04, 1.2, MAT.alu, s * 0.58, 1.14, 0));
+  }
+  for (const [x, z] of [[-0.58, -0.58], [0.58, -0.58], [-0.58, 0.58], [0.58, 0.58]]) g.add(box(0.05, 0.38, 0.05, MAT.alu, x, 0.96, z));
+  scene.add(addPart('vtm', g));
+  label('真空传输腔', 0.35, 1.28, 0.3);
+}
+
+// ---------- 机械手（双连杆，末端就是晶圆中心） ----------
+function makeRobot(name, bx, bz, L, partId) {
+  const g = new THREE.Group();
+  g.add(cylY(0.09, name === 'atm' ? 0.04 : 0.78, 0.88, MAT.alu, bx, bz));
+  const l1 = new THREE.Mesh(new THREE.BoxGeometry(L, 0.016, 0.07).translate(L / 2, 0, 0), std(0xd8dde2, 0.3, 0.4));
+  const l2 = new THREE.Mesh(new THREE.BoxGeometry(L, 0.012, 0.055).translate(L / 2, 0, 0), std(0xc9cfd5, 0.3, 0.4));
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.004, 0.09), MAT.ceramic);
+  g.add(l1, l2, blade);
+  scene.add(addPart(partId, g));
+  const rb = { name, bx, bz, L, g, l1, l2, blade, theta: Math.PI / 2, r: 0.18, y: H - 0.012, home: 0.18, end: new THREE.Vector3() };
+  rb.update = () => {
+    const d = clamp(rb.r, 0.06, 2 * L * 0.999);
+    const a = Math.acos(d / (2 * L));
+    const a1 = rb.theta + a, a2 = rb.theta - a;
+    rb.l1.position.set(bx, rb.y - 0.03, bz); rb.l1.rotation.y = -a1;
+    const ex = bx + L * Math.cos(a1), ez = bz + L * Math.sin(a1);
+    rb.l2.position.set(ex, rb.y - 0.015, ez); rb.l2.rotation.y = -a2;
+    rb.end.set(bx + d * Math.cos(rb.theta), rb.y, bz + d * Math.sin(rb.theta));
+    rb.blade.position.copy(rb.end); rb.blade.rotation.y = -rb.theta;
+  };
+  rb.update();
+  return rb;
+}
+const ATM = makeRobot('atm', 0, 1.8, 0.46, 'atmrobot');
+const VTM = makeRobot('vtm', 0, 0, 0.55, 'vtmrobot');
+ATM.theta = Math.PI / 2; ATM.update();
+VTM.theta = -Math.PI / 2; VTM.update();
+const ROB = { atm: ATM, vtm: VTM };
+// 大气机械手的立柱
+const atmPedestal = cylY(0.12, 0.04, 0.84, MAT.dark, 0, 1.8);
+scene.add(atmPedestal);
+
+// ---------- 工艺腔 ----------
+// 局部坐标：腔中心在原点，闸阀朝 +Z。detailed 的那个（PM1）有全部内部零件，可以剖开。
+let PM1 = null;
+const PM23 = [];
+let PM1_LEGS = null;
+function buildPM(detailed) {
+  const g = new THREE.Group();
+  const P = (id, obj) => { g.add(obj); if (detailed) addPart(id, obj); return obj; };
+  const sh = m => (detailed ? clipped(m) : m);
+  const legs = new THREE.Group();
+  for (const [x, z] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) legs.add(box(0.04, 0.77, 0.04, MAT.panel, x, 0.385, z));
+  legs.add(box(0.66, 0.03, 0.04, MAT.panel, 0, 0.3, -0.3), box(0.66, 0.03, 0.04, MAT.panel, 0, 0.3, 0.3));
+  g.add(legs);
+
+  P('chamber', group(ring(0.32, 0.345, 0.78, 1.2, sh(MAT.anod)), cylY(0.345, 0.76, 0.78, sh(MAT.anod))));
+  P('window', cylY(0.345, 1.2, 1.235, sh(MAT.ceramic)));
+  P('coil', group(spiral(0.06, 0.12, 2, 1.255, MAT.copper), spiral(0.19, 0.27, 2, 1.255, MAT.copper),
+    cylY(0.012, 1.255, 1.47, MAT.copper, 0.12, 0), cylY(0.012, 1.255, 1.47, MAT.copper, 0.27, 0)));
+  P('rfcover', group(ring(0.333, 0.345, 1.235, 1.455, sh(MAT.panel)), cylY(0.345, 1.455, 1.467, sh(MAT.panel))));
+  P('srcmatch', group(box(0.34, 0.16, 0.26, MAT.dark, 0, 1.55, 0), box(0.12, 0.02, 0.02, MAT.orange, -0.08, 1.55, 0.131)));
+  P('nozzle', group(cylY(0.022, 1.2, 1.29, MAT.ceramic)));
+  // 闸阀口（剖开时一起剖）和门
+  P('slit', group(box(0.44, 0.17, 0.12, sh(MAT.anod), 0, H + 0.01, 0.39)));
+  const door = box(0.40, 0.11, 0.02, MAT.dark, 0, H + 0.01, 0.457);
+  g.add(door);
+  if (detailed) { addPart('slit', door); doorObjs.slit = door; }
+  // 排气
+  P('pendulum', group(cylY(0.16, 0.70, 0.755, MAT.alu, 0.1, 0), box(0.08, 0.05, 0.12, MAT.dark, 0.28, 0.727, 0)));
+  P('turbo', group(cylY(0.13, 0.44, 0.70, MAT.alu, 0.1, 0), cylY(0.15, 0.68, 0.70, MAT.alu, 0.1, 0), cylY(0.05, 0.36, 0.44, MAT.dark, 0.1, 0)));
+
+  if (detailed) {
+    P('liner', group(ring(0.30, 0.315, 0.87, 1.16, clipped(MAT.liner))));
+    P('baffle', group(ring(0.19, 0.30, 0.86, 0.872, clipped(std(0x5b646e, 0.3, 0.5)))));
+    P('esc', group(cylY(0.15, H - 0.013, H - 0.001, MAT.ceramic), cylY(0.165, H - 0.12, H - 0.013, MAT.alu), cylY(0.07, 0.78, H - 0.12, MAT.alu)));
+    P('insring', group(ring(0.166, 0.19, H - 0.12, H - 0.014, MAT.quartz)));
+    P('edgering', group(ring(0.151, 0.185, H - 0.014, H + 0.002, MAT.si)));
+    const pins = new THREE.Group();
+    for (let k = 0; k < 3; k++) {
+      const a = k * Math.PI * 2 / 3 + Math.PI / 2;
+      pins.add(cylY(0.004, H - 0.06, H - 0.004, MAT.ceramic, 0.1 * Math.cos(a), 0.1 * Math.sin(a), 12));
+    }
+    P('pins', pins);
+    P('oes', group(mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 24).rotateZ(Math.PI / 2), MAT.dark, -0.37, H + 0.08, 0.0),
+      box(0.12, 0.08, 0.16, MAT.green, -0.52, H + 0.08, 0.06),
+      pipe([[-0.40, H + 0.08, 0], [-0.44, H + 0.08, 0.02], [-0.46, H + 0.08, 0.06]], 0.006, MAT.orange)));
+    P('cmg', group(mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.08, 16).rotateZ(Math.PI / 2), MAT.alu, 0.38, 1.12, -0.15),
+      cylY(0.032, 1.08, 1.2, MAT.white, 0.44, -0.15), cylY(0.032, 1.08, 1.2, MAT.white, 0.44, -0.24),
+      mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.1, 16).rotateZ(Math.PI / 2), MAT.alu, 0.39, 1.12, -0.24)));
+    P('biasmatch', group(box(0.22, 0.18, 0.22, MAT.dark, -0.16, 0.6, -0.14), box(0.03, 0.12, 0.03, MAT.copper, -0.07, 0.72, -0.07)));
+    P('gasbox', group(box(0.34, 0.5, 0.28, MAT.white, 0.66, 1.25, -0.15),
+      ...[0, 1, 2].map(i => box(0.06, 0.12, 0.02, MAT.blue, 0.56 + i * 0.1, 1.3, -0.005)),
+      pipe([[0.55, 1.45, -0.15], [0.45, 1.62, -0.10], [0.15, 1.66, -0.04], [0.02, 1.62, 0], [0.0, 1.30, 0]], 0.008, MAT.alu)));
+    P('rack', group(box(0.42, 1.6, 0.6, MAT.panel, -0.78, 0.8, -0.12), box(0.36, 0.08, 0.01, MAT.dark, -0.78, 1.45, 0.181),
+      box(0.36, 0.08, 0.01, MAT.dark, -0.78, 1.3, 0.181)));
+  }
+  return { g, door, legs };
+}
+{
+  const pm1 = buildPM(true);
+  pm1.g.position.set(0, 0, PM_Z);
+  PM1_LEGS = pm1.legs;
+  scene.add(pm1.g);
+  PM1 = pm1.g;
+  label('工艺腔 PM1（这次用）', 0, 1.78, PM_Z, true);
+  for (const [x, rot] of [[1.05, -Math.PI / 2], [-1.05, Math.PI / 2]]) {
+    const pm = buildPM(false);
+    pm.g.position.set(x, 0, 0);
+    pm.g.rotation.y = rot;
+    scene.add(addPart('pm23', pm.g));
+    PM23.push(pm.g);
+    label(x > 0 ? 'PM2' : 'PM3', x, 1.75, 0);
+  }
+}
+
+// ---------- 等离子体 ----------
+const plasmaMat = new THREE.MeshBasicMaterial({ color: 0x8f6cff, transparent: true, opacity: 0, depthWrite: false });
+plasmaMat.userData.noPick = true;
+const plasma = cylY(0.29, H + 0.016, 1.198, plasmaMat);
+const plasmaCore = mesh(new THREE.TorusGeometry(0.19, 0.045, 16, 64), plasmaMat.clone(), 0, 1.155, 0);
+plasmaCore.material.userData.noPick = true;
+plasmaCore.rotation.x = Math.PI / 2;
+const plasmaLight = new THREE.PointLight(0xa58cff, 0, 1.4, 1.5);
+plasmaLight.position.set(0, 1.08, 0);
+PM1.add(plasma, plasmaCore, plasmaLight);
+plasma.visible = plasmaCore.visible = false;
+
+// ---------- 反应腔里的粒子（示意：数量、速度都不是真实比例） ----------
+// 局部坐标都在 PM1 里：腔轴是 Y 轴，晶圆表面 y = H。
+// 气体分子从喷嘴进来 → 起辉后被打碎成电子、离子、自由基 → 自由基吸附在晶圆上 →
+// 离子被鞘层加速打到"吸附了自由基"的地方 → 生成 SiCl₄ 冒出来 → 随气流穿过约束环被分子泵抽走。
+const PT = {
+  gas: { c: new THREE.Color(0xdfe6ee), name: PARTICLE_NAMES.gas },
+  e: { c: new THREE.Color(0x6ff3ff), name: PARTICLE_NAMES.e },
+  ion: { c: new THREE.Color(0xff3d63), name: PARTICLE_NAMES.ion },
+  rad: { c: new THREE.Color(0xc9f23a), name: PARTICLE_NAMES.rad },
+  prod: { c: new THREE.Color(0xff9a2e), name: PARTICLE_NAMES.prod },
+};
+const PMAX = 1400, RIN = 0.285, YTOP = 1.193, YW = H + 0.002, SHEATH = H + 0.03;
+const parts = [];
+const pPos = new Float32Array(PMAX * 3), pCol = new Float32Array(PMAX * 3);
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3).setUsage(THREE.DynamicDrawUsage));
+pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3).setUsage(THREE.DynamicDrawUsage));
+const dotTex = canvasTex(64, (g, n) => {
+  const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+});
+const pMat = new THREE.PointsMaterial({ size: 0.016, map: dotTex, vertexColors: true, transparent: true, depthWrite: false, alphaTest: 0.05 });
+pMat.userData.noPick = true;
+const pPoints = new THREE.Points(pGeo, pMat);
+pPoints.frustumCulled = false;
+pPoints.renderOrder = 5;
+// 离子在鞘层里的尾迹
+const tPos = new Float32Array(PMAX * 6), tCol = new Float32Array(PMAX * 6);
+const tGeo = new THREE.BufferGeometry();
+tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3).setUsage(THREE.DynamicDrawUsage));
+tGeo.setAttribute('color', new THREE.BufferAttribute(tCol, 3).setUsage(THREE.DynamicDrawUsage));
+const tMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1, depthWrite: false });
+tMat.userData.noPick = true;
+const tLines = new THREE.LineSegments(tGeo, tMat);
+tLines.frustumCulled = false;
+tLines.renderOrder = 5;
+PM1.add(pPoints, tLines);
+let spawnAcc = { gas: 0, e: 0 };
+let adsorbed = 0;   // 晶圆表面吸附着的自由基个数（离子打上来才能生成产物）
+
+function spawn(t, x, y, z, vx = 0, vy = 0, vz = 0) {
+  if (parts.length >= PMAX) return null;
+  const p = { t, x, y, z, vx, vy, vz, age: 0, life: 6 + Math.random() * 4, stick: 0 };
+  parts.push(p);
+  return p;
+}
+const rnd = () => Math.random() * 2 - 1;
+function inWafer(x, z) { return S.holder === 'pm' && S.pinH < 0.05 && x * x + z * z < 0.15 * 0.15; }
+
+function updateParticles(dt) {
+  const show = has3D && S.explode < 0.02 && (S.holder === 'pm' || parts.length > 0);
+  pPoints.visible = tLines.visible = show;
+  $('#plegend').hidden = !show || parts.length === 0;
+  if (!show) return;
+  dt = Math.min(dt, 0.05);
+  const flow = S.cl2 + S.hbr + S.o2;
+  const pl = S.plasma;
+  const bias = S.biasF > 1;
+  // 进气
+  spawnAcc.gas += dt * flow * 0.55;
+  while (spawnAcc.gas >= 1) {
+    spawnAcc.gas -= 1;
+    const a = Math.random() * Math.PI * 2;
+    spawn('gas', 0.015 * Math.cos(a), YTOP - 0.005, 0.015 * Math.sin(a), 0.35 * Math.cos(a) * Math.random(), -0.35, 0.35 * Math.sin(a) * Math.random());
+  }
+  // 电子：一直保持一群在乱窜
+  const eCount = parts.reduce((n, p) => n + (p.t === 'e'), 0);
+  for (let k = eCount; k < Math.round(70 * pl); k++) {
+    spawn('e', rnd() * 0.25, H + 0.05 + Math.random() * 0.2, rnd() * 0.25, rnd() * 1.6, rnd() * 1.6, rnd() * 1.6).life = 0.6 + Math.random();
+  }
+  let wPos = 0, wCol = 0, nT = 0;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.age += dt;
+    let dead = p.age > p.life;
+    const r = Math.hypot(p.x, p.z);
+    if (p.t === 'gas' || p.t === 'rad' || p.t === 'prod') {
+      // 气流：往外、往下，穿过约束环（半径 0.19~0.30、高度 0.86）流向分子泵
+      const out = p.y < 1.02 ? 0.22 : 0.06, down = r > 0.19 ? 0.28 : 0.05;
+      const ux = r > 1e-4 ? p.x / r : 0, uz = r > 1e-4 ? p.z / r : 0;
+      const jit = p.t === 'rad' ? 0.9 : 0.5;
+      p.vx += (ux * out - p.vx) * dt * 2 + rnd() * jit * dt * 6;
+      p.vz += (uz * out - p.vz) * dt * 2 + rnd() * jit * dt * 6;
+      p.vy += (-down - p.vy) * dt * 2 + rnd() * jit * dt * 6;
+      if (p.t === 'prod' && p.age < 0.5) p.vy = Math.max(p.vy, 0.18);   // 刚生成的产物先往上冒
+      // 起辉后气体分子被电子撞碎：变成自由基或离子
+      if (p.t === 'gas' && pl > 0.05 && Math.random() < pl * 1.8 * dt) {
+        if (Math.random() < 0.72) { p.t = 'rad'; p.life = p.age + 3 + Math.random() * 3; }
+        else { p.t = 'ion'; p.life = p.age + 4; p.vx *= 0.3; p.vy *= 0.3; p.vz *= 0.3; }
+      }
+      // 自由基碰到晶圆就吸附
+      if (p.t === 'rad' && p.y < YW + 0.006 && inWafer(p.x, p.z)) { adsorbed++; dead = true; }
+      if (p.y < 0.76) dead = true;
+    } else if (p.t === 'ion') {
+      if (p.y < SHEATH && inWafer(p.x, p.z) || p.y < SHEATH && r < 0.185) {
+        // 进了鞘层：被电场垂直加速往下打；有偏压时快得多
+        const acc = bias ? 60 : 8;
+        p.vy -= acc * dt; p.vx *= 0.9; p.vz *= 0.9;
+        nT++;
+      } else {
+        p.vx += rnd() * dt * 1.2; p.vz += rnd() * dt * 1.2; p.vy += (rnd() * 1.2 - 0.6) * dt;
+        p.vx *= 0.97; p.vy *= 0.97; p.vz *= 0.97;
+        if (pl < 0.05) p.life = Math.min(p.life, p.age + 0.3);   // 没有等离子体，离子很快复合掉
+      }
+      if (p.y <= YW) {
+        dead = true;
+        if (inWafer(p.x, p.z) && S.etching && adsorbed > 0) {
+          const yieldP = clamp(0.25 + (bias ? 0.6 : 0.05), 0, 0.95) * (E.Dc < 100 ? 1 : 0.15);
+          if (Math.random() < yieldP) { adsorbed--; spawn('prod', p.x, YW + 0.003, p.z, rnd() * 0.05, 0.25, rnd() * 0.05); }
+        }
+      }
+    } else if (p.t === 'e') {
+      if (pl < 0.05) dead = true;
+    }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    // 关在腔里：碰到内衬、介质窗就弹回来
+    const r2 = Math.hypot(p.x, p.z);
+    const rMax = p.y > 0.87 ? RIN : 0.30;
+    if (r2 > rMax && !(p.y < 0.875 && r2 < 0.30)) { const k = rMax / r2; p.x *= k; p.z *= k; p.vx = -p.vx * 0.5; p.vz = -p.vz * 0.5; }
+    if (p.y > YTOP) { p.y = YTOP; p.vy = -Math.abs(p.vy); }
+    if (p.y < YW && p.t !== 'ion' && r2 < 0.185) { p.y = YW; p.vy = Math.abs(p.vy) * 0.5; }
+    if (dead) { parts.splice(i, 1); continue; }
+  }
+  adsorbed = Math.min(adsorbed, 60);
+  if (!S.etching && S.plasma < 0.05) adsorbed = Math.max(0, adsorbed - dt * 10);
+  // 写进缓冲区
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i], c = PT[p.t].c;
+    pPos[wPos] = p.x; pPos[wPos + 1] = p.y; pPos[wPos + 2] = p.z;
+    pCol[wCol] = c.r; pCol[wCol + 1] = c.g; pCol[wCol + 2] = c.b;
+    wPos += 3; wCol += 3;
+  }
+  pGeo.setDrawRange(0, parts.length);
+  pGeo.attributes.position.needsUpdate = pGeo.attributes.color.needsUpdate = true;
+  let j = 0;
+  for (const p of parts) {
+    if (p.t !== 'ion' || p.vy > -0.4) continue;
+    const L = clamp(-p.vy * 0.02, 0.015, 0.09);
+    tPos.set([p.x, p.y, p.z, p.x, p.y + L, p.z], j * 6);
+    const c = PT.ion.c;
+    tCol.set([c.r, c.g, c.b, c.r * 0.2, c.g * 0.2, c.b * 0.2], j * 6);
+    j++;
+  }
+  tGeo.setDrawRange(0, j * 2);
+  tGeo.attributes.position.needsUpdate = tGeo.attributes.color.needsUpdate = true;
+}
+function clearParticles() { parts.length = 0; adsorbed = 0; spawnAcc = { gas: 0, e: 0 }; }
+
+// ---------- 晶圆 ----------
+const waferMat = std(0xa08a5c, 0.5, 0.2);
+const wafer = group(cyl(0.15, 0.003, waferMat, 0, 0, 0, 64), box(0.01, 0.004, 0.006, MAT.dark, 0.146, 0, 0));
+scene.add(addPart('wafer', wafer));
+const waferBody = wafer.children[0];
+
+// ================= 状态和动画 =================
+
+const S = {};
+const E = {};
+function resetState() {
+  Object.assign(S, {
+    holder: 'foup', foupOpen: 0, llOuter: 0, llInner: 0, slit: 0, pinH: 0, alignRot: 0,
+    llP: 760, chP: 0.02, valve: 100, cl2: 0, hbr: 0, o2: 0, srcF: 0, srcR: 0, biasF: 0, escV: 0, he: 0, wT: 22,
+    plasma: 0, oes: 0, etching: false, explode: 0,
+  });
+  Object.assign(E, newEtch());
+  ATM.theta = Math.PI / 2; ATM.r = ATM.home; ATM.y = H - 0.012; ATM.update();
+  VTM.theta = -Math.PI / 2; VTM.r = VTM.home; VTM.y = H - 0.012; VTM.update();
+}
+resetState();
+
+let simT = 0, procT0 = null, speed = 2, paused = false;
+const timers = [];
+function wait(dur, fn) { return new Promise(res => timers.push({ t0: simT, dur: Math.max(dur, 1e-3), fn, res })); }
+function until(cond) { return new Promise(res => timers.push({ cond, res })); }
+function runTimers() {
+  for (const t of timers.slice()) {
+    if (t.cond) { if (t.cond()) { timers.splice(timers.indexOf(t), 1); t.res(); } continue; }
+    const p = clamp((simT - t.t0) / t.dur, 0, 1);
+    if (t.fn) t.fn(p);
+    if (p >= 1) { timers.splice(timers.indexOf(t), 1); t.res(); }
+  }
+}
+const angTo = (rb, p) => Math.atan2(p.z - rb.bz, p.x - rb.bx);
+const distTo = (rb, p) => Math.hypot(p.x - rb.bx, p.z - rb.bz);
+function lerpAngle(a, b, t) { const d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * t; }
+function robotMove(rb, theta, r, y, dur) {
+  const t0 = rb.theta, r0 = rb.r, y0 = rb.y;
+  return wait(dur, p => { const e = ease(p); rb.theta = lerpAngle(t0, theta, e); rb.r = lerp(r0, r, e); rb.y = lerp(y0, y, e); rb.update(); });
+}
+async function pick(rb, pos, yLow, yHigh) {
+  const th = angTo(rb, pos), d = distTo(rb, pos);
+  await robotMove(rb, th, rb.home, yLow, 0.8);
+  await robotMove(rb, th, d, yLow, 1.0);
+  await robotMove(rb, th, d, yHigh, 0.4);
+  S.holder = rb.name;
+  await robotMove(rb, th, rb.home, yHigh, 1.0);
+}
+async function place(rb, pos, yHigh, yLow, holder) {
+  const th = angTo(rb, pos), d = distTo(rb, pos);
+  await robotMove(rb, th, rb.home, yHigh, 0.8);
+  await robotMove(rb, th, d, yHigh, 1.0);
+  await robotMove(rb, th, d, yLow, 0.4);
+  S.holder = holder;
+  await robotMove(rb, th, rb.home, yLow, 1.0);
+}
+function door(key, target, dur = 0.8) { const v0 = S[key]; return wait(dur, p => { S[key] = lerp(v0, target, ease(p)); }); }
+const vtTarget = () => clamp(100 * MDL.total / (MDL.total + 18 * R.P), 5, 95);
+
+// ---------- 工艺步骤 ----------
+const STEPS = [
+  {
+    cam: 'efem',
+    run: () => door('foupOpen', 1, 1.6),
+  },
+  {
+    cam: 'efem',
+    run: async () => {
+      await pick(ATM, POS.foup, H - 0.006, H - 0.003);
+      await place(ATM, POS.aligner, H - 0.003, H - 0.012, 'aligner');
+      await wait(2, p => { S.alignRot = ease(p) * Math.PI * 2; });
+      S.alignRot = 0;
+    },
+  },
+  {
+    cam: 'll',
+    run: async () => {
+      await door('llOuter', 1);
+      await pick(ATM, POS.aligner, H - 0.012, H - 0.003);
+      await place(ATM, POS.ll, H - 0.003, H - 0.012, 'll');
+      await robotMove(ATM, Math.PI / 2, ATM.home, H - 0.012, 0.8);
+      await door('llOuter', 0);
+    },
+  },
+  {
+    cam: 'll',
+    run: () => wait(10, p => { S.llP = 760 * Math.exp(-9 * p); }),
+  },
+  {
+    cam: 'vtm',
+    run: async () => {
+      await door('llInner', 1);
+      await pick(VTM, POS.ll, H - 0.012, H - 0.003);
+      await door('llInner', 0);
+      await door('slit', 1);
+      if (follow()) camTo('chamber');
+      const th = angTo(VTM, POS.pm), d = distTo(VTM, POS.pm);
+      await robotMove(VTM, th, VTM.home, H + 0.020, 0.8);
+      await robotMove(VTM, th, d, H + 0.020, 1.4);
+      await wait(0.8, p => { S.pinH = p; if (p > 0.85 && S.holder === 'vtm') S.holder = 'pm'; });
+      await robotMove(VTM, th, VTM.home, H + 0.020, 1.2);
+      await door('slit', 0);
+      await wait(0.9, p => { S.pinH = 1 - p; });
+    },
+  },
+  {
+    cam: 'chamber',
+    run: async () => {
+      await wait(1.2, p => { S.escV = 1200 * ease(p); });
+      await wait(1.8, p => { S.he = 10 * ease(p); });
+    },
+  },
+  {
+    cam: 'chamber',
+    run: () => wait(4, p => {
+      const e = ease(Math.min(1, p * 2));
+      S.cl2 = R.cl2 * e; S.hbr = R.hbr * e; S.o2 = R.o2 * e;
+      S.valve = lerp(100, vtTarget(), ease(p));
+      S.chP = lerp(0.02, R.P, 1 - Math.exp(-5 * p)) + R.P * 0.08 * Math.sin(p * Math.PI) * (1 - p);
+    }),
+  },
+  {
+    cam: 'chamber',
+    run: async () => {
+      await wait(0.6, p => { S.srcF = R.Ws * p; S.srcR = S.srcF * 0.35; S.plasma = p * 0.7; });
+      await wait(2.2, p => { S.srcR = R.Ws * (0.35 * Math.exp(-5 * p) + 0.01); S.plasma = 0.7 + 0.3 * p; });
+    },
+  },
+  {
+    cam: 'chamber', chain: true,
+    run: async () => {
+      await wait(0.5, p => { S.biasF = R.Wb * p; });
+      S.etching = true;
+      await until(() => E.tEp !== null || E.t > MAIN_TIMEOUT);
+      if (E.tEp === null) E.timeout = true;
+      E.tMain = E.t;
+    },
+  },
+  {
+    cam: 'chamber', chain: true,
+    run: () => wait(E.timeout ? 0.01 : E.tMain * R.oe / 100),
+  },
+  {
+    cam: 'chamber',
+    run: async () => {
+      S.etching = false;
+      const f = S.srcF, b = S.biasF, rr = S.srcR;
+      await wait(0.8, p => { S.biasF = b * (1 - p); S.srcF = f * (1 - p); S.srcR = rr * (1 - p); S.plasma = 1 - p; });
+      const c = S.chP, v = S.valve;
+      await wait(2.5, p => {
+        const e = ease(Math.min(1, p * 2));
+        S.cl2 = R.cl2 * (1 - e); S.hbr = R.hbr * (1 - e); S.o2 = R.o2 * (1 - e);
+        S.valve = lerp(v, 100, e); S.chP = lerp(c, 0.02, 1 - Math.exp(-6 * p));
+      });
+    },
+  },
+  {
+    cam: 'chamber',
+    run: async () => {
+      await wait(1, p => { S.he = 10 * (1 - p); });
+      await wait(1.4, p => { S.escV = 1200 * (1 - ease(p)); });
+    },
+  },
+  {
+    cam: 'vtm',
+    run: async () => {
+      await wait(0.8, p => { S.pinH = p; });
+      await door('slit', 1);
+      const th = angTo(VTM, POS.pm), d = distTo(VTM, POS.pm);
+      await robotMove(VTM, th, VTM.home, H + 0.020, 0.8);
+      await robotMove(VTM, th, d, H + 0.020, 1.4);
+      await wait(0.8, p => { S.pinH = 1 - p; if (p > 0.15 && S.holder === 'pm') S.holder = 'vtm'; });
+      await robotMove(VTM, th, VTM.home, H + 0.020, 1.2);
+      await door('slit', 0);
+      if (follow()) camTo('ll');
+      await door('llInner', 1);
+      await place(VTM, POS.ll, H - 0.003, H - 0.012, 'll');
+      await door('llInner', 0);
+      await robotMove(VTM, -Math.PI / 2, VTM.home, H - 0.012, 0.8);
+    },
+  },
+  {
+    cam: 'll',
+    run: () => wait(6, p => { S.llP = 0.1 * Math.pow(7600, p); }),
+  },
+  {
+    cam: 'efem',
+    run: async () => {
+      await door('llOuter', 1);
+      await pick(ATM, POS.ll, H - 0.012, H - 0.003);
+      await door('llOuter', 0, 0.6);
+      await place(ATM, POS.foup, H - 0.003, H - 0.006, 'foup');
+      await robotMove(ATM, Math.PI / 2, ATM.home, H - 0.012, 0.6);
+      await door('foupOpen', 0, 1.4);
+    },
+  },
+];
+STEPS.forEach((s, i) => Object.assign(s, STEP_TEXT[i]));   // name / now / why
+
+// ---------- 刻蚀模型的时间推进 ----------
+function physicsTick(dt) {
+  if (S.etching) etchTick(E, MDL, dt);
+  // 光谱：等离子体本身有一点底光；刻多晶硅时含硅产物的谱线和刻蚀速率成正比（判终点也在里面）
+  const hadEp = E.tEp !== null;
+  S.oes = oesTick(E, MDL, dt, S.plasma, S.etching, (Math.random() - 0.5) * 0.02);
+  if (!hadEp && E.tEp !== null) E.epT = simT - procT0;
+  // 晶圆温度：有背氦时贴着卡盘温度，等离子体会再加热一点
+  if (S.holder === 'pm' && S.he > 5) S.wT += (R.T + S.plasma * R.Ws / 300 - S.wT) * Math.min(1, dt / 1.5);
+  else if (S.holder === 'pm' && S.plasma > 0) S.wT += dt * 2;
+  else S.wT += (22 - S.wT) * Math.min(1, dt / 20);
+  E.pass = MDL.pass;
+}
+
+// ---------- 每帧更新三维 ----------
+const tmpColor = new THREE.Color();
+const C_POLY = new THREE.Color(0xa08a5c), C_OX = new THREE.Color(0x4f6fb0);
+function visualsTick(dtR) {
+  foupDoors[0].position.set(-0.55, H - 0.4 * S.foupOpen, 2.205 + 0.04 * S.foupOpen);
+  doorObjs.llOuter.position.y = H - 0.17 * S.llOuter;
+  doorObjs.llInner.position.y = H - 0.17 * S.llInner;
+  doorObjs.slit.position.y = (H + 0.01) - 0.12 * S.slit;
+  // 拆开（只有不在运行时可以）
+  const OFF = { srcmatch: 0.80, rfcover: 0.66, coil: 0.55, nozzle: 0.47, window: 0.40, liner: 0.25, baffle: 0.12, edgering: 0.10, pendulum: -0.10, turbo: -0.26 };
+  for (const [id, off] of Object.entries(OFF)) for (const o of PARTS[id].objs) o.position.y = o.userData.baseY + off * S.explode;
+  if (turboRotor) turboRotor.rotation.y += dtR * 25;
+  for (const r of extraRotors) r.rotation.y += dtR * 25;
+  if (pendPlate) pendPlate.rotation.y = -(S.valve / 100) * 1.3;
+  const pins = PARTS.pins.objs[0];
+  pins.position.y = pins.userData.baseY + 0.031 * S.pinH;
+  // 晶圆
+  switch (S.holder) {
+    case 'foup': wafer.position.copy(POS.foup); break;
+    case 'aligner': wafer.position.copy(POS.aligner); break;
+    case 'll': wafer.position.copy(POS.ll); break;
+    case 'pm': wafer.position.set(0, H + 0.001 + 0.027 * S.pinH, PM_Z); break;
+    default: { const rb = ROB[S.holder]; wafer.position.set(rb.end.x, rb.y + 0.004, rb.end.z); }
+  }
+  wafer.rotation.y = S.alignRot;
+  tmpColor.copy(C_POLY).lerp(C_OX, clamp(E.Dc / 100, 0, 1) * (1 - E.uncleared));
+  waferBody.material.color.copy(tmpColor);
+  // 等离子体
+  const on = S.plasma > 0.01;
+  plasma.visible = plasmaCore.visible = on;
+  if (on) {
+    const f = S.plasma * clamp(0.35 + MDL.n * 0.6, 0.3, 1.3) * (0.93 + 0.07 * Math.random());
+    plasma.material.opacity = 0.14 * f;
+    plasmaCore.material.opacity = 0.28 * f;
+    plasmaLight.intensity = 2.2 * f;
+  } else plasmaLight.intensity = 0;
+  updateParticles(paused ? 0 : dtR);
+}
+
+// ================= 镜头 =================
+const VIEWS = {
+  overview: { p: [3.2, 4.3, 3.3], t: [0, 0.6, 0.3] },
+  efem: { p: [1.4, 2.0, 4.0], t: [0, 0.9, 1.9] },
+  ll: { p: [2.3, 1.9, 1.15], t: [-0.15, 0.9, 0.9] },
+  vtm: { p: [1.5, 2.6, 1.0], t: [0, 0.9, -0.4] },
+  chamber: { p: [0.4, 1.5, -0.36], t: [0, 0.97, PM_Z] },
+  explode: { p: [1.5, 2.1, 1.0], t: [0, 1.35, PM_Z] },
+};
+let camAnim = null;
+function camTo(name) {
+  const v = VIEWS[name];
+  const t1 = new THREE.Vector3(...v.t), p1 = new THREE.Vector3(...v.p);
+  if (camera.aspect < 1) p1.sub(t1).multiplyScalar(1 + 0.9 * (1 - camera.aspect)).add(t1); // 竖屏拉远
+  camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1, k: 0 };
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.v === name || (name === 'explode' && b.dataset.v === 'chamber')));
+}
+const follow = () => $('#follow').checked;
+
+// ================= 剖面图 =================
+const prof = $('#prof'), pctx = prof.getContext('2d');
+const chart = $('#chart'), cctx = chart.getContext('2d');
+function fitCanvas(c) {
+  const dpr = Math.min(devicePixelRatio, 2), w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [w, h];
+}
+const parts2d = [];
+function drawProfile(dtR) {
+  const [w, h] = fitCanvas(prof);
+  const g = pctx;
+  const X = x => w / 2 + x;           // 1 px = 1 nm
+  const Y0 = 78, Yp = y => Y0 + y;    // y：多晶硅顶面往下的深度（nm）
+  const oxTop = Yp(100), oxPx = 2;    // 栅氧放大画：1 nm = 2 px
+  const siTop = oxTop + 4 * oxPx;
+  g.fillStyle = '#1a2030'; g.fillRect(0, 0, w, h);
+  // 硅
+  g.fillStyle = '#6b7487'; g.fillRect(0, siTop, w, h - siTop);
+  if (E.si > 0) { g.fillStyle = '#1a2030'; g.fillRect(0, siTop, X(-30), E.si); g.fillRect(X(30), siTop, w - X(30), E.si);
+    g.strokeStyle = '#ff6b6b'; g.lineWidth = 1.5; g.strokeRect(1, siTop, X(-30) - 1, E.si); g.strokeRect(X(30), siTop, w - X(30) - 1, E.si); }
+  // 栅氧
+  g.fillStyle = '#c9d6f0';
+  g.fillRect(X(-30), oxTop, 60, 4 * oxPx);
+  const oxPxNow = E.ox * oxPx;
+  g.fillRect(0, siTop - oxPxNow, X(-30), oxPxNow); g.fillRect(X(30), siTop - oxPxNow, w - X(30), oxPxNow);
+  // 两边没刻完的多晶硅
+  const POLY = '#c6a86c';
+  g.fillStyle = POLY;
+  if (E.Dc < 100) { g.fillRect(0, Yp(E.Dc), X(-30) + 0.5, 100 - E.Dc); g.fillRect(X(30) - 0.5, Yp(E.Dc), w - X(30), 100 - E.Dc); }
+  // 栅极（侧壁按每个深度的侧向刻蚀量往里缩）
+  const i0 = Math.floor(E.gateLoss);
+  if (i0 < 100) {
+    g.beginPath();
+    g.moveTo(X(-30 + E.r[i0]), Yp(i0));
+    for (let i = i0; i <= 100; i++) g.lineTo(X(-30 + E.r[i]), Yp(i));
+    for (let i = 100; i >= i0; i--) g.lineTo(X(30 - E.r[i]), Yp(i));
+    g.closePath(); g.fill();
+    if (S.etching && E.pass > 0.2) {
+      g.strokeStyle = 'rgba(255,170,90,' + (0.4 + E.pass * 0.6) + ')'; g.lineWidth = 1 + E.pass * 1.5;
+      const reach = Math.min(100, Math.floor(E.Dc));
+      g.beginPath(); for (let i = i0; i <= reach; i++) g.lineTo(X(-30 + E.r[i]) - 0.8, Yp(i)); g.stroke();
+      g.beginPath(); for (let i = i0; i <= reach; i++) g.lineTo(X(30 - E.r[i]) + 0.8, Yp(i)); g.stroke();
+    }
+  }
+  // 光刻胶
+  if (E.maskH > 0) { g.fillStyle = '#c4455a'; g.fillRect(X(-30), Yp(-E.maskH), 60, E.maskH); }
+  // 离子（往下的短线）和自由基（点）
+  const dtv = dtR * Math.min(speed, 3) * (paused ? 0 : 1);
+  if (S.plasma > 0.05 && !paused) {
+    const ionRate = S.plasma * clamp(MDL.n, 0.2, 1.4) * 60, radRate = S.plasma * clamp(MDL.Gn, 0.1, 2) * 25;
+    for (let n = 0; n < ionRate * dtv; n++) {
+      const sigma = (2 + R.P * 0.35) * Math.PI / 180 * (S.biasF > 1 ? 1 : 4);
+      const a = (Math.random() + Math.random() + Math.random() - 1.5) * sigma * 1.4;
+      const v = S.biasF > 1 ? 260 + Math.sqrt(MDL.Ei) * 25 : 120;
+      parts2d.push({ ion: true, x: (Math.random() - 0.5) * w, y: -5, vx: Math.sin(a) * v, vy: Math.cos(a) * v, life: 3 });
+    }
+    for (let n = 0; n < radRate * dtv; n++) parts2d.push({ ion: false, x: (Math.random() - 0.5) * w, y: Math.random() * 60, vx: 0, vy: 0, life: 1.5 + Math.random() });
+  }
+  const surf = x => {
+    const ax = Math.abs(x);
+    if (ax < 30 - E.r[0]) return E.maskH > 0 ? Yp(-E.maskH) : Yp(E.gateLoss);
+    if (E.Dc < 100) return Yp(E.Dc);
+    return siTop - E.ox * oxPx + E.si;
+  };
+  for (let i = parts2d.length - 1; i >= 0; i--) {
+    const p = parts2d[i];
+    p.life -= dtv;
+    if (p.ion) { p.x += p.vx * dtv; p.y += p.vy * dtv; }
+    else { p.x += (Math.random() - 0.5) * 140 * dtv; p.y += (Math.random() - 0.45) * 140 * dtv; }
+    if (p.life <= 0 || p.y > surf(p.x) || p.y > h || Math.abs(p.x) > w / 2) { parts2d.splice(i, 1); continue; }
+    if (p.ion) { g.strokeStyle = '#7fd8ff'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(p.x), p.y); g.lineTo(X(p.x - p.vx * 0.02), p.y - p.vy * 0.02); g.stroke(); }
+    else { g.fillStyle = '#ffb347'; g.fillRect(X(p.x) - 1, p.y - 1, 2.2, 2.2); }
+  }
+  if (parts2d.length > 1500) parts2d.splice(0, parts2d.length - 1500);
+  // 图例
+  g.font = '11px ' + getComputedStyle(document.body).fontFamily;
+  const leg = [['#c4455a', '光刻胶'], [POLY, '多晶硅'], ['#c9d6f0', '栅氧（放大）'], ['#6b7487', '硅'], ['#7fd8ff', '离子'], ['#ffb347', '自由基']];
+  let lx = 6;
+  for (const [c, t] of leg) { g.fillStyle = c; g.fillRect(lx, h - 12, 8, 8); g.fillStyle = '#d6dde8'; g.fillText(t, lx + 11, h - 4.5); lx += g.measureText(t).width + 20; }
+  const rmax = Math.max(...E.r);
+  $('#depth').textContent = `刻深 ${E.Dc.toFixed(0)}/100 nm · 钻蚀 ${rmax.toFixed(1)} nm`;
+}
+
+// ================= 趋势图 =================
+const samples = [];
+const SERIES = [
+  { k: 'llP', log: true, min: 0.05, max: 1000, color: '#8a7dd8' },
+  { k: 'chP', max: 90, color: '#3a8fd6' },
+  { k: 'srcF', max: 1600, color: '#e0761c' },
+  { k: 'srcR', max: 400, color: '#d64545' },
+  { k: 'biasF', max: 420, color: '#14968f' },
+  { k: 'oes', max: 1.05, color: '#b8a400' },
+].map(s => ({ ...s, ...SERIES_TEXT.find(t => t.k === s.k) }));
+function fmt(v, k) {
+  if (k === 'llP') return v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2);
+  if (k === 'chP') return v < 1 ? v.toFixed(2) : v.toFixed(1);
+  if (k === 'oes') return v.toFixed(2);
+  return v.toFixed(0);
+}
+let lastSample = -1;
+function recordSample() {
+  if (procT0 === null || simT - lastSample < 0.2) return;
+  lastSample = simT;
+  samples.push({ t: simT - procT0, llP: S.llP, chP: S.chP, srcF: S.srcF, srcR: S.srcR, biasF: S.biasF, oes: E.oesF });
+  if (samples.length > 3000) samples.shift();
+}
+function drawChart() {
+  const [w, h] = fitCanvas(chart);
+  const g = cctx, cs = getComputedStyle(document.documentElement);
+  const bg = cs.getPropertyValue('--chart-bg'), gridC = cs.getPropertyValue('--grid'), fg = cs.getPropertyValue('--fg'), muted = cs.getPropertyValue('--muted');
+  g.clearRect(0, 0, w, h);
+  const now = samples.length ? samples[samples.length - 1].t : 0;
+  const win = Math.max(120, now), t0 = 0;
+  const left = 118, rowH = (h - 14) / SERIES.length;
+  g.font = '11px ' + getComputedStyle(document.body).fontFamily;
+  SERIES.forEach((s, i) => {
+    const y0 = i * rowH, y1 = y0 + rowH - 3;
+    g.fillStyle = bg; g.fillRect(left, y0, w - left, rowH - 3);
+    g.fillStyle = muted; g.fillText(s.name, 2, y0 + 12);
+    const cur = samples.length ? samples[samples.length - 1][s.k] : (s.k === 'llP' ? 760 : 0);
+    g.fillStyle = fg; g.fillText(`${fmt(cur, s.k)} ${s.unit}`, 2, y0 + 25);
+    const yv = v => s.log ? y1 - (Math.log10(clamp(v, s.min, s.max)) - Math.log10(s.min)) / (Math.log10(s.max) - Math.log10(s.min)) * (y1 - y0 - 4) : y1 - clamp(v / s.max, 0, 1) * (y1 - y0 - 4);
+    g.strokeStyle = s.color; g.lineWidth = 1.5; g.beginPath();
+    let started = false;
+    for (const p of samples) {
+      if (p.t < t0) continue;
+      const x = left + (p.t - t0) / win * (w - left);
+      if (!started) { g.moveTo(x, yv(p[s.k])); started = true; } else g.lineTo(x, yv(p[s.k]));
+    }
+    g.stroke();
+  });
+  // 终点标记
+  if (E.tEp !== null && E.epT !== undefined && E.epT >= t0) {
+    const x = left + (E.epT - t0) / win * (w - left);
+    g.strokeStyle = '#d64545'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h - 14); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#d64545'; g.fillText('终点', x + 3, h - 16);
+  }
+  g.fillStyle = muted;
+  g.fillText(`0 ~ ${win.toFixed(0)} 秒（整个工艺）`, left, h - 2);
+  $('#endp').textContent = E.tEp !== null ? `终点 @ 主刻 ${E.tEp.toFixed(1)} s` : (S.etching ? '等终点…' : '');
+}
+
+// ================= 界面 =================
+const stepsEl = $('#steps');
+STEPS.forEach(s => { const li = document.createElement('li'); li.textContent = s.name; stepsEl.appendChild(li); });
+let stepIdx = -1, busy = false, done = false;
+function renderSteps() {
+  [...stepsEl.children].forEach((li, i) => { li.className = i < stepIdx || (done && i <= stepIdx) ? 'done' : i === stepIdx && busy ? 'cur' : ''; });
+  const go = $('#go');
+  if (done) { go.textContent = '↻ 再跑一片'; go.disabled = false; }
+  else if (busy) { go.textContent = '进行中：' + STEPS[stepIdx].name + ' …'; go.disabled = true; }
+  else { const n = STEPS[stepIdx + 1]; go.textContent = (stepIdx < 0 ? '▶ 开始：' : '▶ 下一步：') + n.name; go.disabled = false; }
+  const st = $('#state');
+  st.className = 'pill' + (busy || (stepIdx >= 0 && !done) ? ' run' : done ? ' ok' : '');
+  st.textContent = done ? '完成' : stepIdx < 0 ? '待机' : busy ? `第 ${stepIdx + 1}/${STEPS.length} 步` : `等待第 ${stepIdx + 2} 步`;
+  const locked = stepIdx >= 0 && !done;
+  document.querySelectorAll('#fields input, #presets button').forEach(el => { el.disabled = locked; });
+  $('#lockNote').hidden = !locked;
+  $('#explode').disabled = locked;
+}
+function explain(title, now, why, err = false) {
+  const ex = $('#explain');
+  ex.classList.toggle('err', err);
+  ex.querySelector('.t').textContent = title;
+  ex.querySelector('.now').textContent = now;
+  const w = ex.querySelector('.why');
+  w.textContent = why || '';
+  w.hidden = !why;
+}
+async function runStep(i) {
+  busy = true; stepIdx = i;
+  const st = STEPS[i];
+  const now = fillText(st.nowTimeout && E.timeout ? st.nowTimeout : st.now,
+    { ...R, valve: Math.round(vtTarget()), Ei: Math.round(MDL.Ei), oeSec: Math.round(E.tMain * R.oe / 100) });
+  explain(`第 ${i + 1} 步 · ${st.name}`, now, st.why);
+  $('#caption').innerHTML = `<b>第 ${i + 1}/${STEPS.length} 步</b> · ${st.name}`;
+  if (follow()) camTo(st.cam);
+  renderSteps();
+  await st.run();
+  busy = false;
+  if (i === STEPS.length - 1) { done = true; renderSteps(); finish(); return; }
+  renderSteps();
+  if (st.chain || $('#auto').checked) { await wait(st.chain ? 0.05 : 0.6); if (!busy && stepIdx === i) runStep(i + 1); }
+}
+function startOrNext() {
+  if (busy) return;
+  if (done) { resetAll(); return; }
+  if (stepIdx < 0) {
+    MDL = model(R);
+    if (MDL.problem) { explain(EXPLAIN.badRecipe[0], fillText(EXPLAIN.badRecipe[1], { problem: MDL.problem }), '', true); return; }
+    procT0 = simT; samples.length = 0; lastSample = -1;
+    $('#explode').value = 0; S.explode = 0;
+  }
+  runStep(stepIdx + 1);
+}
+$('#go').addEventListener('click', startOrNext);
+$('#auto').addEventListener('change', () => { if ($('#auto').checked && !busy && stepIdx >= 0 && !done) runStep(stepIdx + 1); });
+$('#speed').addEventListener('change', e => { speed = +e.target.value; });
+$('#pause').addEventListener('click', () => { paused = !paused; $('#pause').textContent = paused ? '▶ 继续' : '⏸ 暂停'; });
+
+function resetAll() {
+  resetState();
+  clearParticles();
+  stepIdx = -1; busy = false; done = false; procT0 = null; samples.length = 0; parts2d.length = 0;
+  E.epT = undefined;
+  explain(...EXPLAIN.ready);
+  $('#caption').innerHTML = '点右边的 <b>▶ 开始</b>，一步一步把一片晶圆刻完。';
+  if (follow()) camTo('overview');
+  renderSteps();
+}
+
+// ---------- 结果 ----------
+function finish() {
+  const { rmax, residue, ok } = evaluate(E);
+  const vals = [
+    E.timeout ? '没刻完' : residue ? `边缘还剩 ${(100 - E.De).toFixed(0)} nm` : '干净',
+    `${rmax.toFixed(1)} nm`,
+    E.si > 0 ? `刻穿了，硅被挖下 ${E.si.toFixed(1)} nm` : `剩 ${E.ox.toFixed(1)} / 4 nm`,
+    `剩 ${E.maskH.toFixed(0)} / 60 nm`,
+    `${E.tMain.toFixed(0)} 秒`,
+  ];
+  const items = RESULT_TEXT.map((t, i) => ({ ok: ok[i], label: t.label, val: vals[i], hint: E.timeout && t.hintTimeout ? t.hintTimeout : t.hint }));
+  const bad = items.filter(i => !i.ok).length;
+  const v = $('#verdict');
+  v.className = 'verdict ' + (bad ? 'bad' : 'ok');
+  v.textContent = bad ? fillText(VERDICT.bad, { n: bad }) : VERDICT.ok;
+  $('#resList').innerHTML = items.map(i => `<li class="${i.ok ? 'ok' : 'bad'}"><div class="h"><span>${i.label}</span><span class="v">${i.val}</span></div>${i.ok ? '' : `<div class="hint">${i.hint}</div>`}</li>`).join('');
+  $('#resStats').textContent = `多晶硅刻蚀速率 ${MDL.ERv.toFixed(0)} nm/min · 离子能量约 ${MDL.Ei.toFixed(0)} eV · 对栅氧选择比 ${MDL.sel.toFixed(0)} : 1 · 终点 ${E.timeout ? '未到' : E.tEp.toFixed(1) + ' s'} · 过刻 ${E.timeout ? 0 : (E.tMain * R.oe / 100).toFixed(1)} s`;
+  $('#result').hidden = false;
+  explain(...EXPLAIN.done, '');
+  $('#caption').innerHTML = '<b>完成</b> · 点右边"再跑一片"，或者改配方再试';
+}
+$('#again').addEventListener('click', () => { $('#result').hidden = true; resetAll(); });
+$('#tweak').addEventListener('click', () => { $('#result').hidden = true; resetAll(); showTab('recipe'); });
+$('#resClose').addEventListener('click', () => { $('#result').hidden = true; });
+
+// ---------- 配方页 ----------
+const presetsEl = $('#presets'), fieldsEl = $('#fields');
+function renderPresets() {
+  presetsEl.innerHTML = '';
+  for (const p of PRESETS) {
+    const b = document.createElement('button');
+    b.className = 'btn' + (FIELDS.every(f => R[f.k] === p.r[f.k]) ? ' on' : '');
+    b.textContent = p.name;
+    b.onclick = () => { R = { ...p.r }; syncFields(); };
+    presetsEl.appendChild(b);
+  }
+}
+for (const f of FIELDS) {
+  const d = document.createElement('div');
+  d.className = 'field';
+  d.innerHTML = `<div class="top"><span>${f.name}</span><b><span data-v="${f.k}"></span> ${f.unit}</b></div>
+    <input type="range" min="${f.min}" max="${f.max}" step="${f.step}" data-k="${f.k}"><div class="tip">${f.tip}</div>`;
+  fieldsEl.appendChild(d);
+}
+fieldsEl.addEventListener('input', e => { const k = e.target.dataset.k; if (!k) return; R[k] = +e.target.value; syncFields(true); });
+function syncFields(fromInput = false) {
+  for (const f of FIELDS) {
+    if (!fromInput) fieldsEl.querySelector(`input[data-k="${f.k}"]`).value = R[f.k];
+    fieldsEl.querySelector(`[data-v="${f.k}"]`).textContent = R[f.k];
+  }
+  MDL = model(R);
+  const m = MDL;
+  const rows = m.problem ? [['问题', m.problem]] : [
+    ['等离子体密度（相对）', m.n.toFixed(2)],
+    ['离子能量', `约 ${m.Ei.toFixed(0)} eV`],
+    ['多晶硅往下刻', `${m.ERv.toFixed(0)} nm/min`],
+    ['往侧面刻', `${m.ERl.toFixed(1)} nm/min`],
+    ['对栅氧选择比', `${m.sel.toFixed(0)} : 1`],
+    ['光刻胶消耗', `${m.ERmask.toFixed(0)} nm/min`],
+    ['预计主刻时间', m.ERv > 0.5 ? `${(100 / m.ERv * 60).toFixed(0)} s` : '刻不动'],
+    ['中心/边缘速率差', `±${(m.u * 100).toFixed(1)}%`],
+  ];
+  $('#predict').innerHTML = rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+  renderPresets();
+}
+syncFields();
+
+// ---------- 零件页 ----------
+{
+  const byGroup = {};
+  for (const p of Object.values(PARTS)) (byGroup[p.grp] ||= []).push(p);
+  const pl = $('#plist');
+  for (const [grp, list] of Object.entries(byGroup)) {
+    const d = document.createElement('div');
+    d.className = 'pgroup';
+    d.innerHTML = `<h4>${grp}</h4><div class="plist">${list.map(p => `<button data-p="${p.id}">${p.name}</button>`).join('')}</div>`;
+    pl.appendChild(d);
+  }
+  pl.addEventListener('click', e => { const id = e.target.dataset.p; if (id) selectPart(id, true); });
+}
+let selected = null;
+function setHL(id, on) {
+  if (!id) return;
+  for (const o of PARTS[id].objs) o.traverse(m => {
+    if (m.isMesh && m.material.emissive) { m.material.emissive.setHex(on ? 0xff7a1a : 0x000000); m.material.emissiveIntensity = on ? 0.55 : 1; }
+  });
+}
+function selectPart(id, fromList = false) {
+  setHL(selected, false);
+  selected = id;
+  setHL(id, true);
+  document.querySelectorAll('#plist button').forEach(b => b.classList.toggle('on', b.dataset.p === id));
+  const card = $('#partcard');
+  if (!id) { card.hidden = true; return; }
+  const p = PARTS[id];
+  card.querySelector('h3').textContent = p.name;
+  card.querySelector('.g').textContent = p.grp;
+  card.querySelector('p').textContent = p.desc;
+  card.hidden = false;
+  if (fromList && p.grp.startsWith('工艺腔') && !busy) camTo(S.explode > 0.05 ? 'explode' : 'chamber');
+}
+$('#pcClose').addEventListener('click', () => selectPart(null));
+
+// ---------- 页签、顶栏 ----------
+function showTab(name) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.tab').forEach(t => { t.hidden = t.id !== 'tab-' + name; });
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => camTo(b.dataset.v)));
+$('#cut').addEventListener('change', e => { CUT.constant = e.target.checked ? PM_Z : 1000; });
+$('#labels').addEventListener('change', e => { labelRenderer.domElement.style.display = e.target.checked ? '' : 'none'; });
+$('#explode').addEventListener('input', e => {
+  S.explode = +e.target.value;
+  if (S.explode > 0.05 && follow() && !camAnim) {
+    const tgt = new THREE.Vector3(...VIEWS.explode.t);
+    if (controls.target.distanceTo(tgt) > 0.2) camTo('explode');
+  }
+});
+$('#dockToggle').addEventListener('click', () => { const d = $('#dock'); d.hidden = !d.hidden; $('#dockToggle').textContent = d.hidden ? '显示图表' : '隐藏图表'; });
+
+// ---------- 实时数值 ----------
+const VALS = [
+  ['负载锁压力', () => `${fmt(S.llP, 'llP')} Torr`],
+  ['腔压', () => `${fmt(S.chP, 'chP')} mTorr`],
+  ['摆阀开度', () => `${S.valve.toFixed(0)} %`],
+  ['Cl₂ / HBr / O₂', () => `${S.cl2.toFixed(0)} / ${S.hbr.toFixed(0)} / ${S.o2.toFixed(0)} sccm`],
+  ['源功率 正向 / 反射', () => `${S.srcF.toFixed(0)} / ${S.srcR.toFixed(0)} W`],
+  ['偏压功率', () => `${S.biasF.toFixed(0)} W`],
+  ['离子能量', () => S.plasma > 0.05 ? `约 ${(S.biasF > 1 ? 15 + (MDL.Ei - 15) * S.biasF / Math.max(R.Wb, 1) : 15).toFixed(0)} eV` : '—'],
+  ['卡盘电压', () => `${S.escV.toFixed(0)} V`],
+  ['背面氦气', () => `${S.he.toFixed(1)} Torr`],
+  ['晶圆温度', () => `${S.wT.toFixed(0)} °C`],
+  ['刻蚀深度（中心）', () => `${E.Dc.toFixed(0)} / 100 nm`],
+];
+const valsEl = $('#vals');
+valsEl.innerHTML = VALS.map(([a], i) => `<dt>${a}</dt><dd id="v${i}"></dd>`).join('');
+const valEls = VALS.map((_, i) => $('#v' + i));
+function updateVals() { VALS.forEach(([, f], i) => { valEls[i].textContent = f(); }); }
+
+// ---------- 主题 ----------
+function applyTheme() {
+  const dark = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim().toLowerCase() === '#101419';
+  MAT.floor.color.setHex(dark ? 0x6d737a : 0xd2d6da);
+  grid.visible = false;
+}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+floor.material = MAT.floor;
+
+// ---------- 点选 ----------
+const ray = new THREE.Raycaster();
+let downXY = null;
+canvas.addEventListener('pointerdown', e => { downXY = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', e => {
+  if (!downXY || Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]) > 5) return;
+  const r = canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+  for (const h of ray.intersectObjects(scene.children, true)) {
+    const o = h.object;
+    if (!o.isMesh || !o.visible) continue;
+    const m = o.material;
+    if (m.userData.noPick || (m.transparent && m.opacity < 0.3)) continue;
+    if (m.userData.clip && CUT.distanceToPoint(h.point) < 0) continue;
+    selectPart(o.userData.part || null);
+    return;
+  }
+  selectPart(null);
+});
+
+// ================= 细模型（Blender 导出的 glb） =================
+// 打包时 glb 以 base64 嵌进页面；没有的话（开发时）去 ../output 里取；都没有就继续用上面代码搭的简模。
+let turboRotor = null, pendPlate = null;
+const extraRotors = [];
+const CLIP_NODES = new Set(['chamber', 'window', 'rfcover', 'liner', 'baffle', 'slit', 'esc', 'edgering', 'insring', 'pendulum', 'turbo', 'turbo__rotor']);
+const PM_IDS = ['chamber', 'window', 'coil', 'rfcover', 'srcmatch', 'nozzle', 'slit', 'pendulum', 'turbo', 'liner', 'baffle', 'esc', 'insring', 'edgering', 'pins', 'oes', 'cmg', 'biasmatch', 'gasbox', 'rack'];
+const PM23_NODES = ['frame', 'chamber', 'window', 'coil', 'rfcover', 'srcmatch', 'nozzle', 'slit', 'slit__door', 'pendulum', 'pendulum__plate', 'turbo', 'turbo__rotor', 'lines'];
+function shadowAll(root) {
+  root.traverse(m => { if (m.isMesh && !(m.material.transparent && m.material.opacity < 0.7)) { m.castShadow = true; m.receiveShadow = true; } });
+}
+function tagPart(obj, id) {
+  obj.traverse(o => { if (o.isMesh) { o.userData.part = id; o.material = o.material.clone(); } });
+}
+// PM2/PM3 不会单独动零件：按材质合并成少数几个网格，减少绘制次数（手机上差别很大）
+function mergeStatic(g, partId) {
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert();
+  const byMat = new Map();
+  g.traverse(m => {
+    if (!m.isMesh) return;
+    let geo = m.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+    for (const k of Object.keys(geo.attributes)) if (k !== 'position' && k !== 'normal' && k !== 'uv') geo.deleteAttribute(k);
+    if (geo.index) geo = geo.toNonIndexed();
+    const key = m.material.name + '|' + m.material.color.getHexString() + '|' + m.material.opacity;
+    if (!byMat.has(key)) byMat.set(key, { mat: m.material, geos: [] });
+    byMat.get(key).geos.push(geo);
+  });
+  const merged = [];
+  for (const { mat, geos } of byMat.values()) {
+    const geo = mergeGeometries(geos);
+    if (!geo) return false;
+    const mm = new THREE.Mesh(geo, mat.clone());
+    mm.userData.part = partId;
+    merged.push(mm);
+  }
+  g.clear();
+  merged.forEach(m => g.add(m));
+  return true;
+}
+function applyDetail(root) {  const N = {};
+  for (const n of [...root.children]) N[n.name] = n;
+  if (!N.chamber || !N.atm_l1 || !N.vtm_l1) return;
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    if (o.material.transparent) o.material.depthWrite = false;
+    dress(o.material, KIND_BY_NAME[o.material.name]);
+  });
+  // PM2 / PM3：克隆外面看得见的部分，不剖开
+  for (const g of PM23) {
+    g.clear();
+    for (const nm of PM23_NODES) {
+      if (!N[nm]) continue;
+      const c = N[nm].clone(true);
+      tagPart(c, 'pm23');
+      g.add(c);
+    }
+    try { mergeStatic(g, 'pm23'); } catch (e) { console.warn('merge', e); }
+  }
+  // PM1：换掉简模
+  for (const id of PM_IDS) { for (const o of PARTS[id].objs) if (o.parent) o.parent.remove(o); PARTS[id].objs = []; }
+  if (PM1_LEGS) PM1.remove(PM1_LEGS);
+  for (const [nm, n] of Object.entries(N)) {
+    if (nm.startsWith('atm_') || nm.startsWith('vtm_')) continue;
+    const id = nm.split('__')[0];
+    if (!PARTS[id]) continue;
+    if (CLIP_NODES.has(nm)) n.traverse(m => { if (m.isMesh) m.material = clipped(m.material); });
+    PM1.add(n);
+    addPart(id, n);
+  }
+  doorObjs.slit = N.slit__door;
+  turboRotor = N.turbo__rotor;
+  pendPlate = N.pendulum__plate;
+  // 机械手
+  for (const rb of [ATM, VTM]) {
+    rb.g.clear();
+    const base = N[rb.name + '_base'];
+    base.position.set(rb.bx, 0, rb.bz);
+    rb.l1 = N[rb.name + '_l1']; rb.l2 = N[rb.name + '_l2']; rb.blade = N[rb.name + '_blade'];
+    rb.g.add(base, rb.l1, rb.l2, rb.blade);
+    tagPart(rb.g, rb.name === 'atm' ? 'atmrobot' : 'vtmrobot');
+    rb.update();
+  }
+  scene.remove(atmPedestal);
+  shadowAll(scene);
+  if (selected) setHL(selected, true);
+}
+function loadDetail() {
+  const parse = buf => new GLTFLoader().parse(buf, '', g => {
+    try { applyDetail(g.scene); } catch (e) { if (window.__showErr) window.__showErr(e); }
+  }, e => console.warn('glb', e));
+  const b64 = window.__ETCH_GLB;
+  if (b64 && b64.indexOf('__') !== 0) {
+    const bin = atob(b64), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    parse(u.buffer);
+  } else {
+    fetch('../output/etcher_detail.glb').then(r => (r.ok ? r.arrayBuffer() : null)).then(b => { if (b) parse(b); }).catch(() => {});
+  }
+}
+shadowAll(scene);
+if (has3D) loadDetail();
+
+// ---------- 主循环 ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  labelRenderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+renderSteps();
+if (innerWidth < 900) { $('#dock').hidden = true; $('#dockToggle').textContent = '显示图表'; $('#caption').textContent = '点下面的 ▶ 开始'; }
+camTo('overview');
+
+let last = performance.now(), chartAcc = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  try { frameBody(now); } catch (e) { window.__showErr && window.__showErr(e); }
+}
+function frameBody(now) {
+  const dtR = clamp((now - last) / 1000, 0, 0.05);
+  last = Math.max(last, now);
+  const dt = paused ? 0 : dtR * speed;
+  simT += dt;
+  runTimers();
+  physicsTick(dt);
+  recordSample();
+  visualsTick(dtR);
+  if (camAnim) {
+    camAnim.k = Math.min(1, camAnim.k + dtR / 1.2);
+    const e = ease(camAnim.k);
+    camera.position.lerpVectors(camAnim.p0, camAnim.p1, e);
+    controls.target.lerpVectors(camAnim.t0, camAnim.t1, e);
+    if (camAnim.k >= 1) camAnim = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  if ($('#labels').checked) labelRenderer.render(scene, camera);
+  if (!$('#dock').hidden) drawProfile(dtR);
+  chartAcc += dtR;
+  if (chartAcc > 0.1) {
+    chartAcc = 0;
+    if (!$('#dock').hidden) drawChart();
+    updateVals();
+    $('#time').textContent = `${procT0 === null ? '0.0' : (simT - procT0).toFixed(1)} s`;
+  }
+}
+window.__etchReady = true;
+window.__etch = { camera, controls, scene, renderer, S, E, tick: frameBody };  // 调试用
+requestAnimationFrame(frame);

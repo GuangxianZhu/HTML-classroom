@@ -1,0 +1,902 @@
+<title>万用表拆解</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout (same family as the motor / drone / hand viewers): full-bleed 3D stage; drawing title block + part card
+   top-left, side panel (BOM / principle) right, mode tabs + controls in one strip at the bottom where the thumb is */
+:root{
+  --bg:#e4e8ec; --bg2:#f5f7f9; --panel:rgba(247,249,251,.93); --panel-solid:#f7f9fb;
+  --fg:#161d26; --muted:#56616f; --line:#c2cad3; --accent:#a8521f; --accent-ink:#ffffff;
+  --hl:#d6860b; --hl-ink:#1b1204; --shadow-a:.2;
+  --c1:#c99400; --c2:#1f9447; --c3:#2a66cf; --c4:#d93b3b; --c5:#7b52c7; --off:#9aa4b0;
+  --f-cn:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --ctrl-h:120px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
+  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
+  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
+  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
+  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
+  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
+  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }
+
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-cn);-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,var(--bg2),var(--bg) 72%)}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity .2s}
+#leaders line{stroke:var(--fg);stroke-width:.9;opacity:.55}
+#leaders circle{fill:var(--fg);opacity:.7}
+#leaders line.sel{stroke:var(--hl);opacity:1;stroke-width:1.4}
+#leaders circle.sel{fill:var(--hl);opacity:1}
+.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  border:1.25px solid var(--fg);background:var(--panel-solid);color:var(--fg);font:600 12.5px/1 var(--f-num);
+  display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;font-variant-numeric:tabular-nums;will-change:transform}
+.bln:hover{border-color:var(--accent);color:var(--accent)}
+.bln.sel{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
+.tag{position:absolute;left:0;top:0;transform-origin:0 0;padding:2px 6px;border-radius:4px;white-space:nowrap;
+  font:600 11.5px/16px var(--f-cn);color:#fff;background:var(--fg);will-change:transform;opacity:.95;translate:-50% -50%}
+.bln:focus-visible,.btn:focus-visible,.row:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.hud{position:absolute;z-index:2}
+.left{top:12px;left:max(16px,env(safe-area-inset-left,0px));width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:10px}
+.tb{border:1.25px solid var(--fg);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;grid-template-columns:1fr auto;font-size:12px}
+.tb>div{padding:6px 9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.tb>div:nth-child(2n){border-right:0}
+.tb>div:nth-last-child(-n+2){border-bottom:0}
+.tb .name{grid-column:1/-1;border-right:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tb h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.04em;text-wrap:balance}
+.tb .en{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tb .k{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em}
+.tb .v{font:500 12px/1.35 var(--f-mono)}
+
+.card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.card-head{display:flex;gap:10px;align-items:flex-start}
+.card-no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--hl);color:var(--hl-ink);display:grid;place-items:center;font:600 15px/1 var(--f-num)}
+.card h2{margin:0;font-size:16px;font-weight:700;line-height:1.25}
+.card .jp{font:500 11.5px var(--f-mono);color:var(--muted);margin-top:2px}
+.card .x{margin-left:auto;flex:none;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
+.card dt{color:var(--muted)} .card dd{margin:0;font-family:var(--f-mono);font-size:12px;min-width:0}
+.card p{margin:0;font-size:13px;line-height:1.6;max-width:60ch}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+
+.side{top:12px;right:max(16px,env(safe-area-inset-right,0px));width:380px;bottom:calc(var(--ctrl-h) + 10px);
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;display:flex;flex-direction:column;min-height:0}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.side-head h3{margin:0;font-size:14px;font-weight:700}
+.side-head h3 small{font:500 12px var(--f-mono);color:var(--muted);margin-left:6px}
+.scroll{overflow:auto;flex:1;min-height:0}
+.row{display:grid;grid-template-columns:26px 1fr auto;gap:2px 10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;color:var(--fg);font:inherit}
+.row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.row.sel{background:color-mix(in srgb,var(--hl) 18%,transparent)}
+.row .n{grid-column:1;grid-row:1/3;width:22px;height:22px;border-radius:50%;border:1.25px solid var(--fg);display:grid;place-items:center;font:600 12px/1 var(--f-num)}
+.row.sel .n{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
+.row .nm{grid-column:2;grid-row:1;font-size:13px;font-weight:500;min-width:0}
+.row .q{grid-column:3;grid-row:1/3;font:500 12px var(--f-mono);color:var(--muted)}
+.row .m{grid-column:2;grid-row:2;font:400 11px/1.3 var(--f-mono);color:var(--muted);min-width:0}
+
+/* principle panel building blocks */
+.pp{padding:12px;display:flex;flex-direction:column;gap:10px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline;font-size:12.5px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font:500 13px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
+.kv dd b{font:600 16px/1 var(--f-num);letter-spacing:.02em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 12.5px/1 var(--f-cn);padding:6px 9px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:transparent;text-align:center}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.expl{font-size:13px;line-height:1.65;margin:0}
+.expl b{font-weight:600}
+.note{font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+table.st{width:100%;border-collapse:collapse;font:500 12px/1.25 var(--f-mono);font-variant-numeric:tabular-nums}
+table.st th{font:500 11px var(--f-cn);color:var(--muted);text-align:center;padding:4px 2px;border-bottom:1px solid var(--line)}
+table.st td{text-align:center;padding:5px 2px;border-bottom:1px solid var(--line)}
+table.st td.l{text-align:left;font-family:var(--f-cn)}
+table.st tr.cur td{background:color-mix(in srgb,var(--hl) 22%,transparent);font-weight:600}
+.sub{font-size:12px;font-weight:700;margin:2px 0 -4px;color:var(--muted);letter-spacing:.06em}
+canvas.plot{width:100%;height:140px;display:block}
+
+.ctrl{left:0;right:0;bottom:0;padding-block:8px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{max-width:1080px;margin:0 auto;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px;background:var(--panel-solid)}
+.tab{font:500 13px/1 var(--f-cn);padding:7px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{font:500 13px/1 var(--f-cn);padding:8px 11px;border:1px solid var(--line);background:var(--panel-solid);color:var(--fg);border-radius:6px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:13px;height:13px;fill:currentColor}
+select.btn{padding:7px 8px}
+.slider{display:flex;align-items:center;gap:8px;flex:1 1 200px;min-width:170px}
+.slider label{font-size:12px;color:var(--muted);white-space:nowrap}
+.slider input{flex:1;min-width:0;accent-color:var(--accent)}
+.slider output{font:500 12px var(--f-mono);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cap{font-size:12.5px;line-height:1.55;color:var(--muted);min-width:0}
+.cap b{color:var(--fg);font-weight:500}
+.spacer{flex:1 1 0}
+
+.loading{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
+.loading div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-size:13px;min-width:220px}
+.loading .barl{height:4px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden}
+.loading .barl i{display:block;height:100%;width:0;background:var(--accent)}
+
+@media (max-width:760px){
+  .left{width:calc(100% - 32px)}
+  .tb .hidemob{display:none}
+  .tb{grid-template-columns:1fr 1fr}
+  #info{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(var(--ctrl-h) + 8px + env(safe-area-inset-bottom,0px));width:auto;max-height:40%;overflow:auto;z-index:3}
+  .side{left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;top:auto;max-height:56%;bottom:calc(var(--ctrl-h) + 8px)}
+  #pPanel{max-height:44%}
+  #app.mode-principle .left{display:none}
+  #app.mode-principle #cap{display:none}
+  .pp{gap:8px;padding:10px 12px}
+  .expl{font-size:12.5px;line-height:1.6}
+  .slider{flex-basis:100%}
+  .tab{padding:7px 12px}
+  .mob-hide{display:none}
+}
+@media (prefers-reduced-motion: reduce){ #leaders,#tags{transition:none} }
+.lcd{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;padding:10px 14px;border-radius:6px;background:#c9d4c2;color:#16201a;border:1px solid #9fae98;box-shadow:inset 0 2px 6px rgba(0,0,0,.18)}
+.lcd b{font:600 44px/1 var(--f-num);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.lcd small{font:600 15px/1 var(--f-num);letter-spacing:.06em}
+.lcd .flag{margin-right:auto;font:600 12px/1 var(--f-num);letter-spacing:.08em;opacity:.75}
+.tries{display:flex;gap:4px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+.tries .chip{padding:4px 7px;font:500 12px/1 var(--f-mono)}
+.tries .chip.bad{text-decoration:line-through;opacity:.7}
+.path{margin:0;padding-left:1.3em;font-size:12.5px;line-height:1.7}
+.path li::marker{color:var(--muted);font:500 11px var(--f-mono)}
+.warn{color:var(--c4);font-weight:600}
+</style>
+
+<div id="app">
+  <canvas id="c" aria-label="数字万用表三维模型，可拖动旋转"></canvas>
+  <svg id="leaders" aria-hidden="true"></svg>
+  <div id="tags"></div>
+  <div class="loading" id="loading"><div><span id="ld-t">正在加载模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
+
+  <div class="hud left">
+    <div class="tb" role="group" aria-label="图纸标题栏">
+      <div class="name"><h1>数字万用表</h1><span class="en">Auto-ranging DMM</span></div>
+      <div><span class="k">计数</span><span class="v">6000 · 自动量程</span></div>
+      <div><span class="k">外形（含护套）</span><span class="v">150 × 76 × 38 mm</span></div>
+      <div class="hidemob"><span class="k">输入保护</span><span class="v">PTC + 压敏 · 4 A 保险丝</span></div>
+      <div class="hidemob"><span class="k">电源</span><span class="v">2 × AAA · 3 V</span></div>
+    </div>
+    <div id="info" class="card" hidden aria-live="polite">
+      <div class="card-head">
+        <div class="card-no" id="i-no">1</div>
+        <div><h2 id="i-cn">—</h2><div class="jp" id="i-en">—</div></div>
+        <button class="x" id="i-close" aria-label="关闭说明">×</button>
+      </div>
+      <dl><dt>材料</dt><dd id="i-mat">—</dd><dt>数量</dt><dd id="i-qty">—</dd></dl>
+      <p id="i-desc"></p>
+    </div>
+    <div class="hint" id="hint">拖动旋转，滚轮或双指缩放。点零件或编号看说明。</div>
+  </div>
+
+  <section class="hud side" id="bom" hidden aria-label="零件表">
+    <div class="side-head"><h3>零件表<small id="bom-count"></small></h3><button class="btn" id="bom-close">收起</button></div>
+    <div class="scroll" id="bom-list"></div>
+  </section>
+
+  <section class="hud side" id="pPanel" hidden aria-label="测量原理">
+    <div class="side-head"><h3>测量原理<small id="pp-mode">电压</small></h3></div>
+    <div class="scroll"><div class="pp">
+      <div class="chips" role="group" aria-label="测量功能">
+        <button class="chip" data-fn="V" aria-pressed="true">电压</button><button class="chip" data-fn="A" aria-pressed="false">电流</button>
+        <button class="chip" data-fn="R" aria-pressed="false">电阻 / 通断</button><button class="chip" data-fn="N" aria-pressed="false">NCV 测电</button>
+      </div>
+      <div class="lcd" aria-live="polite"><span class="flag" id="lcd-flag">AUTO</span><b id="lcd-num">230.0</b><small id="lcd-unit">V</small></div>
+      <div class="tries" id="tries"></div>
+      <dl class="kv" id="kv"></dl>
+      <p class="expl" id="expl"></p>
+      <div class="sub">信号走的路（板子上发光的零件）</div>
+      <ol class="path" id="path"></ol>
+      <p class="note">面壳、护套、按键和屏幕支架已隐藏，液晶屏画成半透明。主板上发光的线是按信号走向画的示意，不是真实布线。</p>
+    </div></div>
+  </section>
+
+  <div class="hud ctrl" id="ctrl">
+    <div class="bar">
+      <div class="bar-row">
+        <div class="tabs" role="tablist" aria-label="模式">
+          <button class="tab" role="tab" data-mode="struct" aria-selected="true">结构</button>
+          <button class="tab" role="tab" data-mode="principle" aria-selected="false">原理</button>
+          <button class="tab" role="tab" data-mode="model" aria-selected="false">模型</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn" id="b-view">复位</button>
+      </div>
+      <div class="bar-row grp-struct">
+        <button class="btn primary" id="b-play"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z"/></svg><span id="b-play-t">装配</span></button>
+        <div class="slider"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
+        <button class="btn" id="b-lbl" aria-pressed="true">编号</button>
+        <button class="btn" id="b-bom" aria-pressed="false">零件表</button>
+      </div>
+      <div class="bar-row grp-principle" hidden>
+        <div class="slider"><label for="r-in" id="l-in">被测电压</label><input id="r-in" type="range" min="0" max="1000" value="700"><output id="o-in">230 V</output></div>
+        <button class="btn" id="b-x" aria-pressed="false">误碰 220 V</button>
+      </div>
+      <div class="bar-row grp-model" hidden>
+        <button class="btn" id="b-cut" aria-pressed="false">剖切</button>
+
+      </div>
+      <div class="cap" id="cap"></div>
+    </div>
+  </div>
+</div>
+
+<script>window.__GLB_B64="__GLB_BASE64__";</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ═══════════════════════ shared viewer core ═══════════════════════
+   The glb comes from the Blender build script. Every top-level node is one part with extras:
+   part_no, name_cn, material_spec, desc, ex = [[dx, dy, dz, s], ...] (glTF axes, mm).
+   Explode formula (same as Blender / Unreal): each leg eases in over T ∈ [0.6 s, 0.6 s + 0.4].
+   The project section further down (PROJ) adds the 原理 mode and its own panel. */
+const $ = id => document.getElementById(id);
+const D2R = Math.PI/180, MM = 0.001;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
+const smooth = x => { x = clamp(x, 0, 1); return x*x*(3-2*x); };
+const prog = (t,s) => ease(clamp((t - s*.6)/.4, 0, 1));
+
+/* ───────── renderer / scene ───────── */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 0);
+renderer.localClippingEnabled = true;
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.95;
+const camera = new THREE.PerspectiveCamera(30, 1, .002, 20);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = .03; controls.maxDistance = 8;
+
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.bias = -.0004; key.shadow.normalBias = .0006;
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xdfe8ff, .7); rim.position.set(-.4,.25,-.35); scene.add(rim);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(20,20).rotateX(-Math.PI/2), new THREE.ShadowMaterial({ opacity:.2 }));
+ground.receiveShadow = true; scene.add(ground);
+
+const root = new THREE.Group(); scene.add(root);
+let cutPlane = new THREE.Plane(new THREE.Vector3(0,0,-1), 0);
+
+/* ───────── state ───────── */
+const st = { mode:'struct', t:1, tTarget:null, labels: innerWidth >= 760, sel:null, hover:null, moved:false,
+  running:!prefersReduced, speed:1, cut:false };
+let PROJ = null;
+let parts = [], items = [], meshes = [], model = null;
+const itemByName = new Map(), partByNo = new Map();
+
+/* ───────── load ───────── */
+async function load(){
+  const loader = new GLTFLoader();
+  let b64 = window.__GLB_B64;
+  if(!b64 || b64.length < 100){
+    // published page: the model ships next to it as base64 text (PROJ.glbFile, e.g. lathe_glb.txt)
+    const res = await fetch(PROJ.glbFile);
+    if(!res.ok) throw new Error(PROJ.glbFile + ' ' + res.status);
+    const total = +res.headers.get('content-length') || 0, reader = res.body.getReader(), chunks = [];
+    let got = 0;
+    for(;;){ const { done, value } = await reader.read(); if(done) break; chunks.push(value); got += value.length;
+      $('ld-t').textContent = `正在下载模型… ${(got/1e6).toFixed(1)}${total ? ' / ' + (total/1e6).toFixed(1) : ''} MB`;
+      if(total) $('ld-b').style.width = (100*got/total).toFixed(0) + '%'; }
+    b64 = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
+  }
+  $('ld-t').textContent = '正在解码模型…';
+  await new Promise(r=>setTimeout(r, 30));
+  const bin = atob(b64.trim()), buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return loader.parseAsync(buf.buffer, '');
+}
+
+function setup(gltf){
+  model = gltf.scene; root.add(model);
+  for(const node of [...model.children]){
+    const u = node.userData || {};
+    if(u.part_no === undefined) continue;
+    let p = partByNo.get(u.part_no);
+    if(!p){
+      const en = node.name.replace(/^[A-Z]\d+_/, '').replace(/_\d+$/, '');
+      p = { no:u.part_no, cn:u.name_cn, en, m:u.material_spec, desc:u.desc, items:[] }; partByNo.set(u.part_no, p);
+    }
+    const ex = JSON.parse(u.ex || '[]').map(e=>({ v:new THREE.Vector3(e[0],e[1],e[2]).multiplyScalar(MM), s:e[3] }));
+    // holder at the origin: explode moves it, the 原理 mode turns / slides it; the node keeps the file's transform
+    const holder = new THREE.Group(); holder.name = node.name + '_holder'; model.add(holder); holder.add(node);
+    const it = { obj:holder, node, name:node.name, ex, part:p, u, meshes:[] };
+    p.items.push(it); items.push(it); itemByName.set(node.name, it);
+    node.traverse(o=>{
+      if(!o.isMesh) return;
+      o.material = Array.isArray(o.material) ? o.material.map(m=>m.clone()) : o.material.clone();
+      for(const m of [].concat(o.material)){ m.userData.color0 = m.color.clone(); m.userData.metal0 = m.metalness; m.userData.rough0 = m.roughness; m.userData.op0 = m.opacity; m.side = THREE.DoubleSide; m.clippingPlanes = []; }
+      o.castShadow = o.receiveShadow = true; o.userData.part = p; o.userData.item = it; meshes.push(o); it.meshes.push(o);
+    });
+  }
+  parts = [...partByNo.values()].sort((a,b)=>a.no-b.no);
+  for(const p of parts) p.qty = p.items.length;
+  root.updateMatrixWorld(true);
+  PROJ.init && PROJ.init();
+  buildUI();
+  $('loading').hidden = true;
+  setMode('struct', true);
+}
+
+/* helpers for the project section */
+const _q = new THREE.Quaternion(), _v = new THREE.Vector3(), ZERO = new THREE.Vector3();
+const AX = { x:new THREE.Vector3(1,0,0), y:new THREE.Vector3(0,1,0), z:new THREE.Vector3(0,0,1) };
+/** turn an item by `angle` about the line through `pivot` (model space, metres) along `axis`, then shift by `offset` */
+function place(it, pivot, axis, angle, offset){
+  _q.setFromAxisAngle(axis, angle || 0);
+  it.obj.quaternion.copy(_q);
+  _v.copy(pivot).applyQuaternion(_q);
+  it.obj.position.copy(pivot).sub(_v).add(offset || ZERO);
+}
+const I = name => { const it = itemByName.get(name); if(!it) console.warn('missing node', name); return it; };
+const IS = prefix => items.filter(it => it.name.startsWith(prefix));
+/** model-space bounding box of an item in its rest pose (metres) */
+function restBox(it){
+  const b = new THREE.Box3();
+  for(const me of it.meshes){ if(!me.geometry.boundingBox) me.geometry.computeBoundingBox(); b.union(me.geometry.boundingBox.clone().applyMatrix4(me.matrixWorld)); }
+  return b;
+}
+/** colour overrides used by the 原理 mode: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
+function setLook(it, look){
+  for(const me of it.meshes) for(const m of [].concat(me.material)){
+    const L = look || {};
+    m.color.copy(L.color ?? m.userData.color0);
+    m.metalness = L.color ? .15 : m.userData.metal0; m.roughness = L.color ? .5 : m.userData.rough0;
+    m.userData.glow = L.emissive ? new THREE.Color(L.emissive) : null; m.userData.glowI = L.ei ?? .5;
+    const op = L.opacity ?? 1;
+    m.transparent = op < 1; m.opacity = op; m.depthWrite = op >= 1;
+  }
+  for(const me of it.meshes){ me.castShadow = !(look && look.opacity < 1); }
+}
+
+/* ───────── pose ───────── */
+function applyPose(){
+  const tt = st.mode === 'struct' ? st.t : 0;
+  for(const it of items){
+    const p = it.obj.position.set(0,0,0);
+    it.obj.quaternion.identity();
+    for(const e of it.ex) p.addScaledVector(e.v, prog(tt, e.s));
+  }
+  if(PROJ.pose) PROJ.pose(st.mode);
+}
+function orientRoot(){
+  const portrait = canvas.clientWidth / canvas.clientHeight < .85;
+  root.rotation.set(0, 0, 0);
+  if(PROJ.portrait && st.mode !== 'principle' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
+  root.updateMatrixWorld(true);
+}
+
+/* ───────── camera fit ───────── */
+const ctrlEl = $('ctrl'), leftEl = document.querySelector('.left'), app = $('app');
+const view = { top:0, bottom:0, right:0, left:0 };
+function sidePanel(){ return st.mode === 'principle' ? $('pPanel') : $('bom'); }
+function measure(){
+  const W = canvas.clientWidth, narrow = W < 760, ar = app.getBoundingClientRect();
+  const ch = Math.max(0, ar.bottom - ctrlEl.getBoundingClientRect().top);
+  document.documentElement.style.setProperty('--ctrl-h', ch + 'px');
+  const tb = document.querySelector('.tb').getBoundingClientRect();
+  view.bottom = ch; view.top = narrow ? Math.max(0, tb.bottom - ar.top) + 6 : 0;
+  const sp = sidePanel();
+  if(narrow){
+    if(!sp.hidden) view.bottom = Math.max(view.bottom, ar.bottom - sp.getBoundingClientRect().top + 6);
+    if(!$('info').hidden) view.bottom = Math.max(view.bottom, ar.bottom - $('info').getBoundingClientRect().top + 6);
+    view.right = 0; view.left = 0;
+  } else {
+    view.right = !sp.hidden ? sp.offsetWidth + 16 : 0;
+    view.left = W >= 900 ? Math.min(W*.3, leftEl.getBoundingClientRect().right - ar.left + 8) : 0;
+  }
+}
+function setOffset(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  camera.setViewOffset(W, H, (view.right - view.left)/2, (view.bottom - view.top)/2, W, H);
+}
+function project(p3){ const v = p3.clone().project(camera); return [ (v.x+1)/2*canvas.clientWidth, (1-v.y)/2*canvas.clientHeight ]; }
+function fitMeshes(){ return PROJ.fitMeshes ? PROJ.fitMeshes(st.mode) : meshes; }
+function computeFit(tv, dir, margin){
+  const tSave = st.t; st.t = tv; applyPose(); root.updateMatrixWorld(true); st.t = tSave;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin, ay1 = H - view.bottom - margin;
+  const corners = [], bb = new THREE.Box3(), all = new THREE.Box3();
+  for(const me of fitMeshes()){
+    if(!visibleMesh(me)) continue;
+    if(!me.geometry.boundingBox) me.geometry.computeBoundingBox();
+    bb.copy(me.geometry.boundingBox).applyMatrix4(me.matrixWorld); all.union(bb);
+    for(const x of [bb.min.x,bb.max.x]) for(const y of [bb.min.y,bb.max.y]) for(const z of [bb.min.z,bb.max.z]) corners.push(new THREE.Vector3(x,y,z));
+  }
+  applyPose(); root.updateMatrixWorld(true);
+  const target = all.getCenter(new THREE.Vector3());
+  let dist = all.getSize(new THREE.Vector3()).length() * 1.6;
+  const right = new THREE.Vector3(), up = new THREE.Vector3();
+  for(let k=0;k<7;k++){
+    camera.position.copy(target).addScaledVector(dir, dist); camera.lookAt(target);
+    camera.near = dist/60; camera.far = dist*8; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const c of corners){ const [px,py] = project(c); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
+    const sc = Math.max((x1-x0)/Math.max(60,ax1-ax0), (y1-y0)/Math.max(60,ay1-ay0));
+    const wpp = 2*dist*Math.tan(camera.fov*D2R/2)/H;
+    right.setFromMatrixColumn(camera.matrixWorld,0); up.setFromMatrixColumn(camera.matrixWorld,1);
+    target.addScaledVector(right, ((x0+x1)/2 - (ax0+ax1)/2)*wpp).addScaledVector(up, -((y0+y1)/2 - (ay0+ay1)/2)*wpp);
+    dist *= sc*.97;
+  }
+  return { target, dist, center: all.getCenter(new THREE.Vector3()), size: all.getSize(new THREE.Vector3()) };
+}
+let F0 = null, F1 = null, FDIR = null;
+function fit(){
+  orientRoot(); measure(); setOffset();
+  FDIR = PROJ.dirs[st.mode].clone().normalize();
+  const W = canvas.clientWidth;
+  if(st.mode === 'struct'){ F0 = computeFit(0, FDIR, Math.min(64, W*.08)); F1 = computeFit(1, FDIR, st.labels ? 46 : 22); }
+  else { F0 = F1 = computeFit(0, FDIR, st.mode === 'principle' ? (PROJ.principleMargin ?? 36) : Math.min(56, W*.07)); }
+  autoFrame(true);
+  // shadow camera follows the model size
+  const c = F1.center, s = Math.max(F0.size.length(), F1.size.length()) * .75;
+  key.position.copy(c).add(new THREE.Vector3(.2, 1, .4).multiplyScalar(s*1.4)); key.target.position.copy(c);
+  Object.assign(key.shadow.camera, { left:-s, right:s, top:s, bottom:-s, near:s*.05, far:s*5 }); key.shadow.camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(F0.dist, F1.dist) * 4; controls.minDistance = Math.min(F0.dist, F1.dist) * .08;
+}
+const _t = new THREE.Vector3();
+function autoFrame(force){
+  if(!F0 || (st.moved && !force)) return;
+  const k = st.mode === 'struct' ? ease(Math.min(1, st.t/.82)) : 0;
+  _t.lerpVectors(F0.target, F1.target, k);
+  const d = F0.dist + (F1.dist - F0.dist)*k;
+  controls.target.copy(_t); camera.position.copy(_t).addScaledVector(FDIR, d);
+  camera.near = d/60; camera.far = d*8; camera.updateProjectionMatrix();
+}
+function visibleMesh(me){ let o = me; while(o){ if(!o.visible) return false; o = o.parent; } return true; }
+function relayout(){ measure(); setOffset(); if(!st.moved) fit(); }
+function resize(){
+  const W = canvas.clientWidth, H = canvas.clientHeight; if(!W || !H) return;
+  renderer.setSize(W, H, false); camera.aspect = W/H;
+  if(!model){ camera.updateProjectionMatrix(); return; }
+  measure(); setOffset(); if(!st.moved) fit(); else camera.updateProjectionMatrix();
+  PROJ.resize && PROJ.resize();
+}
+controls.addEventListener('start', ()=>{ st.moved = true; });
+
+/* ───────── balloons ───────── */
+const svgNS = 'http://www.w3.org/2000/svg';
+const leaders = $('leaders'), tagsEl = $('tags');
+let lab = [];
+function buildUI(){
+  for(const p of parts){
+    const b = document.createElement('button'); b.className = 'bln'; b.textContent = p.no; b.setAttribute('aria-label', `${p.no} ${p.cn}`);
+    b.addEventListener('click', e=>{ e.stopPropagation(); select(p); });
+    tagsEl.appendChild(b);
+    const ln = document.createElementNS(svgNS,'line'), dot = document.createElementNS(svgNS,'circle'); dot.setAttribute('r','2');
+    leaders.append(ln, dot);
+    lab.push({ p, b, ln, dot, x:0, y:0, init:false });
+  }
+  const list = $('bom-list');
+  $('bom-count').textContent = `${parts.length} 种 · ${parts.reduce((a,p)=>a+p.qty,0)} 件`;
+  for(const p of parts){
+    const el = document.createElement('button'); el.className = 'row'; el.type = 'button';
+    el.innerHTML = `<span class="n">${p.no}</span><span class="nm"></span><span class="q">×${p.qty}</span><span class="m"></span>`;
+    el.querySelector('.nm').textContent = p.cn; el.querySelector('.m').textContent = p.m;
+    el.addEventListener('click', ()=>select(p)); list.appendChild(el); p.row = el;
+  }
+  PROJ.buildUI && PROJ.buildUI();
+}
+const box = new THREE.Box3(), anchorBox = new THREE.Box3();
+function updateLabels(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const op = (st.mode === 'struct' && st.labels) ? Math.min(1, Math.max(0, (st.t - .55)/.25)) : 0;
+  leaders.style.opacity = op; leaders.style.visibility = op > 0 ? 'visible' : 'hidden';
+  for(const L of lab) L.b.hidden = op <= 0;
+  if(op > 0){
+    for(const L of lab) L.b.style.opacity = op;
+    const [cx, cy] = project(box.getCenter(new THREE.Vector3()));
+    for(const L of lab){
+      anchorBox.makeEmpty().expandByObject(L.p.items[0].obj);
+      const [ax, ay] = project(anchorBox.getCenter(new THREE.Vector3()));
+      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W - view.right || ay < view.top || ay > H - view.bottom;
+      let dx = ax - cx, dy = ay - cy; const dl = Math.hypot(dx,dy) || 1; dx/=dl; dy/=dl;
+      L.tx = ax + dx*42; L.ty = ay + dy*38;
+      if(!L.init){ L.x = L.tx; L.y = L.ty; }
+      L.nx = L.x + (L.tx - L.x)*.5; L.ny = L.y + (L.ty - L.y)*.5;
+    }
+    const minX = view.left + 12, maxX = W - view.right - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
+    for(let k=0;k<8;k++){
+      for(let i=0;i<lab.length;i++) for(let j=i+1;j<lab.length;j++){
+        const a = lab[i], b = lab[j]; if(a.off || b.off) continue;
+        let dx = b.nx-a.nx, dy = b.ny-a.ny; const d = Math.hypot(dx,dy);
+        if(d < 25){ if(d < .01){ dx = 1; dy = 0; } const m = (25-d)/2/(d||1); a.nx -= dx*m; a.ny -= dy*m; b.nx += dx*m; b.ny += dy*m; }
+      }
+      for(const L of lab){ L.nx = Math.min(maxX, Math.max(minX, L.nx)); L.ny = Math.min(maxY, Math.max(minY, L.ny)); }
+    }
+    for(const L of lab){
+      L.x = L.nx; L.y = L.ny; L.init = true;
+      L.b.hidden = L.off; L.ln.style.display = L.dot.style.display = L.off ? 'none' : '';
+      L.b.style.transform = `translate(${L.x.toFixed(1)}px,${L.y.toFixed(1)}px)`;
+      const dx = L.x - L.ax, dy = L.y - L.ay, d = Math.hypot(dx,dy) || 1;
+      L.ln.setAttribute('x1', L.ax.toFixed(1)); L.ln.setAttribute('y1', L.ay.toFixed(1));
+      L.ln.setAttribute('x2', (L.x - dx/d*11).toFixed(1)); L.ln.setAttribute('y2', (L.y - dy/d*11).toFixed(1));
+      L.dot.setAttribute('cx', L.ax.toFixed(1)); L.dot.setAttribute('cy', L.ay.toFixed(1));
+      const on = st.sel === L.p; L.b.classList.toggle('sel', on); L.ln.classList.toggle('sel', on); L.dot.classList.toggle('sel', on);
+    }
+  } else for(const L of lab) L.init = false;
+  PROJ.labels && PROJ.labels(st.mode === 'principle');
+}
+/* floating text tags used by the 原理 mode: tag(text, cls) → { el, pos:Vector3 (model space) } */
+const tagList = [];
+function tag(text, style){
+  const el = document.createElement('span'); el.className = 'tag'; el.textContent = text; el.hidden = true;
+  if(style) Object.assign(el.style, style);
+  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false }; tagList.push(T); return T;
+}
+function placeTags(){
+  for(const T of tagList){
+    const show = st.mode === 'principle' && T.on; T.el.hidden = !show; if(!show) continue;
+    const [x, y] = project(T.pos.clone().applyMatrix4(root.matrixWorld));
+    T.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+  }
+}
+
+/* ───────── selection ───────── */
+const hl = new THREE.Color();
+function paint(){
+  hl.set(css('--hl') || '#d6860b');
+  for(const m of meshes){
+    const p = m.userData.part;
+    const on = p === st.sel ? .5 : p === st.hover ? .2 : 0;
+    for(const mt of [].concat(m.material)){
+      if(on){ mt.emissive.copy(hl); mt.emissiveIntensity = on; }
+      else if(mt.userData.glow){ mt.emissive.copy(mt.userData.glow); mt.emissiveIntensity = mt.userData.glowI; }
+      else { mt.emissive.setRGB(0,0,0); mt.emissiveIntensity = 0; }
+    }
+  }
+}
+function select(p){
+  if(st.mode === 'principle' && !PROJ.selectInPrinciple) p = null;
+  st.sel = p; paint();
+  for(const q of parts) q.row && q.row.classList.toggle('sel', q === p);
+  const info = $('info'), was = info.hidden;
+  if(!p){ info.hidden = true; $('hint').hidden = st.mode === 'principle'; if(!was && canvas.clientWidth < 760) relayout(); return; }
+  $('i-no').textContent = p.no; $('i-cn').textContent = p.cn; $('i-en').textContent = p.en;
+  $('i-mat').textContent = p.m; $('i-qty').textContent = p.qty + ' 件'; $('i-desc').textContent = p.desc;
+  info.hidden = false; $('hint').hidden = true;
+  if(canvas.clientWidth < 760){ if(!$('bom').hidden) toggleBom(false); else relayout(); }
+}
+$('i-close').addEventListener('click', ()=>select(null));
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(e){
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(meshes.filter(visibleMesh), false);
+  for(const h of hits){
+    const mt = [].concat(h.object.material)[0];
+    if(mt.clippingPlanes && mt.clippingPlanes.some(pl => pl.distanceToPoint(h.point) < 0)) continue;
+    if(mt.transparent && mt.opacity < .5) continue;
+    return h.object.userData.part;
+  }
+  return null;
+}
+let down = null;
+canvas.addEventListener('pointerdown', e=>{ down = { x:e.clientX, y:e.clientY }; });
+canvas.addEventListener('pointerup', e=>{ if(model && down && Math.hypot(e.clientX-down.x, e.clientY-down.y) < 6) select(pick(e)); down = null; });
+canvas.addEventListener('pointermove', e=>{
+  if(!model || e.pointerType !== 'mouse' || e.buttons) return;
+  if(st.mode === 'principle' && !PROJ.selectInPrinciple) return;
+  const p = pick(e); if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+});
+canvas.addEventListener('pointerleave', ()=>{ if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
+
+/* ───────── modes ───────── */
+function applyClip(){
+  for(const me of meshes){
+    const it = me.userData.item;
+    const cut = st.mode === 'model' && st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
+    const planes = cut ? [cutPlane] : (st.mode === 'principle' && me.userData.clip) || [];
+    for(const mt of [].concat(me.material)){ mt.clippingPlanes = planes; mt.clipIntersection = !cut && !!me.userData.clipIntersection; }
+  }
+}
+function setMode(m, first){
+  const prev = st.mode;
+  if(!first && prev === 'principle' && m !== 'principle') PROJ.leave && PROJ.leave();
+  st.mode = m;
+  app.className = 'mode-' + m;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t.dataset.mode === m)));
+  document.querySelector('.grp-struct').hidden = m !== 'struct';
+  document.querySelector('.grp-principle').hidden = m !== 'principle';
+  document.querySelector('.grp-model').hidden = m !== 'model';
+  $('cap').innerHTML = PROJ.caps[m];
+  $('pPanel').hidden = m !== 'principle';
+  if(m !== 'struct') $('bom').hidden = true, $('b-bom').setAttribute('aria-pressed','false');
+  for(const it of items) it.obj.visible = !(m === 'principle' && PROJ.hide && PROJ.hide.has(it.part.no));
+  if(m === 'principle'){ select(null); $('hint').hidden = true; if(prev !== 'principle' || first) PROJ.enter && PROJ.enter(); }
+  else { if(st.sel && !st.sel.items[0].obj.visible) select(null); $('hint').hidden = !$('info').hidden; }
+  applyClip();
+  ground.visible = m !== 'principle' || !!PROJ.groundInPrinciple;
+  st.moved = false;
+  paint();
+  fit();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(model && t.dataset.mode !== st.mode) setMode(t.dataset.mode); }));
+$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(); });
+
+/* struct controls */
+const rEx = $('r-ex'), oEx = $('o-ex'), playT = $('b-play-t');
+function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; playT.textContent = st.t > .5 ? '装配' : '爆炸'; }
+rEx.addEventListener('input', ()=>{ st.tTarget = null; st.t = rEx.value/100; syncEx(); });
+$('b-play').addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
+const bLbl = $('b-lbl'); bLbl.setAttribute('aria-pressed', String(st.labels));
+bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); });
+function toggleBom(on){ $('bom').hidden = !on; $('b-bom').setAttribute('aria-pressed', String(on)); relayout(); }
+$('b-bom').addEventListener('click', ()=>toggleBom($('bom').hidden));
+$('bom-close').addEventListener('click', ()=>toggleBom(false));
+
+/* model controls */
+$('b-cut').addEventListener('click', e=>{
+  st.cut = !st.cut; e.currentTarget.setAttribute('aria-pressed', String(st.cut)); applyClip();
+});
+
+/* theme */
+function themeSync(){ st.shadowA = parseFloat(css('--shadow-a')) || .22; if(model){ PROJ.theme && PROJ.theme(); paint(); } }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeSync);
+new MutationObserver(themeSync).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+
+/* ═══════════════════════ project section ═══════════════════════ */
+/* ── 数字万用表 ──
+   Blender: lying face up, +Z up (screen side), +Y toward the top end (screen, NCV), +X to the right; PCB top at Z ≈ 17.
+   glTF (x, y, z) = (x, z, -y). Signal routes below are drawn on the PCB in Blender (x, y) mm.
+   Numbers on the panel follow a typical 6000-count auto-ranging meter: ADC full scale 600 mV,
+   voltage ranges 0.6 / 6 / 60 / 600 V (divider 1 / 10 / 100 / 1000 : 1), shunt ≈ 0.05 Ω, 4 A fuse,
+   ohms ranges 600 Ω … 60 MΩ with test currents 1 mA … 10 nA, continuity beeps below 50 Ω. */
+const V3 = (x,y,z) => new THREE.Vector3(x,y,z);
+const B = (x, y, z=17.8) => V3(x*MM, z*MM, -y*MM);
+const MV = { fn:'V', x:700, live:false, t:0 };
+let G = {};
+// routes on the board (Blender x, y), drawn as Manhattan traces
+const P_ = { V:[20,-55], COM:[0,-55], A:[-20,-55], PTC:[10,-37], DIV:[11.5,-26], SW:[-15,17], SOC:[0,30], REF:[-13,42], FUSE:[-18,-40], SHUNT:[-6,-46.5], COIL:[0,62], NCVLED:[-27.5,61], BUZ:[-19,-27] };
+const ROUTES = {
+  V: [['V','PTC','DIV','SW','SOC']],
+  A: [['A','FUSE','SHUNT','COM'], ['SHUNT','SW','SOC']],
+  R: [['REF','SOC','SW','PTC','V'], ['V','DIV','SW']],
+  N: [['COIL','SOC','NCVLED'], ['SOC','BUZ']],
+};
+const PARTS = {
+  V: ['P24_Jack_V','P19_PTC','P20_Varistor','P18_DividerResistors','P13_AnalogSwitch','P12_SoC','P16_VoltageRef','P07_LCD'],
+  A: ['P26_Jack_A','P21_Fuse','P22_Shunt','P25_Jack_COM','P13_AnalogSwitch','P12_SoC','P07_LCD'],
+  R: ['P16_VoltageRef','P12_SoC','P13_AnalogSwitch','P19_PTC','P24_Jack_V','P25_Jack_COM','P18_DividerResistors','P23_Buzzer','P07_LCD'],
+  N: ['P28_NCVCoil','P12_SoC','P29_NCV_LED','P23_Buzzer'],
+};
+const PATH_TXT = {
+  V: ['V 插孔：红表笔接进来', 'PTC 热敏电阻：平时只有约 1 kΩ，几乎不影响测量', '压敏电阻：并在输入端，平时不导通，浪涌来了才泄放', '精密分压电阻：10 MΩ 电阻串，按量程选抽头分压', '模拟开关：替代旋钮，自动切换分压抽头', '主控 SoC：里面的 ADC 只认 ±600 mV，量完换算成读数', '基准电压源：ADC 量得准不准全靠它', '液晶屏：显示读数'],
+  A: ['A 插孔：电流从这里进', '4 A 陶瓷保险丝：电流太大先烧它', '锰铜分流器：约 0.05 Ω，电流流过产生压降', 'COM 插孔：电流从黑表笔流回去', '模拟开关：把分流器两端的压降送进 ADC', '主控 SoC：U ÷ R 算出电流', '液晶屏'],
+  R: ['基准电压源', '主控 SoC：产生一个已知的小电流', '模拟开关：按量程选测试电流', 'PTC：万一表笔碰到市电，它把电流卡住', 'V 插孔 → 红表笔 → 被测电阻', 'COM 插孔 → 黑表笔', '分压电阻：把被测电阻上的压降送回 ADC', '蜂鸣器：通断档阻值很小时叫', '液晶屏'],
+  N: ['NCV 感应线圈：靠近火线时被交流电场耦合出极小的电流', '主控 SoC：放大、判断强弱', 'NCV 指示灯：越近越亮', '蜂鸣器：越近叫得越急'],
+};
+const COLOR = { V:'--c4', A:'--c3', R:'--c1', N:'--c5' };
+
+PROJ = {
+  glbFile: 'multimeter_glb.txt',
+  dirs: { struct:V3(.25,1.1,1), model:V3(.45,.9,1), principle:V3(.05,1.9,.75) },
+  hide: new Set([3, 4, 5, 6, 8, 9, 10, 31, 32]),
+  principleMargin: 18,
+  caps: {
+    struct: '<b>结构</b>：滑杆按真拆顺序拆开：拔表笔 → 剥护套 → 拧螺丝 → 掀面壳 → 拆屏幕叠层 → 抬主板，主板上的元件依次浮起。点零件看它在电路里干什么。',
+    principle: '<b>原理</b>：万用表里的 ADC 只会量很小的电压，电压、电流、电阻都先变成电压再量。选一个功能，拖滑杆改被测的量，看自动量程怎么换档。',
+    model: '<b>模型</b>：装配状态自由旋转。“剖切”竖着切掉右半边，看面壳、主板、电池怎么叠在一起。',
+  },
+  init(){
+    cutPlane = new THREE.Plane(V3(-1,0,0), 0);
+    G.lcd = I('P07_LCD');
+    G.fit = ['P11_PCB','P01_BackCase','P07_LCD'].map(n => I(n));
+    G.trace = new THREE.Group(); G.trace.visible = false; model.add(G.trace);
+    G.dots = new THREE.Group(); G.dots.visible = false; model.add(G.dots);
+    G.dotGeo = new THREE.SphereGeometry(1.1*MM, 12, 8);
+    G.mats = {};
+  },
+  fitMeshes(mode){ return mode === 'principle' ? G.fit.flatMap(it => it.meshes) : meshes; },
+  buildUI(){
+    document.querySelectorAll('[data-fn]').forEach(b => b.addEventListener('click', () => setFn(b.dataset.fn)));
+    $('r-in').addEventListener('input', e => { MV.x = +e.target.value; update(true); });
+    $('b-x').addEventListener('click', e => { MV.live = !MV.live; e.currentTarget.setAttribute('aria-pressed', String(MV.live)); update(true); });
+  },
+  theme(){ if(st.mode === 'principle'){ build(); update(true); } },
+  enter(){ setLook(G.lcd, { opacity:.35 }); G.trace.visible = G.dots.visible = true; setFn(MV.fn); },
+  leave(){
+    for(const it of items) setLook(it, null);
+    G.trace.visible = G.dots.visible = false; paint();
+  },
+  tick(dt, mode){
+    if(mode !== 'principle') return;
+    MV.t += dt;
+    const blown = MV.fn === 'A' && amps() > 4, pause = blown || (MV.fn === 'N' && ncv() < .05);
+    for(const d of G.dotList){
+      if(!pause) d.u = (d.u + dt*d.speed) % 1;
+      d.m.visible = !pause;
+      d.curve.getPointAt(d.u, d.m.position);
+    }
+    if(MV.fn === 'N' || (MV.fn === 'R' && ohms() < 50 && !MV.live)){ // buzzer / NCV LED blink
+      const k = MV.fn === 'N' ? ncv() : 1, on = k > .05 && Math.sin(MV.t * (8 + 30*k)) > 0;
+      glow('P23_Buzzer', on ? '--c1' : null, .9);
+      if(MV.fn === 'N') glow('P29_NCV_LED', k > .05 ? '--c4' : null, .3 + 1.2*k);
+      paint();
+    }
+  },
+};
+PROJ.state = MV;
+
+/* traces + moving dots for the active function */
+function routeCurve(names){
+  const pts = [];
+  names.forEach((n, i) => {
+    const [x, y] = P_[n];
+    if(i){ const [px, py] = P_[names[i-1]]; if(px !== x && py !== y) pts.push(B(x, py)); }
+    pts.push(B(x, y));
+  });
+  const path = new THREE.CurvePath();
+  for(let i=1;i<pts.length;i++) if(pts[i].distanceTo(pts[i-1]) > 1e-6) path.add(new THREE.LineCurve3(pts[i-1], pts[i]));
+  return path;
+}
+function build(){
+  G.trace.clear(); G.dots.clear(); G.dotList = [];
+  const col = new THREE.Color(css(COLOR[MV.fn]));
+  ROUTES[MV.fn].forEach((names, r) => {
+    const curve = routeCurve(names), len = curve.getLength();
+    const segs = curve.curves.map(c => new THREE.Mesh(new THREE.TubeGeometry(c, 2, .45*MM, 6, false),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity: r ? .45 : .8, depthWrite:false })));
+    for(const s of segs){ s.renderOrder = 3; G.trace.add(s); }
+    const n = Math.max(3, Math.round(len / .012));
+    for(let k=0;k<n;k++){
+      const m = new THREE.Mesh(G.dotGeo, new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity: r ? .6 : 1, depthWrite:false }));
+      m.renderOrder = 4; G.dots.add(m);
+      G.dotList.push({ m, curve, u:k/n, speed: .018 / len * (r ? .7 : 1), route:r });
+    }
+  });
+}
+function glow(name, cssVar, ei){ const it = I(name); if(!it) return; setLook(it, cssVar ? { emissive: css(cssVar), ei } : (it === G.lcd ? { opacity:.35 } : null)); }
+function setFn(fn){
+  MV.fn = fn;
+  document.querySelectorAll('[data-fn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fn === fn)));
+  const S = SLIDER[fn]; $('l-in').textContent = S.label; MV.x = S.def; $('r-in').value = S.def;
+  $('b-x').hidden = fn !== 'R'; MV.live = false; $('b-x').setAttribute('aria-pressed', 'false');
+  $('pp-mode').textContent = { V:'电压', A:'电流', R:'电阻 / 通断', N:'非接触测电' }[fn];
+  $('path').innerHTML = PATH_TXT[fn].map(t => `<li>${t}</li>`).join('');
+  build(); update(true);
+}
+
+/* slider → physical quantity (log scales) */
+const logMap = (x, a, b) => a * Math.pow(b/a, x/1000);
+const volts = () => logMap(MV.x, .01, 1000);
+const amps = () => MV.x/1000 * 6;
+const ohms = () => MV.x >= 1000 ? Infinity : logMap(MV.x, .5, 8e7);
+const ncv = () => clamp(1 - MV.x/1000, 0, 1);          // 1 = touching the live wire, 0 = far away
+const SLIDER = {
+  V: { label:'被测电压', def:Math.round(1000*Math.log(230/.01)/Math.log(1e5)) },
+  A: { label:'被测电流', def:250 },
+  R: { label:'被测电阻', def:Math.round(1000*Math.log(4700/.5)/Math.log(1.6e8)) },
+  N: { label:'离火线', def:400 },
+};
+const fmt = (v, d) => v.toFixed(d);
+function siOhm(r){ return r >= 1e6 ? fmt(r/1e6, 2) + ' MΩ' : r >= 1e3 ? fmt(r/1e3, 2) + ' kΩ' : fmt(r, 1) + ' Ω'; }
+function siV(v){ return v >= 1 ? fmt(v, v >= 100 ? 0 : 2) + ' V' : v >= 1e-3 ? fmt(v*1e3, v >= .1 ? 0 : 1) + ' mV' : fmt(v*1e6, 0) + ' µV'; }
+function siA(a){ return a >= 1 ? fmt(a, 2) + ' A' : a >= 1e-3 ? fmt(a*1e3, 0) + ' mA' : a >= 1e-6 ? fmt(a*1e6, 0) + ' µA' : fmt(a*1e9, 0) + ' nA'; }
+
+function update(force){
+  for(const it of items) if(it !== G.lcd) setLook(it, null);
+  setLook(G.lcd, { opacity:.35 });
+  const fn = MV.fn, col = COLOR[fn];
+  for(const n of PARTS[fn]) if(n !== 'P07_LCD' && n !== 'P23_Buzzer' && n !== 'P29_NCV_LED') glow(n, col, .55);
+  let num = '', unit = '', flag = 'AUTO', tries = '', kv = [], expl = '';
+  if(fn === 'V'){
+    const v = volts(), ranges = [600, 60, 6, .6];
+    // auto-range: start at 600 V, step down while the reading would still fit the next range
+    const seq = []; let k = 0;
+    while(true){ seq.push(k); if(k === ranges.length - 1 || v > ranges[k+1]) break; k++; }
+    const r = ranges[k], ok = v <= 600, div = r / .6, dec = { 600:1, 60:2, 6:3, .6:1 }[r];
+    num = !ok ? 'OL' : r === .6 ? fmt(v*1e3, 1) : fmt(v, dec); unit = r === .6 ? 'mV' : 'V';
+    tries = '换档：' + seq.map((i, j) => `<span class="chip ${j < seq.length-1 ? 'bad' : 'on'}">${ranges[i] < 1 ? '600 mV' : ranges[i] + ' V'}</span>`).join('→');
+    kv = [['被测', siV(v)], ['量程', r < 1 ? '600 mV' : r + ' V'], ['分压', div === 1 ? '不分压（1 : 1）' : `${div} : 1`], ['进 ADC', ok ? siV(v/div) : '超过 600 V']];
+    expl = ok ? `ADC 满量程只有 600 mV。先在最大的 600 V 档试，读数如果还装得进小一档，模拟开关就换到下一个分压抽头，直到读数落在最准的那一段。现在用 <b>${r < 1 ? '600 mV' : r + ' V'}</b> 档，${div === 1 ? '直接' : `分压 ${div} : 1 后`}进 ADC 的只剩 <b>${siV(v/div)}</b>。`
+      : `<span class="warn">超过 600 V，显示 OL。</span>这块表标的是 CAT III 600 V，再高就不能测了。`;
+    glow('P20_Varistor', v > 600 ? '--c4' : null, 1);
+  }
+  if(fn === 'A'){
+    const a = amps(), Rs = .05, blown = a > 4;
+    num = blown ? '----' : fmt(a, 3); unit = 'A'; flag = blown ? 'FUSE' : 'AUTO';
+    kv = [['被测', fmt(a, 2) + ' A'], ['分流器', '≈ 0.05 Ω（锰铜）'], ['压降 U = I × R', blown ? '—' : siV(a*Rs)], ['发热 P = I² × R', blown ? '—' : fmt(a*a*Rs, 2) + ' W']];
+    expl = blown ? `<span class="warn">超过 4 A，保险丝烧断</span>，电路断开，读数消失。保险丝比表里任何东西都先烧，换一根就好；没有它，大电流会把分流器和走线烧掉。`
+      : `电流不能直接进 ADC，先让它流过一根很小的锰铜电阻（分流器），量它两端的压降：<b>U = I × R</b>。分流器故意做得很小，表串进电路几乎不影响原来的电流；锰铜的阻值几乎不随温度变，所以读数稳。`;
+    if(blown) glow('P21_Fuse', '--c4', 1.2);
+  }
+  if(fn === 'R'){
+    const r = ohms(), ranges = [600, 6e3, 6e4, 6e5, 6e6, 6e7], cur = [1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8];
+    const k = Math.max(0, ranges.findIndex(x => r <= x)), open = !isFinite(r) || r > 6e7;
+    const kk = open ? ranges.length - 1 : k, I0 = cur[kk];
+    if(MV.live){
+      num = 'OL'; unit = 'Ω'; flag = 'PTC';
+      kv = [['表笔上', '220 V 交流'], ['PTC 冷态', '≈ 1 kΩ'], ['PTC 发热后', '几十 kΩ（几毫秒内）'], ['流过的电流', '≈ 220 V ÷ 40 kΩ ≈ 5 mA']];
+      expl = `<span class="warn">在电阻档碰到了市电。</span>大电流先流过 PTC，它几毫秒内发热、阻值从 1 kΩ 左右涨到几十 kΩ，把电流卡在几毫安，后面的芯片就保住了；尖峰电压由压敏电阻泄放。拿开以后 PTC 冷下来，表还能用。`;
+      glow('P19_PTC', '--c4', 1.3); glow('P20_Varistor', '--c1', .9);
+    } else {
+      const u = open ? NaN : I0 * r, beep = r < 50;
+      const dec = [1, 3, 2, 1, 3, 2][kk], scale = kk >= 4 ? 1e6 : kk >= 1 ? 1e3 : 1;
+      num = open ? 'OL' : fmt(r/scale, dec);
+      unit = open ? 'Ω' : ['Ω','kΩ','kΩ','kΩ','MΩ','MΩ'][kk]; flag = beep ? '•))) ' : 'AUTO';
+      kv = [['被测', open ? '断开（无穷大）' : siOhm(r)], ['量程', ranges[kk] >= 1e6 ? ranges[kk]/1e6 + ' MΩ' : ranges[kk] >= 1e3 ? ranges[kk]/1e3 + ' kΩ' : '600 Ω'], ['测试电流', siA(I0)], ['电阻上的压降', open ? '—' : siV(u)]];
+      expl = `表自己送出一个已知的小电流 I，流过被测电阻，量它上面的压降 U，<b>R = U ÷ I</b>。阻值越大，测试电流就选得越小，让压降始终落在 ADC 的 600 mV 以内。` + (beep ? ` 现在不到 50 Ω，<b>蜂鸣器响</b>（通断档，查线通不通用）。` : '');
+    }
+  }
+  if(fn === 'N'){
+    const k = ncv(), cm = (MV.x/100).toFixed(1);
+    num = k > .05 ? 'LIVE' : 'EF'; unit = ''; flag = 'NCV';
+    kv = [['离火线', cm + ' cm'], ['耦合电容', k > 0 ? '几 pF' : '—'], ['感应电流', k > .05 ? '纳安级' : '太小，不报']];
+    expl = `表顶端的铜箔线圈和火线之间隔着空气、绝缘皮，形成几皮法的小电容。220 V 交流电场透过这个电容耦合过来一个极小的电流，放大后点亮指示灯、让蜂鸣器叫。<b>越近电容越大</b>，灯越亮、叫得越急。零线对地接近 0 V，靠近它不会报警。`;
+  }
+  $('lcd-num').textContent = num; $('lcd-unit').textContent = unit; $('lcd-flag').textContent = flag;
+  $('tries').innerHTML = tries; $('tries').hidden = !tries;
+  $('kv').innerHTML = kv.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+  $('expl').innerHTML = expl;
+  $('o-in').textContent = fn === 'V' ? siV(volts()) : fn === 'A' ? fmt(amps(), 2) + ' A' : fn === 'R' ? (isFinite(ohms()) ? siOhm(ohms()) : '断开') : (MV.x/100).toFixed(1) + ' cm';
+  paint();
+}
+
+/* ───────── loop ───────── */
+let last = performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - last)/1000); last = now;
+  if(!model) return;
+  if(st.tTarget !== null){
+    const d = Math.sign(st.tTarget - st.t); st.t += d*dt*.5;
+    if((d > 0 && st.t >= st.tTarget) || (d < 0 && st.t <= st.tTarget) || d === 0){ st.t = st.tTarget; st.tTarget = null; }
+    syncEx();
+  }
+  PROJ.tick && PROJ.tick(dt, st.mode);
+  applyPose();
+  autoFrame(false);
+  root.updateMatrixWorld(true);
+  box.makeEmpty(); for(const m of meshes) if(visibleMesh(m)) box.expandByObject(m);
+  ground.position.y = box.min.y - .0004;
+  ground.material.opacity = (st.shadowA ?? .2) * (st.mode === 'struct' ? (1 - Math.min(1, st.t*1.5)) : 1);
+  controls.update();
+  renderer.render(scene, camera);
+  updateLabels();
+  placeTags();
+}
+new ResizeObserver(resize).observe(canvas);
+themeSync(); syncEx();
+requestAnimationFrame(frame);
+load().then(g=>{ setup(g); resize(); }).catch(err=>{ $('ld-t').textContent = '模型加载失败：' + (err && err.message || err); console.error(err); });
+window.__viewer = { st, setMode, camera, controls, items, parts, PROJ: () => PROJ };
+</script>

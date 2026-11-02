@@ -1,0 +1,841 @@
+<title>AI 服务器拆解</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout (same family as the motor / drone / hand viewers): full-bleed 3D stage; drawing title block + part card
+   top-left, side panel (BOM / principle) right, mode tabs + controls in one strip at the bottom where the thumb is */
+:root{
+  --bg:#e4e8ec; --bg2:#f5f7f9; --panel:rgba(247,249,251,.93); --panel-solid:#f7f9fb;
+  --fg:#161d26; --muted:#56616f; --line:#c2cad3; --accent:#a8521f; --accent-ink:#ffffff;
+  --hl:#d6860b; --hl-ink:#1b1204; --shadow-a:.2;
+  --c1:#c99400; --c2:#1f9447; --c3:#2a66cf; --c4:#d93b3b; --c5:#7b52c7; --off:#9aa4b0;
+  --f-cn:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --ctrl-h:120px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
+  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
+  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
+  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --bg2:#1a212a; --panel:rgba(20,25,32,.93); --panel-solid:#151a21;
+  --fg:#e1e6ec; --muted:#98a3b0; --line:#2e3742; --accent:#e58c56; --accent-ink:#1a0d05;
+  --hl:#f2b13d; --hl-ink:#1b1204; --shadow-a:.5;
+  --c1:#f2c230; --c2:#46c477; --c3:#5b94ff; --c4:#ff5d5d; --c5:#a985f0; --off:#5b6573; color-scheme:dark }
+
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-cn);-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,var(--bg2),var(--bg) 72%)}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#leaders,#tags{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity .2s}
+#leaders line{stroke:var(--fg);stroke-width:.9;opacity:.55}
+#leaders circle{fill:var(--fg);opacity:.7}
+#leaders line.sel{stroke:var(--hl);opacity:1;stroke-width:1.4}
+#leaders circle.sel{fill:var(--hl);opacity:1}
+.bln{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  border:1.25px solid var(--fg);background:var(--panel-solid);color:var(--fg);font:600 12.5px/1 var(--f-num);
+  display:grid;place-items:center;padding:0;pointer-events:auto;cursor:pointer;font-variant-numeric:tabular-nums;will-change:transform}
+.bln:hover{border-color:var(--accent);color:var(--accent)}
+.bln.sel{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
+.tag{position:absolute;left:0;top:0;transform-origin:0 0;padding:2px 6px;border-radius:4px;white-space:nowrap;
+  font:600 11.5px/16px var(--f-cn);color:#fff;background:var(--fg);will-change:transform;opacity:.95;translate:-50% -50%}
+.bln:focus-visible,.btn:focus-visible,.row:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.hud{position:absolute;z-index:2}
+.left{top:12px;left:max(16px,env(safe-area-inset-left,0px));width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:10px}
+.tb{border:1.25px solid var(--fg);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;grid-template-columns:1fr auto;font-size:12px}
+.tb>div{padding:6px 9px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.tb>div:nth-child(2n){border-right:0}
+.tb>div:nth-last-child(-n+2){border-bottom:0}
+.tb .name{grid-column:1/-1;border-right:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tb h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.04em;text-wrap:balance}
+.tb .en{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tb .k{display:block;font-size:10px;color:var(--muted);letter-spacing:.08em}
+.tb .v{font:500 12px/1.35 var(--f-mono)}
+
+.card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.card-head{display:flex;gap:10px;align-items:flex-start}
+.card-no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--hl);color:var(--hl-ink);display:grid;place-items:center;font:600 15px/1 var(--f-num)}
+.card h2{margin:0;font-size:16px;font-weight:700;line-height:1.25}
+.card .jp{font:500 11.5px var(--f-mono);color:var(--muted);margin-top:2px}
+.card .x{margin-left:auto;flex:none;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
+.card dt{color:var(--muted)} .card dd{margin:0;font-family:var(--f-mono);font-size:12px;min-width:0}
+.card p{margin:0;font-size:13px;line-height:1.6;max-width:60ch}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+
+.side{top:12px;right:max(16px,env(safe-area-inset-right,0px));width:380px;bottom:calc(var(--ctrl-h) + 10px);
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;display:flex;flex-direction:column;min-height:0}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.side-head h3{margin:0;font-size:14px;font-weight:700}
+.side-head h3 small{font:500 12px var(--f-mono);color:var(--muted);margin-left:6px}
+.scroll{overflow:auto;flex:1;min-height:0}
+.row{display:grid;grid-template-columns:26px 1fr auto;gap:2px 10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:transparent;border-left:0;border-right:0;border-top:0;color:var(--fg);font:inherit}
+.row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.row.sel{background:color-mix(in srgb,var(--hl) 18%,transparent)}
+.row .n{grid-column:1;grid-row:1/3;width:22px;height:22px;border-radius:50%;border:1.25px solid var(--fg);display:grid;place-items:center;font:600 12px/1 var(--f-num)}
+.row.sel .n{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
+.row .nm{grid-column:2;grid-row:1;font-size:13px;font-weight:500;min-width:0}
+.row .q{grid-column:3;grid-row:1/3;font:500 12px var(--f-mono);color:var(--muted)}
+.row .m{grid-column:2;grid-row:2;font:400 11px/1.3 var(--f-mono);color:var(--muted);min-width:0}
+
+/* principle panel building blocks */
+.pp{padding:12px;display:flex;flex-direction:column;gap:10px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline;font-size:12.5px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font:500 13px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
+.kv dd b{font:600 16px/1 var(--f-num);letter-spacing:.02em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 12.5px/1 var(--f-cn);padding:6px 9px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:transparent;text-align:center}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+button.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.expl{font-size:13px;line-height:1.65;margin:0}
+.expl b{font-weight:600}
+.note{font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+table.st{width:100%;border-collapse:collapse;font:500 12px/1.25 var(--f-mono);font-variant-numeric:tabular-nums}
+table.st th{font:500 11px var(--f-cn);color:var(--muted);text-align:center;padding:4px 2px;border-bottom:1px solid var(--line)}
+table.st td{text-align:center;padding:5px 2px;border-bottom:1px solid var(--line)}
+table.st td.l{text-align:left;font-family:var(--f-cn)}
+table.st tr.cur td{background:color-mix(in srgb,var(--hl) 22%,transparent);font-weight:600}
+.sub{font-size:12px;font-weight:700;margin:2px 0 -4px;color:var(--muted);letter-spacing:.06em}
+canvas.plot{width:100%;height:140px;display:block}
+
+.ctrl{left:0;right:0;bottom:0;padding-block:8px 10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{max-width:1080px;margin:0 auto;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px;background:var(--panel-solid)}
+.tab{font:500 13px/1 var(--f-cn);padding:7px 14px;border:0;border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn{font:500 13px/1 var(--f-cn);padding:8px 11px;border:1px solid var(--line);background:var(--panel-solid);color:var(--fg);border-radius:6px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:13px;height:13px;fill:currentColor}
+select.btn{padding:7px 8px}
+.slider{display:flex;align-items:center;gap:8px;flex:1 1 200px;min-width:170px}
+.slider label{font-size:12px;color:var(--muted);white-space:nowrap}
+.slider input{flex:1;min-width:0;accent-color:var(--accent)}
+.slider output{font:500 12px var(--f-mono);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cap{font-size:12.5px;line-height:1.55;color:var(--muted);min-width:0}
+.cap b{color:var(--fg);font-weight:500}
+.spacer{flex:1 1 0}
+
+.loading{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
+.loading div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-size:13px;min-width:220px}
+.loading .barl{height:4px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden}
+.loading .barl i{display:block;height:100%;width:0;background:var(--accent)}
+
+@media (max-width:760px){
+  .left{width:calc(100% - 32px)}
+  .tb .hidemob{display:none}
+  .tb{grid-template-columns:1fr 1fr}
+  #info{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(var(--ctrl-h) + 8px + env(safe-area-inset-bottom,0px));width:auto;max-height:40%;overflow:auto;z-index:3}
+  .side{left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;top:auto;max-height:56%;bottom:calc(var(--ctrl-h) + 8px)}
+  #pPanel{max-height:44%}
+  #app.mode-principle .left{display:none}
+  #app.mode-principle #cap{display:none}
+  .pp{gap:8px;padding:10px 12px}
+  .expl{font-size:12.5px;line-height:1.6}
+  .slider{flex-basis:100%}
+  .tab{padding:7px 12px}
+  .mob-hide{display:none}
+}
+@media (prefers-reduced-motion: reduce){ #leaders,#tags{transition:none} }
+.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.steps li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:6px 8px;border-radius:5px;font-size:12.5px;line-height:1.45;color:var(--muted);cursor:pointer}
+.steps li b{color:var(--fg);font-weight:600}
+.steps li i{font-style:normal;width:20px;height:20px;border-radius:50%;border:1.25px solid currentColor;display:grid;place-items:center;font:600 11.5px/1 var(--f-num)}
+.steps li.cur{background:color-mix(in srgb,var(--hl) 20%,transparent);color:var(--fg)}
+.steps li.cur i{background:var(--hl);border-color:var(--hl);color:var(--hl-ink)}
+.steps li:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+</style>
+
+<div id="app">
+  <canvas id="c" aria-label="八卡 AI 训练服务器三维模型，可拖动旋转"></canvas>
+  <svg id="leaders" aria-hidden="true"></svg>
+  <div id="tags"></div>
+  <div class="loading" id="loading"><div><span id="ld-t">正在加载模型…</span><div class="barl"><i id="ld-b"></i></div></div></div>
+
+  <div class="hud left">
+    <div class="tb" role="group" aria-label="图纸标题栏">
+      <div class="name"><h1>八卡 AI 训练服务器</h1><span class="en">8U · HGX 8-GPU · air cooled</span></div>
+      <div><span class="k">GPU</span><span class="v">8 × SXM5 · 700 W</span></div>
+      <div><span class="k">互连</span><span class="v">4 × NVSwitch · 900 GB/s</span></div>
+      <div class="hidemob"><span class="k">CPU / 内存</span><span class="v">2 路 · 32 × DDR5</span></div>
+      <div class="hidemob"><span class="k">网络 / 电源</span><span class="v">8 × 400G · 6 × 3 kW</span></div>
+    </div>
+    <div id="info" class="card" hidden aria-live="polite">
+      <div class="card-head">
+        <div class="card-no" id="i-no">1</div>
+        <div><h2 id="i-cn">—</h2><div class="jp" id="i-en">—</div></div>
+        <button class="x" id="i-close" aria-label="关闭说明">×</button>
+      </div>
+      <dl><dt>材料</dt><dd id="i-mat">—</dd><dt>数量</dt><dd id="i-qty">—</dd></dl>
+      <p id="i-desc"></p>
+    </div>
+    <div class="hint" id="hint">拖动旋转，滚轮或双指缩放。点零件或编号看说明。</div>
+  </div>
+
+  <section class="hud side" id="bom" hidden aria-label="零件表">
+    <div class="side-head"><h3>零件表<small id="bom-count"></small></h3><button class="btn" id="bom-close">收起</button></div>
+    <div class="scroll" id="bom-list"></div>
+  </section>
+
+  <section class="hud side" id="pPanel" hidden aria-label="训练一步">
+    <div class="side-head"><h3>训练一步<small id="pp-step">1 / 6</small></h3></div>
+    <div class="scroll"><div class="pp">
+      <ol class="steps" id="steps"></ol>
+      <p class="expl" id="expl"></p>
+      <dl class="kv" id="kv"></dl>
+      <div class="legend"><span><i style="background:var(--c3)"></i>数据（PCIe）</span><span><i style="background:var(--c1)"></i>计算</span><span><i style="background:var(--c2)"></i>NVLink</span><span><i style="background:var(--c5)"></i>网络</span><span><i style="background:var(--c4)"></i>供电</span></div>
+      <p class="note">顶盖隐藏，机箱和 GPU 散热器画成半透明；讲到下层主板的几步，GPU 托盘也变半透明。连线是按拓扑画的示意，不是真实走线；带宽、功耗是 H100 这一级服务器的公开典型值。</p>
+    </div></div>
+  </section>
+
+  <div class="hud ctrl" id="ctrl">
+    <div class="bar">
+      <div class="bar-row">
+        <div class="tabs" role="tablist" aria-label="模式">
+          <button class="tab" role="tab" data-mode="struct" aria-selected="true">结构</button>
+          <button class="tab" role="tab" data-mode="principle" aria-selected="false">原理</button>
+          <button class="tab" role="tab" data-mode="model" aria-selected="false">模型</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn" id="b-view">复位</button>
+      </div>
+      <div class="bar-row grp-struct">
+        <button class="btn primary" id="b-play"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z"/></svg><span id="b-play-t">装配</span></button>
+        <div class="slider"><label for="r-ex">爆炸</label><input id="r-ex" type="range" min="0" max="100" value="100"><output id="o-ex">100%</output></div>
+        <button class="btn" id="b-lbl" aria-pressed="true">编号</button>
+        <button class="btn" id="b-bom" aria-pressed="false">零件表</button>
+      </div>
+      <div class="bar-row grp-principle" hidden>
+        <button class="btn primary" id="b-run"><span id="b-run-t">暂停</span></button>
+        <button class="btn" id="b-next">下一步</button>
+        <button class="btn" id="b-air" aria-pressed="false">风道</button>
+        <button class="btn" id="b-pwr" aria-pressed="false">供电</button>
+        <div class="slider"><label for="r-sp">速度</label><input id="r-sp" type="range" min="30" max="250" value="100"><output id="o-sp">1.0×</output></div>
+      </div>
+      <div class="bar-row grp-model" hidden>
+        <button class="btn" id="b-cut" aria-pressed="false">剖切</button>
+
+      </div>
+      <div class="cap" id="cap"></div>
+    </div>
+  </div>
+</div>
+
+<script>window.__GLB_B64="__GLB_BASE64__";</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ═══════════════════════ shared viewer core ═══════════════════════
+   The glb comes from the Blender build script. Every top-level node is one part with extras:
+   part_no, name_cn, material_spec, desc, ex = [[dx, dy, dz, s], ...] (glTF axes, mm).
+   Explode formula (same as Blender / Unreal): each leg eases in over T ∈ [0.6 s, 0.6 s + 0.4].
+   The project section further down (PROJ) adds the 原理 mode and its own panel. */
+const $ = id => document.getElementById(id);
+const D2R = Math.PI/180, MM = 0.001;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const ease = x => x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
+const smooth = x => { x = clamp(x, 0, 1); return x*x*(3-2*x); };
+const prog = (t,s) => ease(clamp((t - s*.6)/.4, 0, 1));
+
+/* ───────── renderer / scene ───────── */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 0);
+renderer.localClippingEnabled = true;
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.95;
+const camera = new THREE.PerspectiveCamera(30, 1, .002, 20);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.minDistance = .03; controls.maxDistance = 8;
+
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.bias = -.0004; key.shadow.normalBias = .0006;
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xdfe8ff, .7); rim.position.set(-.4,.25,-.35); scene.add(rim);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(20,20).rotateX(-Math.PI/2), new THREE.ShadowMaterial({ opacity:.2 }));
+ground.receiveShadow = true; scene.add(ground);
+
+const root = new THREE.Group(); scene.add(root);
+let cutPlane = new THREE.Plane(new THREE.Vector3(0,0,-1), 0);
+
+/* ───────── state ───────── */
+const st = { mode:'struct', t:1, tTarget:null, labels: innerWidth >= 760, sel:null, hover:null, moved:false,
+  running:!prefersReduced, speed:1, cut:false };
+let PROJ = null;
+let parts = [], items = [], meshes = [], model = null;
+const itemByName = new Map(), partByNo = new Map();
+
+/* ───────── load ───────── */
+async function load(){
+  const loader = new GLTFLoader();
+  let b64 = window.__GLB_B64;
+  if(!b64 || b64.length < 100){
+    // published page: the model ships next to it as base64 text (PROJ.glbFile, e.g. lathe_glb.txt)
+    const res = await fetch(PROJ.glbFile);
+    if(!res.ok) throw new Error(PROJ.glbFile + ' ' + res.status);
+    const total = +res.headers.get('content-length') || 0, reader = res.body.getReader(), chunks = [];
+    let got = 0;
+    for(;;){ const { done, value } = await reader.read(); if(done) break; chunks.push(value); got += value.length;
+      $('ld-t').textContent = `正在下载模型… ${(got/1e6).toFixed(1)}${total ? ' / ' + (total/1e6).toFixed(1) : ''} MB`;
+      if(total) $('ld-b').style.width = (100*got/total).toFixed(0) + '%'; }
+    b64 = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
+  }
+  $('ld-t').textContent = '正在解码模型…';
+  await new Promise(r=>setTimeout(r, 30));
+  const bin = atob(b64.trim()), buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return loader.parseAsync(buf.buffer, '');
+}
+
+function setup(gltf){
+  model = gltf.scene; root.add(model);
+  for(const node of [...model.children]){
+    const u = node.userData || {};
+    if(u.part_no === undefined) continue;
+    let p = partByNo.get(u.part_no);
+    if(!p){
+      const en = node.name.replace(/^[A-Z]\d+_/, '').replace(/_\d+$/, '');
+      p = { no:u.part_no, cn:u.name_cn, en, m:u.material_spec, desc:u.desc, items:[] }; partByNo.set(u.part_no, p);
+    }
+    const ex = JSON.parse(u.ex || '[]').map(e=>({ v:new THREE.Vector3(e[0],e[1],e[2]).multiplyScalar(MM), s:e[3] }));
+    // holder at the origin: explode moves it, the 原理 mode turns / slides it; the node keeps the file's transform
+    const holder = new THREE.Group(); holder.name = node.name + '_holder'; model.add(holder); holder.add(node);
+    const it = { obj:holder, node, name:node.name, ex, part:p, u, meshes:[] };
+    p.items.push(it); items.push(it); itemByName.set(node.name, it);
+    node.traverse(o=>{
+      if(!o.isMesh) return;
+      o.material = Array.isArray(o.material) ? o.material.map(m=>m.clone()) : o.material.clone();
+      for(const m of [].concat(o.material)){ m.userData.color0 = m.color.clone(); m.userData.metal0 = m.metalness; m.userData.rough0 = m.roughness; m.userData.op0 = m.opacity; m.side = THREE.DoubleSide; m.clippingPlanes = []; }
+      o.castShadow = o.receiveShadow = true; o.userData.part = p; o.userData.item = it; meshes.push(o); it.meshes.push(o);
+    });
+  }
+  parts = [...partByNo.values()].sort((a,b)=>a.no-b.no);
+  for(const p of parts) p.qty = p.items.length;
+  root.updateMatrixWorld(true);
+  PROJ.init && PROJ.init();
+  buildUI();
+  $('loading').hidden = true;
+  setMode('struct', true);
+}
+
+/* helpers for the project section */
+const _q = new THREE.Quaternion(), _v = new THREE.Vector3(), ZERO = new THREE.Vector3();
+const AX = { x:new THREE.Vector3(1,0,0), y:new THREE.Vector3(0,1,0), z:new THREE.Vector3(0,0,1) };
+/** turn an item by `angle` about the line through `pivot` (model space, metres) along `axis`, then shift by `offset` */
+function place(it, pivot, axis, angle, offset){
+  _q.setFromAxisAngle(axis, angle || 0);
+  it.obj.quaternion.copy(_q);
+  _v.copy(pivot).applyQuaternion(_q);
+  it.obj.position.copy(pivot).sub(_v).add(offset || ZERO);
+}
+const I = name => { const it = itemByName.get(name); if(!it) console.warn('missing node', name); return it; };
+const IS = prefix => items.filter(it => it.name.startsWith(prefix));
+/** model-space bounding box of an item in its rest pose (metres) */
+function restBox(it){
+  const b = new THREE.Box3();
+  for(const me of it.meshes){ if(!me.geometry.boundingBox) me.geometry.computeBoundingBox(); b.union(me.geometry.boundingBox.clone().applyMatrix4(me.matrixWorld)); }
+  return b;
+}
+/** colour overrides used by the 原理 mode: setLook(item, {color, emissive, ei, opacity}) / setLook(item, null) */
+function setLook(it, look){
+  for(const me of it.meshes) for(const m of [].concat(me.material)){
+    const L = look || {};
+    m.color.copy(L.color ?? m.userData.color0);
+    m.metalness = L.color ? .15 : m.userData.metal0; m.roughness = L.color ? .5 : m.userData.rough0;
+    m.userData.glow = L.emissive ? new THREE.Color(L.emissive) : null; m.userData.glowI = L.ei ?? .5;
+    const op = L.opacity ?? 1;
+    m.transparent = op < 1; m.opacity = op; m.depthWrite = op >= 1;
+  }
+  for(const me of it.meshes){ me.castShadow = !(look && look.opacity < 1); }
+}
+
+/* ───────── pose ───────── */
+function applyPose(){
+  const tt = st.mode === 'struct' ? st.t : 0;
+  for(const it of items){
+    const p = it.obj.position.set(0,0,0);
+    it.obj.quaternion.identity();
+    for(const e of it.ex) p.addScaledVector(e.v, prog(tt, e.s));
+  }
+  if(PROJ.pose) PROJ.pose(st.mode);
+}
+function orientRoot(){
+  const portrait = canvas.clientWidth / canvas.clientHeight < .85;
+  root.rotation.set(0, 0, 0);
+  if(PROJ.portrait && st.mode !== 'principle' && portrait) root.rotation[PROJ.portrait.axis] = PROJ.portrait.angle;
+  root.updateMatrixWorld(true);
+}
+
+/* ───────── camera fit ───────── */
+const ctrlEl = $('ctrl'), leftEl = document.querySelector('.left'), app = $('app');
+const view = { top:0, bottom:0, right:0, left:0 };
+function sidePanel(){ return st.mode === 'principle' ? $('pPanel') : $('bom'); }
+function measure(){
+  const W = canvas.clientWidth, narrow = W < 760, ar = app.getBoundingClientRect();
+  const ch = Math.max(0, ar.bottom - ctrlEl.getBoundingClientRect().top);
+  document.documentElement.style.setProperty('--ctrl-h', ch + 'px');
+  const tb = document.querySelector('.tb').getBoundingClientRect();
+  view.bottom = ch; view.top = narrow ? Math.max(0, tb.bottom - ar.top) + 6 : 0;
+  const sp = sidePanel();
+  if(narrow){
+    if(!sp.hidden) view.bottom = Math.max(view.bottom, ar.bottom - sp.getBoundingClientRect().top + 6);
+    if(!$('info').hidden) view.bottom = Math.max(view.bottom, ar.bottom - $('info').getBoundingClientRect().top + 6);
+    view.right = 0; view.left = 0;
+  } else {
+    view.right = !sp.hidden ? sp.offsetWidth + 16 : 0;
+    view.left = W >= 900 ? Math.min(W*.3, leftEl.getBoundingClientRect().right - ar.left + 8) : 0;
+  }
+}
+function setOffset(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  camera.setViewOffset(W, H, (view.right - view.left)/2, (view.bottom - view.top)/2, W, H);
+}
+function project(p3){ const v = p3.clone().project(camera); return [ (v.x+1)/2*canvas.clientWidth, (1-v.y)/2*canvas.clientHeight ]; }
+function fitMeshes(){ return PROJ.fitMeshes ? PROJ.fitMeshes(st.mode) : meshes; }
+function computeFit(tv, dir, margin){
+  const tSave = st.t; st.t = tv; applyPose(); root.updateMatrixWorld(true); st.t = tSave;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const ax0 = view.left + margin, ax1 = W - view.right - margin, ay0 = view.top + margin, ay1 = H - view.bottom - margin;
+  const corners = [], bb = new THREE.Box3(), all = new THREE.Box3();
+  for(const me of fitMeshes()){
+    if(!visibleMesh(me)) continue;
+    if(!me.geometry.boundingBox) me.geometry.computeBoundingBox();
+    bb.copy(me.geometry.boundingBox).applyMatrix4(me.matrixWorld); all.union(bb);
+    for(const x of [bb.min.x,bb.max.x]) for(const y of [bb.min.y,bb.max.y]) for(const z of [bb.min.z,bb.max.z]) corners.push(new THREE.Vector3(x,y,z));
+  }
+  applyPose(); root.updateMatrixWorld(true);
+  const target = all.getCenter(new THREE.Vector3());
+  let dist = all.getSize(new THREE.Vector3()).length() * 1.6;
+  const right = new THREE.Vector3(), up = new THREE.Vector3();
+  for(let k=0;k<7;k++){
+    camera.position.copy(target).addScaledVector(dir, dist); camera.lookAt(target);
+    camera.near = dist/60; camera.far = dist*8; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const c of corners){ const [px,py] = project(c); x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py); }
+    const sc = Math.max((x1-x0)/Math.max(60,ax1-ax0), (y1-y0)/Math.max(60,ay1-ay0));
+    const wpp = 2*dist*Math.tan(camera.fov*D2R/2)/H;
+    right.setFromMatrixColumn(camera.matrixWorld,0); up.setFromMatrixColumn(camera.matrixWorld,1);
+    target.addScaledVector(right, ((x0+x1)/2 - (ax0+ax1)/2)*wpp).addScaledVector(up, -((y0+y1)/2 - (ay0+ay1)/2)*wpp);
+    dist *= sc*.97;
+  }
+  return { target, dist, center: all.getCenter(new THREE.Vector3()), size: all.getSize(new THREE.Vector3()) };
+}
+let F0 = null, F1 = null, FDIR = null;
+function fit(){
+  orientRoot(); measure(); setOffset();
+  FDIR = PROJ.dirs[st.mode].clone().normalize();
+  const W = canvas.clientWidth;
+  if(st.mode === 'struct'){ F0 = computeFit(0, FDIR, Math.min(64, W*.08)); F1 = computeFit(1, FDIR, st.labels ? 46 : 22); }
+  else { F0 = F1 = computeFit(0, FDIR, st.mode === 'principle' ? (PROJ.principleMargin ?? 36) : Math.min(56, W*.07)); }
+  autoFrame(true);
+  // shadow camera follows the model size
+  const c = F1.center, s = Math.max(F0.size.length(), F1.size.length()) * .75;
+  key.position.copy(c).add(new THREE.Vector3(.2, 1, .4).multiplyScalar(s*1.4)); key.target.position.copy(c);
+  Object.assign(key.shadow.camera, { left:-s, right:s, top:s, bottom:-s, near:s*.05, far:s*5 }); key.shadow.camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(F0.dist, F1.dist) * 4; controls.minDistance = Math.min(F0.dist, F1.dist) * .08;
+}
+const _t = new THREE.Vector3();
+function autoFrame(force){
+  if(!F0 || (st.moved && !force)) return;
+  const k = st.mode === 'struct' ? ease(Math.min(1, st.t/.82)) : 0;
+  _t.lerpVectors(F0.target, F1.target, k);
+  const d = F0.dist + (F1.dist - F0.dist)*k;
+  controls.target.copy(_t); camera.position.copy(_t).addScaledVector(FDIR, d);
+  camera.near = d/60; camera.far = d*8; camera.updateProjectionMatrix();
+}
+function visibleMesh(me){ let o = me; while(o){ if(!o.visible) return false; o = o.parent; } return true; }
+function relayout(){ measure(); setOffset(); if(!st.moved) fit(); }
+function resize(){
+  const W = canvas.clientWidth, H = canvas.clientHeight; if(!W || !H) return;
+  renderer.setSize(W, H, false); camera.aspect = W/H;
+  if(!model){ camera.updateProjectionMatrix(); return; }
+  measure(); setOffset(); if(!st.moved) fit(); else camera.updateProjectionMatrix();
+  PROJ.resize && PROJ.resize();
+}
+controls.addEventListener('start', ()=>{ st.moved = true; });
+
+/* ───────── balloons ───────── */
+const svgNS = 'http://www.w3.org/2000/svg';
+const leaders = $('leaders'), tagsEl = $('tags');
+let lab = [];
+function buildUI(){
+  for(const p of parts){
+    const b = document.createElement('button'); b.className = 'bln'; b.textContent = p.no; b.setAttribute('aria-label', `${p.no} ${p.cn}`);
+    b.addEventListener('click', e=>{ e.stopPropagation(); select(p); });
+    tagsEl.appendChild(b);
+    const ln = document.createElementNS(svgNS,'line'), dot = document.createElementNS(svgNS,'circle'); dot.setAttribute('r','2');
+    leaders.append(ln, dot);
+    lab.push({ p, b, ln, dot, x:0, y:0, init:false });
+  }
+  const list = $('bom-list');
+  $('bom-count').textContent = `${parts.length} 种 · ${parts.reduce((a,p)=>a+p.qty,0)} 件`;
+  for(const p of parts){
+    const el = document.createElement('button'); el.className = 'row'; el.type = 'button';
+    el.innerHTML = `<span class="n">${p.no}</span><span class="nm"></span><span class="q">×${p.qty}</span><span class="m"></span>`;
+    el.querySelector('.nm').textContent = p.cn; el.querySelector('.m').textContent = p.m;
+    el.addEventListener('click', ()=>select(p)); list.appendChild(el); p.row = el;
+  }
+  PROJ.buildUI && PROJ.buildUI();
+}
+const box = new THREE.Box3(), anchorBox = new THREE.Box3();
+function updateLabels(){
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const op = (st.mode === 'struct' && st.labels) ? Math.min(1, Math.max(0, (st.t - .55)/.25)) : 0;
+  leaders.style.opacity = op; leaders.style.visibility = op > 0 ? 'visible' : 'hidden';
+  for(const L of lab) L.b.hidden = op <= 0;
+  if(op > 0){
+    for(const L of lab) L.b.style.opacity = op;
+    const [cx, cy] = project(box.getCenter(new THREE.Vector3()));
+    for(const L of lab){
+      anchorBox.makeEmpty().expandByObject(L.p.items[0].obj);
+      const [ax, ay] = project(anchorBox.getCenter(new THREE.Vector3()));
+      L.ax = ax; L.ay = ay; L.off = ax < 0 || ax > W - view.right || ay < view.top || ay > H - view.bottom;
+      let dx = ax - cx, dy = ay - cy; const dl = Math.hypot(dx,dy) || 1; dx/=dl; dy/=dl;
+      L.tx = ax + dx*42; L.ty = ay + dy*38;
+      if(!L.init){ L.x = L.tx; L.y = L.ty; }
+      L.nx = L.x + (L.tx - L.x)*.5; L.ny = L.y + (L.ty - L.y)*.5;
+    }
+    const minX = view.left + 12, maxX = W - view.right - 12, minY = view.top + 12, maxY = H - view.bottom - 12;
+    for(let k=0;k<8;k++){
+      for(let i=0;i<lab.length;i++) for(let j=i+1;j<lab.length;j++){
+        const a = lab[i], b = lab[j]; if(a.off || b.off) continue;
+        let dx = b.nx-a.nx, dy = b.ny-a.ny; const d = Math.hypot(dx,dy);
+        if(d < 25){ if(d < .01){ dx = 1; dy = 0; } const m = (25-d)/2/(d||1); a.nx -= dx*m; a.ny -= dy*m; b.nx += dx*m; b.ny += dy*m; }
+      }
+      for(const L of lab){ L.nx = Math.min(maxX, Math.max(minX, L.nx)); L.ny = Math.min(maxY, Math.max(minY, L.ny)); }
+    }
+    for(const L of lab){
+      L.x = L.nx; L.y = L.ny; L.init = true;
+      L.b.hidden = L.off; L.ln.style.display = L.dot.style.display = L.off ? 'none' : '';
+      L.b.style.transform = `translate(${L.x.toFixed(1)}px,${L.y.toFixed(1)}px)`;
+      const dx = L.x - L.ax, dy = L.y - L.ay, d = Math.hypot(dx,dy) || 1;
+      L.ln.setAttribute('x1', L.ax.toFixed(1)); L.ln.setAttribute('y1', L.ay.toFixed(1));
+      L.ln.setAttribute('x2', (L.x - dx/d*11).toFixed(1)); L.ln.setAttribute('y2', (L.y - dy/d*11).toFixed(1));
+      L.dot.setAttribute('cx', L.ax.toFixed(1)); L.dot.setAttribute('cy', L.ay.toFixed(1));
+      const on = st.sel === L.p; L.b.classList.toggle('sel', on); L.ln.classList.toggle('sel', on); L.dot.classList.toggle('sel', on);
+    }
+  } else for(const L of lab) L.init = false;
+  PROJ.labels && PROJ.labels(st.mode === 'principle');
+}
+/* floating text tags used by the 原理 mode: tag(text, cls) → { el, pos:Vector3 (model space) } */
+const tagList = [];
+function tag(text, style){
+  const el = document.createElement('span'); el.className = 'tag'; el.textContent = text; el.hidden = true;
+  if(style) Object.assign(el.style, style);
+  tagsEl.appendChild(el); const T = { el, pos:new THREE.Vector3(), on:false }; tagList.push(T); return T;
+}
+function placeTags(){
+  for(const T of tagList){
+    const show = st.mode === 'principle' && T.on; T.el.hidden = !show; if(!show) continue;
+    const [x, y] = project(T.pos.clone().applyMatrix4(root.matrixWorld));
+    T.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+  }
+}
+
+/* ───────── selection ───────── */
+const hl = new THREE.Color();
+function paint(){
+  hl.set(css('--hl') || '#d6860b');
+  for(const m of meshes){
+    const p = m.userData.part;
+    const on = p === st.sel ? .5 : p === st.hover ? .2 : 0;
+    for(const mt of [].concat(m.material)){
+      if(on){ mt.emissive.copy(hl); mt.emissiveIntensity = on; }
+      else if(mt.userData.glow){ mt.emissive.copy(mt.userData.glow); mt.emissiveIntensity = mt.userData.glowI; }
+      else { mt.emissive.setRGB(0,0,0); mt.emissiveIntensity = 0; }
+    }
+  }
+}
+function select(p){
+  if(st.mode === 'principle' && !PROJ.selectInPrinciple) p = null;
+  st.sel = p; paint();
+  for(const q of parts) q.row && q.row.classList.toggle('sel', q === p);
+  const info = $('info'), was = info.hidden;
+  if(!p){ info.hidden = true; $('hint').hidden = st.mode === 'principle'; if(!was && canvas.clientWidth < 760) relayout(); return; }
+  $('i-no').textContent = p.no; $('i-cn').textContent = p.cn; $('i-en').textContent = p.en;
+  $('i-mat').textContent = p.m; $('i-qty').textContent = p.qty + ' 件'; $('i-desc').textContent = p.desc;
+  info.hidden = false; $('hint').hidden = true;
+  if(canvas.clientWidth < 760){ if(!$('bom').hidden) toggleBom(false); else relayout(); }
+}
+$('i-close').addEventListener('click', ()=>select(null));
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(e){
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(meshes.filter(visibleMesh), false);
+  for(const h of hits){
+    const mt = [].concat(h.object.material)[0];
+    if(mt.clippingPlanes && mt.clippingPlanes.some(pl => pl.distanceToPoint(h.point) < 0)) continue;
+    if(mt.transparent && mt.opacity < .5) continue;
+    return h.object.userData.part;
+  }
+  return null;
+}
+let down = null;
+canvas.addEventListener('pointerdown', e=>{ down = { x:e.clientX, y:e.clientY }; });
+canvas.addEventListener('pointerup', e=>{ if(model && down && Math.hypot(e.clientX-down.x, e.clientY-down.y) < 6) select(pick(e)); down = null; });
+canvas.addEventListener('pointermove', e=>{
+  if(!model || e.pointerType !== 'mouse' || e.buttons) return;
+  if(st.mode === 'principle' && !PROJ.selectInPrinciple) return;
+  const p = pick(e); if(p !== st.hover){ st.hover = p; paint(); canvas.style.cursor = p ? 'pointer' : ''; }
+});
+canvas.addEventListener('pointerleave', ()=>{ if(st.hover){ st.hover = null; paint(); canvas.style.cursor = ''; } });
+
+/* ───────── modes ───────── */
+function applyClip(){
+  for(const me of meshes){
+    const it = me.userData.item;
+    const cut = st.mode === 'model' && st.cut && !(PROJ.noCut && PROJ.noCut.has(it.part.no));
+    const planes = cut ? [cutPlane] : (st.mode === 'principle' && me.userData.clip) || [];
+    for(const mt of [].concat(me.material)){ mt.clippingPlanes = planes; mt.clipIntersection = !cut && !!me.userData.clipIntersection; }
+  }
+}
+function setMode(m, first){
+  const prev = st.mode;
+  if(!first && prev === 'principle' && m !== 'principle') PROJ.leave && PROJ.leave();
+  st.mode = m;
+  app.className = 'mode-' + m;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t.dataset.mode === m)));
+  document.querySelector('.grp-struct').hidden = m !== 'struct';
+  document.querySelector('.grp-principle').hidden = m !== 'principle';
+  document.querySelector('.grp-model').hidden = m !== 'model';
+  $('cap').innerHTML = PROJ.caps[m];
+  $('pPanel').hidden = m !== 'principle';
+  if(m !== 'struct') $('bom').hidden = true, $('b-bom').setAttribute('aria-pressed','false');
+  for(const it of items) it.obj.visible = !(m === 'principle' && PROJ.hide && PROJ.hide.has(it.part.no));
+  if(m === 'principle'){ select(null); $('hint').hidden = true; if(prev !== 'principle' || first) PROJ.enter && PROJ.enter(); }
+  else { if(st.sel && !st.sel.items[0].obj.visible) select(null); $('hint').hidden = !$('info').hidden; }
+  applyClip();
+  ground.visible = m !== 'principle' || !!PROJ.groundInPrinciple;
+  st.moved = false;
+  paint();
+  fit();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{ if(model && t.dataset.mode !== st.mode) setMode(t.dataset.mode); }));
+$('b-view').addEventListener('click', ()=>{ st.moved = false; fit(); });
+
+/* struct controls */
+const rEx = $('r-ex'), oEx = $('o-ex'), playT = $('b-play-t');
+function syncEx(){ const pc = Math.round(st.t*100); rEx.value = pc; oEx.textContent = pc + '%'; playT.textContent = st.t > .5 ? '装配' : '爆炸'; }
+rEx.addEventListener('input', ()=>{ st.tTarget = null; st.t = rEx.value/100; syncEx(); });
+$('b-play').addEventListener('click', ()=>{ const g = st.t > .5 ? 0 : 1; if(prefersReduced){ st.t = g; syncEx(); } else st.tTarget = g; });
+const bLbl = $('b-lbl'); bLbl.setAttribute('aria-pressed', String(st.labels));
+bLbl.addEventListener('click', ()=>{ st.labels = !st.labels; bLbl.setAttribute('aria-pressed', String(st.labels)); });
+function toggleBom(on){ $('bom').hidden = !on; $('b-bom').setAttribute('aria-pressed', String(on)); relayout(); }
+$('b-bom').addEventListener('click', ()=>toggleBom($('bom').hidden));
+$('bom-close').addEventListener('click', ()=>toggleBom(false));
+
+/* model controls */
+$('b-cut').addEventListener('click', e=>{
+  st.cut = !st.cut; e.currentTarget.setAttribute('aria-pressed', String(st.cut)); applyClip();
+});
+
+/* theme */
+function themeSync(){ st.shadowA = parseFloat(css('--shadow-a')) || .22; if(model){ PROJ.theme && PROJ.theme(); paint(); } }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', themeSync);
+new MutationObserver(themeSync).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+
+/* ═══════════════════════ project section ═══════════════════════ */
+/* ── AI 服务器 ──
+   Blender: +Z up, -Y = front panel (fans, drives), +Y = back (PSUs, NIC ports); Z 0 = chassis floor, lid top 355.6.
+   Upper level: GPU tray (HGX baseboard Z ≈ 185, 8 GPUs in 2 rows at Y -190 / 110, 4 NVSwitch at Y -40).
+   Lower level: motherboard (Z ≈ 12): 2 CPUs, 4 DIMM rows, 4 PCIe switches at Y 110, 2 × 4 NICs at the back.
+   glTF (x, y, z) = (x, z, -y). Points below are Blender mm. */
+const V3 = (x,y,z) => new THREE.Vector3(x,y,z);
+const B = (x, y, z) => V3(x*MM, z*MM, -y*MM);
+const GX = [-157.5, -52.5, 52.5, 157.5];
+const PT = {
+  drives: B(-115,-370,60), cpu:[B(-110,-60,70), B(110,-60,70)], dimm:[B(-41,-60,40), B(-179,-60,40), B(41,-60,40), B(179,-60,40)],
+  sw: [-150,-70,70,150].map(x => B(x,110,30)),
+  gpu: [...GX.map(x => B(x,-190,200)), ...GX.map(x => B(x,110,200))],
+  nvs: GX.map(x => B(x,-40,190)),
+  nic: [B(-161,335,60), B(170,335,60)], out: [B(-161,620,60), B(170,620,60)],
+  psu: B(0,330,230), gtray: B(0,-40,186), mtray: B(0,60,14),
+};
+const STEPS = [
+  { t:'读数据', col:'--c3', lower:true, parts:['P05_Drives','P23_CPU_1','P23_CPU_2','P25_DIMM_A','P25_DIMM_B','P25_DIMM_C','P25_DIMM_D'],
+    arcs:() => [[PT.drives, PT.cpu[0]], [PT.drives, PT.cpu[1]], [PT.cpu[0], PT.dimm[0]], [PT.cpu[0], PT.dimm[1]], [PT.cpu[1], PT.dimm[2]], [PT.cpu[1], PT.dimm[3]]],
+    x:'CPU 从 NVMe 硬盘读下一批训练数据（图片、文本），解码、切块、做数据增强，先放在 DDR5 内存里。这一步 GPU 帮不上忙，所以 CPU 核多、内存大。',
+    kv:[['NVMe 读速', '8 块 × 约 10 GB/s'], ['内存', '32 根 DDR5，约 2 TB']] },
+  { t:'送进 GPU', col:'--c3', lower:true, parts:['P23_CPU_1','P23_CPU_2','P21_MbTray','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
+    arcs:() => [...[0,1,2,3].map(i => [PT.cpu[i < 2 ? 0 : 1], PT.sw[i]]), ...[0,1,2,3].flatMap(i => [[PT.sw[i], PT.gpu[i]], [PT.sw[i], PT.gpu[i+4]]])],
+    x:'整理好的一批数据经 PCIe 交换芯片分给 8 块 GPU，每块拿 1/8（数据并行）。交换芯片把 CPU 的 PCIe 通道“分叉”，每颗连 2 块 GPU 和 2 张网卡。',
+    kv:[['PCIe 5.0 ×16', '约 64 GB/s（每个方向）'], ['每块 GPU 拿到', '这一批的 1/8']] },
+  { t:'前向 + 反向计算', col:'--c1', parts:['P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'], heat:1,
+    arcs:() => [],
+    x:'每块 GPU 用自己那份数据跑一遍模型（前向），算出误差，再反过来算每个参数该怎么改（反向，得到梯度）。90% 以上是矩阵乘法，交给 Tensor Core。数据和参数都在紧贴芯片的 HBM 里，搬得够快芯片才不会闲着。',
+    kv:[['HBM3 带宽', '约 3.35 TB/s（每块）'], ['每块功耗', '约 700 W'], ['8 块合计', '约 5.6 kW']] },
+  { t:'NVLink 同步梯度', col:'--c2', parts:['P09_GpuTray','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
+    arcs:() => PT.gpu.flatMap(g => PT.nvs.map(n => [g, n])), both:true,
+    x:'8 块 GPU 各自算出的梯度不一样，要加起来取平均（All-Reduce），大家才能用同一份结果更新参数。每块 GPU 拉 18 条 NVLink 到 4 颗 NVSwitch，任意两块之间都能满速互传，比走 PCIe 快十几倍。',
+    kv:[['NVLink（每块 GPU）', '900 GB/s'], ['NVSwitch', '4 颗，全互连']] },
+  { t:'跨机器同步', col:'--c5', lower:true, parts:['P21_MbTray','P26_NIC_L','P26_NIC_R','P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'],
+    arcs:() => [...[0,1,2,3].flatMap(i => [[PT.gpu[i], PT.sw[i]], [PT.gpu[i+4], PT.sw[i]]]), ...[0,1,2,3].map(i => [PT.sw[i], PT.nic[i < 2 ? 0 : 1]]), [PT.nic[0], PT.out[0]], [PT.nic[1], PT.out[1]]], both:true,
+    x:'大模型要几十上百台机器一起训练，机器之间也得交换梯度。一块 GPU 配一张 400G 网卡，网卡用 RDMA 直接读写对方 GPU 的显存（GPUDirect），数据不用绕到 CPU。',
+    kv:[['每张网卡', '400 Gb/s ≈ 50 GB/s'], ['整机', '8 张 = 3.2 Tb/s']] },
+  { t:'更新参数', col:'--c1', parts:['P11_GPU_1','P11_GPU_2','P11_GPU_3','P11_GPU_4','P11_GPU_5','P11_GPU_6','P11_GPU_7','P11_GPU_8'], heat:.6,
+    arcs:() => [],
+    x:'每块 GPU 用平均后的梯度更新自己那份参数，8 块卡的参数又一模一样了。然后回到第 1 步取下一批数据。一次训练要重复几十万到几百万步。',
+    kv:[['一步用时', '几百毫秒到几秒'], ['一次训练', '几十万步以上']] },
+];
+const S = { k:0, t:0, air:false, pwr:false, heat:0 };
+let G = {};
+const STEP_T = 4.2;
+
+PROJ = {
+  glbFile: 'ai_server_glb.txt',
+  dirs: { struct:V3(1,.8,.45), model:V3(1,.55,.6), principle:V3(1,.95,.3) },
+  hide: new Set([2]),
+  principleMargin: 18,
+  caps: {
+    struct: '<b>结构</b>：滑杆按维修顺序拆开：掀顶盖 → 拔风扇和硬盘 → 抽电源 → GPU 托盘往前抽、8 块 GPU 排成两层看台 → 主板托盘往后抽。点部件看它在整台机器里干什么。',
+    principle: '<b>原理</b>：训练一步，数据在机器里怎么走：读数据 → 送进 GPU → 计算 → NVLink 同步 → 跨机同步 → 更新。“风道”看风怎么把 10 kW 的热带走。',
+    model: '<b>模型</b>：装配状态自由旋转。“剖切”竖着切掉一半（沿前后方向），看上下两层托盘、风扇墙和电源的位置。',
+  },
+  init(){
+    cutPlane = new THREE.Plane(V3(-1,0,0), 0);
+    G.ghost = [['P01_Chassis', .12], ['P03_GpuFanWall', .35], ['P04_CpuFans', .35], ...IS('P15_GpuHeatsink').map(it => [it.name, .28])].map(([n, o]) => [I(n), o]);
+    G.sinks = IS('P15_GpuHeatsink');
+    G.arcs = new THREE.Group(); G.arcs.visible = false; model.add(G.arcs);
+    G.air = new THREE.Group(); G.air.visible = false; model.add(G.air);
+    G.dotGeo = new THREE.SphereGeometry(5.5*MM, 10, 8);
+    // airflow streaks: GPU level and CPU level, front (+z) to back (-z)
+    const streak = new THREE.BoxGeometry(4*MM, 4*MM, 26*MM);
+    G.airDots = [];
+    for(let i=0;i<160;i++){
+      const up = i % 3 !== 0;
+      const m = new THREE.Mesh(streak, new THREE.MeshBasicMaterial({ color:0x6fb6ff, transparent:true, opacity:.75, depthWrite:false }));
+      m.renderOrder = 4; G.air.add(m);
+      G.airDots.push({ m, up, x:(Math.random()*2-1)*.2, y: up ? .2 + Math.random()*.13 : .03 + Math.random()*.13, z: .46 - Math.random()*.92, v: .16 + Math.random()*.06 });
+    }
+  },
+  fitMeshes(mode){ return mode === 'principle' ? ['P09_GpuTray','P21_MbTray','P07_PSUs','P03_GpuFanWall','P05_Drives'].flatMap(n => I(n).meshes) : meshes; },
+  buildUI(){
+    const ol = $('steps');
+    G.stepEls = STEPS.map((s, i) => { const li = document.createElement('li'); li.innerHTML = `<i>${i+1}</i><span><b>${s.t}</b></span>`; li.addEventListener('click', () => go(i)); ol.appendChild(li); return li; });
+    $('b-run').addEventListener('click', () => { st.running = !st.running; syncRun(); });
+    $('b-next').addEventListener('click', () => go((S.k + 1) % STEPS.length));
+    $('b-air').addEventListener('click', e => { S.air = !S.air; e.currentTarget.setAttribute('aria-pressed', String(S.air)); G.air.visible = S.air && st.mode === 'principle'; });
+    $('b-pwr').addEventListener('click', e => { S.pwr = !S.pwr; e.currentTarget.setAttribute('aria-pressed', String(S.pwr)); go(S.k, true); });
+    $('r-sp').addEventListener('input', e => { st.speed = e.target.value/100; $('o-sp').textContent = st.speed.toFixed(1) + '×'; });
+    syncRun();
+  },
+  theme(){ if(st.mode === 'principle') go(S.k, true); },
+  enter(){ for(const [it, o] of G.ghost) setLook(it, { opacity:o }); G.arcs.visible = true; G.air.visible = S.air; go(S.k, true); },
+  leave(){ for(const it of items) setLook(it, null); G.arcs.visible = false; G.air.visible = false; paint(); },
+  tick(dt, mode){
+    if(mode !== 'principle') return;
+    if(st.running){ S.t += dt*st.speed; if(S.t > STEP_T) go((S.k + 1) % STEPS.length); }
+    const sp = st.speed;
+    for(const d of G.dotList){ d.u = (d.u + dt*d.speed*sp) % 1; d.curve.getPointAt(d.both && d.rev ? 1 - d.u : d.u, d.m.position); }
+    // heat follows the compute steps, heat sinks glow with it
+    const target = STEPS[S.k].heat ?? .25;
+    S.heat += (target - S.heat) * Math.min(1, dt*1.5);
+    const hot = new THREE.Color(css('--c4')), pulse = STEPS[S.k].heat ? .75 + .25*Math.sin(performance.now()/180) : 1;
+    for(const it of G.sinks) for(const me of it.meshes) for(const m of [].concat(me.material)){ m.userData.glow = hot; m.userData.glowI = S.heat * .55 * pulse; }
+    if(S.air) for(const a of G.airDots){
+      a.z -= a.v*dt*sp; if(a.z < -.47){ a.z = .46; a.x = (Math.random()*2-1)*.2; }
+      a.m.position.set(a.x, a.y, a.z);
+      // warms up after crossing the heat sinks (GPU level) or the CPU coolers
+      const warm = a.up ? clamp((.27 - a.z)/.45, 0, 1) * (.3 + S.heat) : clamp((.11 - a.z)/.2, 0, 1) * .5;
+      a.m.material.color.setRGB(.44 + .56*clamp(warm,0,1), .71 - .3*clamp(warm,0,1), 1 - .75*clamp(warm,0,1));
+    }
+    paint();
+  },
+};
+PROJ.state = S;
+function syncRun(){ $('b-run-t').textContent = st.running ? '暂停' : '播放'; }
+
+function go(k, force){
+  S.k = k; S.t = 0;
+  const s = STEPS[k];
+  G.stepEls.forEach((el, i) => el.classList.toggle('cur', i === k));
+  $('pp-step').textContent = `${k+1} / ${STEPS.length}`;
+  $('expl').innerHTML = `<b>${k+1}. ${s.t}</b>：${s.x}` + (S.pwr ? ' <b>供电</b>：6 个 3 kW 电源（4 + 2 冗余）经配电板和铜排送到两层托盘，GPU 上的供电模块再把电压降到 1 V 左右、几百安培。' : '');
+  $('kv').innerHTML = [...s.kv, ...(S.pwr ? [['整机满载', '约 10 kW']] : [])].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+  for(const it of items) if(!G.ghost.some(([g]) => g === it)) setLook(it, null);
+  for(const [it, o] of G.ghost) setLook(it, { opacity:o });
+  const col = css(s.col);
+  for(const n of s.parts){ const it = I(n); if(it && !G.ghost.some(([g]) => g === it)) setLook(it, { emissive:col, ei:.45 }); }
+  if(S.pwr){ const it = I('P07_PSUs'); setLook(it, { emissive:css('--c4'), ei:.35 }); }
+  if(s.lower) setLook(I('P09_GpuTray'), { opacity:.22 });   // see through the GPU tray down to the motherboard
+  // arcs + moving dots
+  G.arcs.clear(); G.dotList = [];
+  const add = (a, b, color, both) => {
+    const mid = a.clone().lerp(b, .5); mid.y += Math.max(.03, a.distanceTo(b) * .25);
+    const curve = new THREE.QuadraticBezierCurve3(a, mid, b), len = curve.getLength();
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 2*MM, 6, false), new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.45, depthWrite:false, depthTest:false }));
+    tube.renderOrder = 3; G.arcs.add(tube);
+    const n = Math.max(2, Math.round(len/.06));
+    for(let j=0;j<n;j++){
+      const m = new THREE.Mesh(G.dotGeo, new THREE.MeshBasicMaterial({ color, transparent:true, opacity:.95, depthWrite:false, depthTest:false }));
+      m.renderOrder = 4; G.arcs.add(m);
+      G.dotList.push({ m, curve, u:j/n, speed:.12/len, both, rev: both && j % 2 === 1 });
+    }
+  };
+  for(const [a, b] of s.arcs()) add(a, b, new THREE.Color(col), !!s.both);
+  if(S.pwr) for(const t of [PT.gtray, PT.mtray]) add(PT.psu, t, new THREE.Color(css('--c4')), false);
+  paint();
+}
+
+/* ───────── loop ───────── */
+let last = performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - last)/1000); last = now;
+  if(!model) return;
+  if(st.tTarget !== null){
+    const d = Math.sign(st.tTarget - st.t); st.t += d*dt*.5;
+    if((d > 0 && st.t >= st.tTarget) || (d < 0 && st.t <= st.tTarget) || d === 0){ st.t = st.tTarget; st.tTarget = null; }
+    syncEx();
+  }
+  PROJ.tick && PROJ.tick(dt, st.mode);
+  applyPose();
+  autoFrame(false);
+  root.updateMatrixWorld(true);
+  box.makeEmpty(); for(const m of meshes) if(visibleMesh(m)) box.expandByObject(m);
+  ground.position.y = box.min.y - .0004;
+  ground.material.opacity = (st.shadowA ?? .2) * (st.mode === 'struct' ? (1 - Math.min(1, st.t*1.5)) : 1);
+  controls.update();
+  renderer.render(scene, camera);
+  updateLabels();
+  placeTags();
+}
+new ResizeObserver(resize).observe(canvas);
+themeSync(); syncEx();
+requestAnimationFrame(frame);
+load().then(g=>{ setup(g); resize(); }).catch(err=>{ $('ld-t').textContent = '模型加载失败：' + (err && err.message || err); console.error(err); });
+window.__viewer = { st, setMode, camera, controls, items, parts, PROJ: () => PROJ };
+</script>
