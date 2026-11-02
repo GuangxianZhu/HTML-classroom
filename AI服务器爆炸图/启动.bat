@@ -1,6 +1,6 @@
 @echo off
 rem One-click launcher: AI training server, 8-GPU HGX (Blender script model) + exploded view
-rem   1) git pull main   2) find Blender   3) build output\ai_server.blend + ai_server.glb   4) menu
+rem   1) git pull main   2) find Blender   3) build output\ai_server.blend + ai_server.glb + offline html   4) menu
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
@@ -56,17 +56,23 @@ if not exist "%~dp0output\ai_server.blend" (
 
 :menu
 echo.
-echo Done. output\ai_server.blend and output\ai_server.glb are ready.
+echo Done. output\ai_server.blend, output\ai_server.glb and the offline web page are ready.
 echo   Frames 1-120    take apart (real disassembly order)
 echo   Frames 150-270  put back together
 echo.
-echo   [1] Open in Blender  (press Space to play)
-echo   [2] Render 4 preview PNGs (Cycles, a few minutes on CPU)
-echo   [3] Quit
-choice /c 123 /n /m "Choose 1-3: "
+echo   [1] Open the web viewer  (offline html: structure / principle / model)
+echo   [2] Open in Blender  (press Space to play)
+echo   [3] Render 4 preview PNGs (Cycles, a few minutes on CPU)
+echo   [4] Quit
+choice /c 1234 /n /m "Choose 1-4: "
 set "PICK=%errorlevel%"
-if "%PICK%"=="1" goto blend
-if "%PICK%"=="2" goto stills
+if "%PICK%"=="1" goto web
+if "%PICK%"=="2" goto blend
+if "%PICK%"=="3" goto stills
+goto end
+
+:web
+for %%F in ("%~dp0output\*.html") do start "" "%%F"
 goto end
 
 :blend

@@ -15,6 +15,8 @@ AI 训练服务器（8U · 8 卡 HGX H100 平台，原创简化）—— Blender
     ai_server.blend   Blender 工程，按空格播放：第 1~120 帧按拆机顺序拆开，第 150~270 帧反顺序装回
     ai_server.glb     glTF 模型（单位米，每个零件一个节点，extras 里有零件号、中文名、材料、作用、爆炸路线），
                       虚幻工程 MyVRToyBox 的 Tools/import_model.py 直接导入
+    AI服务器_离线版.html  双击就能看的网页（结构 / 原理 / 模型），模型嵌在文件里，需要同目录的 viewer_template.html
+    ai_server_web.glb  网页用的轻量 glb（同一份模型，去掉了没用到的 UV）
     parts.json        零件表
     render_*.png      加 --render 时用 Cycles 渲染装配 / 爆炸两张预览图
 
@@ -26,6 +28,7 @@ AI 训练服务器（8U · 8 卡 HGX H100 平台，原创简化）—— Blender
 
 兼容: Blender 4.2 ~ 5.x
 """
+import base64
 import json
 import math
 import os
@@ -1850,6 +1853,33 @@ def export_glb(glb_path):
         json.dump(rows, f, ensure_ascii=False, indent=1)
 
 
+def write_html():
+    """网页用的轻量 glb（去掉没用到的 UV，约小 20%）+ 把它以 base64 填进 viewer_template.html，生成离线网页。
+    要在 export_glb() 之后调用（沿用它的选择集）"""
+    web = os.path.join(OUT, 'ai_server_web.glb')
+    kw = dict(filepath=web, export_format='GLB', use_selection=True, export_apply=True, export_extras=True,
+              export_yup=True, export_texcoords=False, export_animations=False, export_cameras=False, export_lights=False)
+    try:
+        bpy.ops.export_scene.gltf(**kw)
+    except TypeError:
+        for k in ('export_texcoords', 'export_animations', 'export_cameras', 'export_lights'):
+            kw.pop(k, None)
+        bpy.ops.export_scene.gltf(**kw)
+    tpl = os.path.join(HERE, 'viewer_template.html')
+    if not os.path.exists(tpl):
+        print('[WARN] viewer_template.html not found, skip html')
+        return
+    with open(tpl, encoding='utf-8') as f:
+        html = f.read()
+    with open(web, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode('ascii')
+    html = html.replace('"__GLB_BASE64__"', '"' + b64 + '"')
+    dst = os.path.join(OUT, 'AI服务器_离线版.html')
+    with open(dst, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print('[OK] wrote', dst, f'({len(html) / 1e6:.1f} MB)')
+
+
 def main():
     global ROOT
     reset()
@@ -1881,6 +1911,7 @@ def main():
     animate_explode()
     viewport_defaults()
     export_glb(os.path.join(OUT, 'ai_server.glb'))
+    write_html()
     bpy.context.scene.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'ai_server.blend'))
     print('[OK] saved ai_server.blend')

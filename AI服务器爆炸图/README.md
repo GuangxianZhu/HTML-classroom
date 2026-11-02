@@ -9,14 +9,16 @@
 | ![装配](preview/render_assembled.jpg) | ![爆炸](preview/render_exploded.jpg) |
 | ![GPU 托盘](preview/render_gpu_tray.jpg) | ![主板托盘](preview/render_cpu_tray.jpg) |
 
+- **离线网页**：运行一次 `启动.bat` 后，`output\AI服务器_离线版.html` 双击就能看（模型嵌在文件里，不用联网）。文件约 17 MB，打开要等几秒。三种模式见下面「网页」一节。
+
 ## 用法
 
 双击 `启动.bat`，它会依次：
 
 1. `git pull --ff-only origin main` 检查更新（没网或没装 git 就跳过）
 2. 找 Blender（`blender_path.txt` → PATH → `Program Files\Blender Foundation\Blender*` → Steam）
-3. 后台运行 `build_ai_server.py`，十几秒生成 `output\ai_server.blend` 和 `output\ai_server.glb`
-4. 让你选：**[1]** 用 Blender 打开（按空格播放爆炸动画）/ **[2]** 用 Cycles 渲染 4 张预览图 / **[3]** 退出
+3. 后台运行 `build_ai_server.py`，十几秒生成 `output\ai_server.blend`、`output\ai_server.glb` 和离线网页
+4. 让你选：**[1]** 打开网页 / **[2]** 用 Blender 打开（按空格播放爆炸动画）/ **[3]** 用 Cycles 渲染 4 张预览图 / **[4]** 退出
 
 找不到 Blender 时，把 `blender.exe` 的完整路径写进同目录的 `blender_path.txt`（这个文件不会提交到 git）。支持 Blender 4.2 ~ 5.x（在 5.2 上跑过）。
 
@@ -24,7 +26,25 @@
 |---|---|
 | `ai_server.blend` | Blender 工程。第 1~120 帧按拆机顺序拆开，第 150~270 帧反顺序装回 |
 | `ai_server.glb` | glTF 模型，单位米，每个部件一个节点（`P11_GPU_3` …），extras 里有零件号、中文名、材料、作用、爆炸路线。MyVRToyBox 的 `导入AI服务器模型.bat` 用它 |
+| `AI服务器_离线版.html` | 离线网页（约 17 MB），模型直接嵌在文件里 |
+| `ai_server_web.glb` | 网页用的 glb：同一份模型，去掉了没用到的 UV（12 MB，比 `ai_server.glb` 小 20%） |
 | `parts.json` | 部件表（32 个部件） |
+
+## 网页（结构 / 原理 / 模型）
+
+- **结构**：爆炸滑杆 + 编号气泡 + 部件表，点部件看它在整台机器里干什么。拆装路线（包括 GPU 排成“两层看台”）和 Blender 动画、虚幻里是同一份数据、同一个缓动公式。
+- **原理**：训练一步，数据在机器里怎么走。顶盖隐藏，机箱、风扇墙和 GPU 散热器半透明。6 步自动循环（也可以点步骤跳过去）：
+  1. **读数据**：NVMe → CPU → 内存；
+  2. **送进 GPU**：CPU → PCIe 交换芯片 → 8 块 GPU（每颗交换芯片连同一列的 2 块 GPU）；
+  3. **前向 + 反向计算**：GPU 发光、散热器慢慢变红；
+  4. **NVLink 同步梯度**：8 块 GPU ⇄ 4 颗 NVSwitch，光点双向跑；
+  5. **跨机器同步**：GPU → PCIe 交换芯片 → 400G 网卡 → 出机箱；
+  6. **更新参数**，回到第 1 步。
+  - 讲到下层主板的几步（1、2、5），GPU 托盘也变半透明。右边面板给出每一步的带宽 / 功耗典型值（H100 这一级服务器的公开数据）。
+  - **风道**：冷风从前面的风扇墙进来，穿过 GPU 散热器和 CPU 散热器以后变暖（颜色从蓝变橙），从后面出去；计算那一步风变得最热。
+  - **供电**：电源组发红，电流从电源流到上下两层托盘。
+  - 连线是按拓扑画的示意，不是真实走线。
+- **模型**：装配状态自由旋转；“剖切”沿前后方向竖着切掉一半，看上下两层托盘、风扇墙和电源的位置。
 
 ## 部件（32 个）
 
@@ -81,3 +101,13 @@
 - 简化了的地方：芯片引脚、PCB 走线、电容位置都是示意；散热片鳍片比实物稀；线缆（MCIO、电源线）没画；风扇是两个 7 叶转子的示意。
 - 在虚幻里按最长边缩放到 **55 cm**（实物约 91 cm 含把手，0.6 倍）。1:1 放不下：装配状态 91 × 48 × 36 cm 还能放上 160 × 70 cm 的桌子，但拆开后左右要摊开 2 米多、GPU 会升到桌面上方 80 多厘米。
 - CPU 和内存条都是实物尺寸、同一个缩放：CPU 封装 77.5 × 56.5 mm（LGA4677），内存条 133.35 × 31.25 mm（JEDEC 标准），所以内存条本来就比 CPU 长 1.7 倍。
+
+## 网页文件
+
+| 文件 | 说明 |
+|---|---|
+| `viewer_src.html` | 网页源码（three.js 从 CDN 加载）。改网页从这里改 |
+| `viewer_template.html` | 离线模板（three.js r170 已打包在内）。`build_ai_server.py` 把 `ai_server_web.glb` 用 base64 填进去，生成 `output\AI服务器_离线版.html` |
+| `tools/make_template.mjs` | 改了 `viewer_src.html` 之后跑一次，重新打包模板：`cd tools && npm install --no-save esbuild@0.24.0 three@0.170.0 && node make_template.mjs` |
+
+原理模式里连线两端的坐标（硬盘、CPU、内存、PCIe 交换芯片、GPU、NVSwitch、网卡、电源）写在 `viewer_src.html` 项目段的 `PT` 表里（Blender 坐标，mm），和 `build_ai_server.py` 的 `GPU_X`、`GPU_Y`、`NVS_Y` 等对应，改了脚本要同步改。
