@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>按 D 到闪现</title>
+<meta name="description" content="从在英雄联盟里按下 D 键到屏幕上看到闪现，一次按键的往返经过哪 12 站、各花多久、谁说了算。">
+<style>
+:root{
+  --bg:#ECEFF1; --panel:#F8F9FA; --ink:#14181C; --ink2:#454E56; --ink3:#66707A; --line:#CFD6DB;
+  --stage:#DCE1E4; --accent:#A44A1F; --accent-bg:#F4E1D6;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --s1:#EB6834; --s2:#2A78D6; --s3:#1BAF7A; --s4:#8E5BD6; --s5:#D6A02A;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:ui-monospace,"JetBrains Mono",Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --accent:#E8925E; --accent-bg:#3A2418; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A47CE8; --s5:#E8B84A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --accent:#E8925E; --accent-bg:#3A2418; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; --s4:#A47CE8; --s5:#E8B84A; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg text{font-family:var(--sans)}
+svg .mono{font-family:var(--mono)}
+
+.top{padding-block:30px 22px}
+.top h1{font-size:clamp(32px,5.4vw,56px);font-weight:900;letter-spacing:-.02em}
+.lead{color:var(--ink2);max-width:42em;margin-top:8px;font-size:16px}
+
+.tag{display:inline-block;font:700 10.5px/1.6 var(--mono);padding:0 5px;border-radius:2px;vertical-align:1px;white-space:nowrap;margin-left:2px}
+.t-fact{background:var(--ok-bg);color:var(--ok)}
+.t-src{background:var(--accent-bg);color:var(--accent)}
+.t-sim{background:color-mix(in srgb,var(--s2) 18%,transparent);color:var(--s2)}
+.t-guess{background:var(--line);color:var(--ink2)}
+
+.q{display:grid;gap:7px}
+.q button{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:9px 11px;font-size:14px;line-height:1.5}
+.q button:hover:not(:disabled){border-color:var(--accent)}
+.q button:disabled{cursor:default;color:var(--ink2)}
+.q button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ink)}
+.q button.wrong{background:var(--no-bg);border-color:var(--no);color:var(--ink)}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:5px;padding:8px 14px;font-weight:700;font-size:14px}
+.btn.alt{background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink3);text-decoration:underline;text-underline-offset:3px;font-size:13px;text-align:left}
+.row-c{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.note{font-size:13.5px;color:var(--ink2);border-left:3px solid var(--accent);padding-left:12px}
+.prose{max-width:46em;color:var(--ink2);margin-top:10px}
+div.prose{display:grid;gap:10px}
+.prose b{color:var(--ink)}
+.qbox{max-width:46em;margin-top:14px;display:grid;gap:10px}
+.qbox h3{font-size:17px}
+.reveal{display:grid;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:14.5px;color:var(--ink2)}
+.reveal b{color:var(--ink)}
+
+section.s{padding-block:44px 8px}
+.s>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em}
+.locked{position:relative}
+.locked>*{filter:blur(4px);pointer-events:none;user-select:none}
+.locked::after{content:"先猜上面那道题，猜完就解锁";position:absolute;inset:0;display:grid;place-items:center;font-weight:700;color:var(--ink2);font-size:16px}
+
+/* 动画台 */
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 400px;background:var(--stage);border-block:1px solid var(--line)}
+.stageL{display:flex;flex-direction:column;min-width:0}
+.timer{display:flex;gap:18px;align-items:baseline;padding:12px 18px 0;font:500 12px var(--mono);color:var(--ink3);flex-wrap:wrap}
+.timer b{font-size:26px;color:var(--ink);font-variant-numeric:tabular-nums}
+.timer span i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+#map{width:100%;height:auto;display:block;aspect-ratio:1000/330;cursor:pointer}
+#detail{width:100%;height:auto;display:block;aspect-ratio:1000/300;background:var(--panel);border-top:1px solid var(--line)}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.pane{padding:18px 18px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.pane .k{font:700 12px var(--mono);color:var(--ink3)}
+.pane .qq{font-size:14px;color:var(--ink3)}
+.pane h2{font-size:19px;font-weight:700}
+.pane p{color:var(--ink2);font-size:14px}
+.pane .ms{font:700 13px var(--mono);color:var(--accent)}
+.navrow{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px 14px;border-top:1px solid var(--line)}
+.steps{display:flex;flex-wrap:wrap;gap:4px;padding:0 18px 10px}
+.steps button{border:1px solid var(--line);background:none;border-radius:3px;width:28px;height:26px;font:700 12px var(--mono);color:var(--ink2);padding:0}
+.steps button[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.steps button.done{border-color:var(--accent);color:var(--accent)}
+@media (max-width:900px){.bench{grid-template-columns:1fr}.manual{border-left:0;border-top:1px solid var(--line)}}
+
+/* 实验 */
+.labgrid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+@media (max-width:800px){.labgrid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0;align-content:start}
+.card h3{font-size:16px}
+.ctl{display:grid;gap:2px;font-size:13.5px;color:var(--ink2)}
+.ctl label{display:flex;justify-content:space-between}
+.ctl b{font:700 13px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:0;background:none;padding:5px 11px;font-size:13px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.kv{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:13.5px;color:var(--ink2)}
+.kv b{font:700 15px var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.kv .big{font-size:24px}
+.budget{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:2px;display:block}
+canvas.lab{width:100%;height:auto;display:block;border-radius:4px;background:var(--panel);border:1px solid var(--line)}
+.verdict{font-size:15px;padding:10px 12px;border-radius:5px;background:var(--ok-bg);color:var(--ink)}
+.verdict.bad{background:var(--no-bg)}
+
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:16px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-top:1px solid var(--line);color:var(--ink2)}
+th{color:var(--ink);font-weight:700;border-top:0;font-size:13px}
+td:first-child{color:var(--ink);font-weight:500}
+.srcs{margin-top:10px;display:grid;gap:8px;max-width:50em;font-size:14px;color:var(--ink2)}
+footer{padding:40px 0 60px;color:var(--ink3);font-size:13px}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <h1>按 D 到闪现</h1>
+  <p class="lead">你在英雄联盟里按下 D，英雄在屏幕上瞬移到鼠标那儿，中间隔了大约十分之一秒。这十分之一秒里信号走了哪些地方，谁说了算？先猜，再一站一站拆开看。</p>
+</div></header>
+
+<section class="s" id="quiz1"><div class="wrap">
+  <h2>先猜：时间大头花在哪？</h2>
+  <div class="qbox">
+    <p class="prose">你在同区服务器正常对局，Ping 显示 40 ms，144 Hz 显示器，有线键盘，D 已设成智能施法。从手指压下 D 键到你看见英雄出现在新位置，这段时间里<b>最大的一块</b>花在哪？</p>
+    <div class="q" id="q1">
+      <button data-k="A">A. 键盘里：按键要被扫描、去抖，再通过 USB 送进电脑</button>
+      <button data-k="B">B. 电脑里：操作系统和游戏客户端处理这次按键</button>
+      <button data-k="C">C. 网络上：数据包到服务器再回来，还要等服务器的下一个 tick</button>
+      <button data-k="D">D. 显示上：渲染一帧、等显示器扫描到那一行、液晶翻转</button>
+    </div>
+    <div class="row-c"><button class="linkbtn" id="q1skip">不猜了，直接看</button></div>
+    <div class="reveal" id="q1r" hidden></div>
+  </div>
+</div></section>
+
+<section class="s locked" id="journeySec"><div class="wrap">
+  <h2>信号之旅：12 站，每站只答一个问题</h2>
+  <p class="prose">点地图上的站，或者点右边的「下一步」。顶部的计时器按每站的典型耗时累加；标出来的时间是本页估算 <span class="tag t-sim">估算</span>，不是实测。前提：有线 1000 Hz 键盘、有线网、144 Hz 显示器、同区服务器、D 为智能施法。</p>
+</div>
+<div class="bench" style="margin-top:18px">
+  <div class="stageL">
+    <div class="timer"><span>累计 <b id="tsum">0</b> ms</span><span id="tlegend"></span></div>
+    <svg id="map" viewBox="0 0 1000 330" role="img" aria-label="12 站路线图"></svg>
+    <svg id="detail" viewBox="0 0 1000 300" role="img" aria-label="当前站的动画"></svg>
+  </div>
+  <aside class="manual">
+    <div class="pane">
+      <div class="k" id="pk"></div>
+      <div class="qq" id="pq"></div>
+      <h2 id="pt"></h2>
+      <div class="ms" id="pms"></div>
+      <p id="pb"></p>
+    </div>
+    <div class="steps" id="stepBtns"></div>
+    <div class="navrow">
+      <button class="btn alt" id="prev">上一步</button>
+      <button class="btn" id="next">下一步</button>
+      <button class="btn alt" id="auto">自动走一遍</button>
+    </div>
+  </aside>
+</div>
+</section>
+
+<section class="s locked" id="lab1"><div class="wrap">
+  <h2>实验 1：延迟预算，拖一下看谁在决定手感</h2>
+  <p class="prose">每一段的平均等待都有简单公式：轮询类的平均等待是周期的一半，垂直同步多等一帧，网络是单程 × 2，服务器 tick 平均等半个周期。拖滑杆，看总延迟和各段占比怎么变。<span class="tag t-sim">本页估算</span></p>
+  <div class="labgrid">
+    <div class="card">
+      <div class="ctl"><label>键盘轮询率 <b id="v_poll"></b></label><input type="range" id="s_poll" min="0" max="2" step="1" value="2"></div>
+      <div class="ctl"><label>键盘连接 <b id="v_kb"></b></label><input type="range" id="s_kb" min="0" max="1" step="1" value="0"></div>
+      <div class="ctl"><label>游戏帧率 <b id="v_fps"></b></label><input type="range" id="s_fps" min="30" max="300" step="10" value="144"></div>
+      <div class="ctl"><label>显示器刷新率 <b id="v_hz"></b></label><input type="range" id="s_hz" min="0" max="3" step="1" value="2"></div>
+      <div class="ctl"><label>垂直同步 <b id="v_vs"></b></label><input type="range" id="s_vs" min="0" max="1" step="1" value="0"></div>
+      <div class="ctl"><label>网络 <b id="v_net"></b></label><input type="range" id="s_net" min="0" max="1" step="1" value="0"></div>
+      <div class="ctl"><label>单程网络延迟 <b id="v_ping"></b></label><input type="range" id="s_ping" min="3" max="150" step="1" value="20"></div>
+      <div class="ctl"><label>服务器 tick <b id="v_tick"></b></label><input type="range" id="s_tick" min="0" max="3" step="1" value="1"></div>
+      <div class="row-c"><button class="btn alt" id="l1reset">恢复默认</button></div>
+    </div>
+    <div class="card">
+      <div class="kv"><span>按下 D 到看见闪现，平均</span><b class="big" id="l1total"></b><span>其中最大的一段</span><b id="l1max"></b><span>键盘 + 电脑合计</span><b id="l1local"></b><span>网络 + tick 合计</span><b id="l1net"></b><span>渲染 + 显示合计</span><b id="l1disp"></b></div>
+      <svg class="budget" id="budget" viewBox="0 0 800 120"></svg>
+      <div class="legend" id="l1legend"></div>
+      <p class="note" id="l1note"></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="s locked" id="lab2"><div class="wrap">
+  <h2>实验 2：丢包和抖动，为什么游戏用 UDP 不用 TCP</h2>
+  <p class="prose">点「连按 20 次 D」，每次按键一条往返线。丢掉的包画成断线。切到 TCP 模式，丢一个包之后，后面所有包都要排队等它重传（队头阻塞）；UDP 模式下丢了就丢了，下一条状态直接覆盖。<span class="tag t-fact">公认</span> 线的长短是本页仿真。<span class="tag t-sim">仿真</span></p>
+  <div class="labgrid">
+    <div class="card">
+      <div class="ctl"><label>丢包率 <b id="v_loss"></b></label><input type="range" id="s_loss" min="0" max="30" step="1" value="5"></div>
+      <div class="ctl"><label>抖动（单程延迟上下浮动） <b id="v_jit"></b></label><input type="range" id="s_jit" min="0" max="60" step="1" value="10"></div>
+      <div class="ctl"><label>单程延迟 <b id="v_ping2"></b></label><input type="range" id="s_ping2" min="5" max="120" step="1" value="25"></div>
+      <div class="seg" id="proto"><button aria-pressed="true" data-v="udp">UDP（游戏用的）</button><button aria-pressed="false" data-v="tcp">TCP（网页用的）</button></div>
+      <div class="row-c"><button class="btn" id="l2go">连按 20 次 D</button></div>
+      <div class="kv"><span>最慢一次按键到生效</span><b id="l2worst"></b><span>平均</span><b id="l2avg"></b><span>丢了几个</span><b id="l2lost"></b></div>
+    </div>
+    <div class="card">
+      <canvas class="lab" id="c2" width="900" height="420"></canvas>
+      <p class="note" id="l2note">TCP 保证每个字节按顺序到，所以一个包丢了，收到的后续包只能攒着，等重传回来才一起交给游戏。游戏要的是「最新状态」而不是「每个状态」，旧的到了也没用，所以用 UDP，自己在上面加序号。<span class="tag t-fact">公认</span></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="s locked" id="quiz2"><div class="wrap">
+  <h2>再猜一题：我先按的，为什么还是被抓了？</h2>
+  <div class="qbox">
+    <p class="prose">你 Ping 80 ms，对面的机器人 Ping 20 ms。对面按下 Q 的那一刻，和你在自己屏幕上看到钩子飞出来，差多久？你按下 D 之后，服务器又要多久才知道你想闪？</p>
+    <div class="q" id="q2">
+      <button data-k="A">A. 都是 0，游戏是实时的</button>
+      <button data-k="B">B. 看到钩子晚了约 50 ms，服务器知道你想闪还要约 40 ms，前后约 90 ms 里对手在「偷跑」</button>
+      <button data-k="C">C. 只有你自己的 Ping 算数，对面的 Ping 和你无关</button>
+      <button data-k="D">D. 服务器会按按键的真实时刻排序，你先按就你先</button>
+    </div>
+    <div class="row-c"><button class="linkbtn" id="q2skip">不猜了，直接看</button></div>
+    <div class="reveal" id="q2r" hidden></div>
+  </div>
+</div></section>
+
+<section class="s locked" id="lab3"><div class="wrap">
+  <h2>实验 3：两个人同时闪现，谁先？</h2>
+  <p class="prose">三条时间轴：A 的电脑、服务器、B 的电脑。服务器轴上是 tick 刻度。两条命令飞向服务器，谁落在更早的 tick 谁先被处理；落在同一个 tick 里，顺序由服务器的处理队列决定，这部分是推测。<span class="tag t-guess">推测</span></p>
+  <div class="labgrid">
+    <div class="card">
+      <div class="ctl"><label>A 的单程延迟 <b id="v_pa"></b></label><input type="range" id="s_pa" min="3" max="120" step="1" value="40"></div>
+      <div class="ctl"><label>B 的单程延迟 <b id="v_pb"></b></label><input type="range" id="s_pb" min="3" max="120" step="1" value="10"></div>
+      <div class="ctl"><label>A 比 B 早按多少 <b id="v_lead"></b></label><input type="range" id="s_lead" min="-60" max="60" step="1" value="15"></div>
+      <div class="ctl"><label>服务器 tick <b id="v_tick3"></b></label><input type="range" id="s_tick3" min="0" max="3" step="1" value="1"></div>
+      <div class="verdict" id="l3v"></div>
+    </div>
+    <div class="card">
+      <svg class="budget" id="race" viewBox="0 0 900 300"></svg>
+      <p class="note">服务器不知道你「什么时候按的」，只知道包「什么时候到的」。所以先按不等于先到，先到不等于先处理，要等下一个 tick。<span class="tag t-src">资料</span><span class="tag t-guess">推测</span></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="s" id="assume"><div class="wrap">
+  <h2>依赖哪些前提，什么时候会失效</h2>
+  <p class="prose">失效不是「原理不对」，是「哪一站的数字换了」。每条都对应实验 1 的一个滑杆。</p>
+  <table>
+    <tr><th>前提</th><th>不成立时会怎样</th><th>证据</th></tr>
+    <tr><td>服务器权威，客户端不预演技能结果</td><td>如果客户端对闪现做了本地预演，第 11 站会提前到第 5 站之后，你自己看到的延迟减半，但可能出现「闪了又被拉回」。现有公开资料和玩家体感都指向不预演，但没有 Riot 的明文。</td><td><span class="tag t-src">资料</span><span class="tag t-guess">推测</span></td></tr>
+    <tr><td>服务器 30 tick/s</td><td>换成 64 或 128 tick，第 9 站平均等待从 17 ms 降到 8 / 4 ms，网络往返不变。</td><td><span class="tag t-src">资料</span></td></tr>
+    <tr><td>有线网、同区服务器</td><td>Wi-Fi 加 1 – 10 ms 抖动；跨区（如从中国连韩服、日服）单程多 30 – 100 ms，网络段从「大头」变成「几乎全部」。</td><td><span class="tag t-fact">公认</span></td></tr>
+    <tr><td>键盘 1000 Hz、有线</td><td>蓝牙键盘多 10 – 30 ms；普通 125 Hz 膜键盘多约 4 ms。</td><td><span class="tag t-fact">公认</span></td></tr>
+    <tr><td>垂直同步关、渲染队列浅</td><td>开垂直同步或帧率远高于刷新率时，第 11 站可能多排 1 – 3 帧，就是 7 – 50 ms。</td><td><span class="tag t-fact">公认</span></td></tr>
+    <tr><td>D 是智能施法</td><td>非智能施法要加一次鼠标点击，多一次人的反应（100 ms 量级），比整条链路都长。</td><td><span class="tag t-fact">公认</span></td></tr>
+    <tr><td>局内没有大团战</td><td>团战时服务器每 tick 要处理的事多，若一个 tick 算不完会整体拖慢，表现为 Ping 不变但所有人都卡。</td><td><span class="tag t-guess">推测</span></td></tr>
+  </table>
+  <p class="prose" style="margin-top:14px">范围上的前提：本页只讲「一次按键的往返」，不讲登录、匹配、载入、反作弊这些走 TCP/HTTPS 的环节。</p>
+</div></section>
+
+<section class="s" id="routes"><div class="wrap">
+  <h2>其他路线：同一个问题的三种解法</h2>
+  <p class="prose">「十个人隔着几十毫秒怎么玩同一盘游戏」有三种主流解法。下图用同一条时间轴画一遍：你按下 D 之后，闪现在每种路线下什么时候出现在你的屏幕上。</p>
+  <svg class="budget" id="routesSvg" viewBox="0 0 900 230" style="max-width:900px;margin-top:16px"></svg>
+  <table>
+    <tr><th>路线</th><th>怎么做</th><th>你什么时候看到闪现</th><th>代价</th><th>谁在用</th></tr>
+    <tr><td>服务器权威 + 状态同步（本页讲的）</td><td>客户端只发命令，服务器算完广播结果</td><td>一个往返之后</td><td>手感随 Ping 变差，但没有回滚、难作弊</td><td>LoL <span class="tag t-src">资料</span><span class="tag t-guess">推测</span>，大多数 MOBA 和 MMO。<b>主流</b></td></tr>
+    <tr><td>客户端预测 + 服务器和解（回滚）</td><td>客户端先按自己的理解画出来，服务器结果回来对不上就纠正</td><td>几乎立刻，但可能被拉回</td><td>实现复杂，有「明明躲过了还是死」的体验</td><td>射击游戏（Valorant、Overwatch、CS）<span class="tag t-src">资料</span></td></tr>
+    <tr><td>锁步（确定性模拟）</td><td>所有人只交换输入，每台电脑自己算同一局，算法必须完全一致</td><td>所有人输入都到齐之后，由最卡的人决定</td><td>带宽极小，回放文件极小；一人掉线全局等</td><td>星际争霸、格斗游戏（配合回滚）<span class="tag t-src">资料</span></td></tr>
+  </table>
+  <p class="prose" style="margin-top:14px">取舍一句话：技能判定对公平性要求高、动作节奏不如射击快的游戏选服务器权威；射击游戏为了手感选预测；单位成千上万的即时战略选锁步。Riot 自己写过 LoL 服务器用确定性做回放和比赛回滚（Chronobreak），这和服务器权威不矛盾。<span class="tag t-src">资料</span></p>
+</div></section>
+
+<section class="s" id="evidence"><div class="wrap">
+  <h2>这页内容的证据强弱</h2>
+  <p class="prose">每句结论后面的小标签就是它的证据等级。多一条硬规则：凡是「LoL 内部怎么做」的句子，最高只标到「资料」，因为 Riot 没有公开客户端和服务器源码。</p>
+  <table>
+    <tr><th>等级</th><th>含义</th><th>这页里的例子</th></tr>
+    <tr><td><span class="tag t-fact">公认</span></td><td>教科书或标准里的东西，和 LoL 无关</td><td>键盘矩阵扫描、USB HID 轮询、UDP/IP 封装、NAT、显示器逐行扫描、光纤中光速约 2/3 c</td></tr>
+    <tr><td><span class="tag t-src">资料</span></td><td>有具体公开页面可指，但不是源码或官方规范</td><td>服务器约 30 tick/s（LoL 社区 wiki，Riot 自己的博客没写）、游戏用 UDP 5000–5500 / 7000–8000（Riot 支持页）、Riot Direct 专线（Riot 工程博客）、服务器确定性回放（Riot 工程博客）、闪现 400 码（wiki）</td></tr>
+    <tr><td><span class="tag t-sim">估算</span></td><td>用公认公式和典型参数算出来的数</td><td>总延迟 80 ms 左右、各站占比、实验 1 – 3 的所有曲线</td></tr>
+    <tr><td><span class="tag t-guess">推测</span></td><td>和已知事实一致但没有来源</td><td>命令包的字段、同一 tick 内的处理顺序、客户端不预演闪现、团战时 tick 超时</td></tr>
+  </table>
+</div></section>
+
+<section class="s" id="sources"><div class="wrap">
+  <h2>来源</h2>
+  <div class="srcs">
+    <p><a href="https://wiki.leagueoflegends.com/en-us/Tick_and_updates" target="_blank" rel="noopener">Tick and updates（LoL wiki）</a>：「每 0.033 秒 tick 一次，约 30.30 Hz，为目标值」；「游戏由服务器控制，高帧率不带来优势」。</p>
+    <p><a href="https://support.riotgames.com/riot/connectivity/set-up-port-forwarding" target="_blank" rel="noopener">Set up port forwarding（Riot 支持）</a>：游戏客户端 5000–5500 UDP、7000–8000 UDP；登录和聊天走 TCP。</p>
+    <p><a href="https://technology.riotgames.com/node/25" target="_blank" rel="noopener">Fixing the Internet for Real-Time Applications, Part I</a>、<a href="https://technology.riotgames.com/node/32" target="_blank" rel="noopener">Part II</a>、<a href="https://technology.riotgames.com/node/43" target="_blank" rel="noopener">Part III</a>（Riot 工程博客）：Riot Direct 团队为什么要自建网络。</p>
+    <p><a href="https://www.riotgames.com/en/news/determinism-league-legends-introduction" target="_blank" rel="noopener">Determinism in League of Legends: Introduction（Riot）</a>：服务器确定性、Chronobreak 回滚比赛。</p>
+    <p><a href="https://wiki.leagueoflegends.com/en-us/Flash" target="_blank" rel="noopener">Flash（LoL wiki）</a>：闪现范围 400 码、无施法时间。</p>
+    <p><a href="https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking" target="_blank" rel="noopener">Source Multiplayer Networking（Valve）</a>：客户端预测与延迟补偿路线的经典说明。</p>
+    <p><a href="https://www.gabrielgambetta.com/client-server-game-architecture.html" target="_blank" rel="noopener">Fast-Paced Multiplayer（Gabriel Gambetta）</a>：服务器权威、客户端预测、和解的图解。</p>
+    <p>键盘矩阵、USB HID 轮询间隔、NAT、显示器扫描属于通用计算机知识，任何计算机网络或嵌入式教材都有，这里不单列。</p>
+  </div>
+</div></section>
+
+<footer><div class="wrap">HTML 教室 · 按 D 到闪现 · 离线单文件页面，没有外部依赖。</div></footer>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const fmt=(n,d=0)=>n.toFixed(d);
+const tagH={fact:'<span class="tag t-fact">公认</span>',src:'<span class="tag t-src">资料</span>',sim:'<span class="tag t-sim">估算</span>',guess:'<span class="tag t-guess">推测</span>'};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------------- 12 站 ---------------- */
+const STEPS=[
+ {k:'键盘矩阵',q:'键盘怎么知道你按的是 D？',t:'它不是每个键一根线，而是行列矩阵轮流扫描，还要等触点不抖了才算数',
+  b:`键盘控制器给每一行轮流通电，再读每一列有没有电，一遍扫完不到 1 ms。${tagH.fact} 机械触点合上的头几毫秒会反复弹跳，固件要连续读到几次稳定值才确认「按下」，这叫去抖，通常 1 – 5 ms。${tagH.fact}`,
+  lo:1,hi:5,typ:3,grp:0},
+ {k:'USB',q:'键盘是主动送进电脑的吗？',t:'不是，是电脑每 1 ms 来问一次，键盘回一份 8 字节的报告',
+  b:`USB 低速/全速设备不能主动发起传输，主机按固定间隔轮询。游戏键盘一般 1000 Hz（每 1 ms 一次），普通键盘 125 Hz（每 8 ms）。${tagH.fact} 按键落在两次询问之间，就要等下一次，平均等半个周期。${tagH.fact}`,
+  lo:0,hi:1,typ:0.5,grp:0},
+ {k:'操作系统',q:'电脑里谁先拿到这次按键？',t:'USB 主控器触发中断，HID 驱动翻译成「D 按下」，Windows 放进游戏窗口的消息队列',
+  b:`主控器收到报告后向 CPU 发中断，HID 驱动把扫描码变成按键事件，内核输入系统再投递给前台窗口（或 Raw Input）。${tagH.fact} 这一串在现代电脑上不到 1 ms。${tagH.src}`,
+  lo:0.1,hi:1,typ:0.4,grp:0},
+ {k:'客户端读输入',q:'游戏什么时候看到它？',t:'游戏每帧开头才读一次输入，所以要等到下一帧开始',
+  b:`游戏主循环是「读输入 → 更新 → 渲染」反复跑。按键到达时这一帧可能已经读过输入了，只能等下一帧。${tagH.fact} 144 fps 时一帧 6.9 ms，平均等 3.5 ms。${tagH.sim}`,
+  lo:0,hi:7,typ:3.5,grp:0},
+ {k:'打包命令',q:'发出去的是「闪现动画」吗？',t:'不是，是一条几十字节的命令：技能槽 D、鼠标所指的地图坐标、序号。英雄此时还站在原地',
+  b:`客户端不自己决定闪现结果，只把「我想在这个位置放 D」告诉服务器。${tagH.src}${tagH.guess} 包里具体有哪些字段是推测，但「客户端此刻不移动英雄」符合公开资料里「游戏由服务器控制」的说法。${tagH.src}`,
+  lo:0.1,hi:1,typ:0.3,grp:0},
+ {k:'协议栈和网卡',q:'命令怎么变成网线里的电信号？',t:'一层层套信封：游戏协议 → UDP（端口）→ IP（地址）→ 以太网帧（MAC），网卡把帧变成电平',
+  b:`每一层只负责自己那层的地址，外层不关心里面装什么。${tagH.fact} LoL 对局走 UDP，端口 5000 – 5500 或 7000 – 8000。${tagH.src} 整个封装加网卡发送不到 0.1 ms。${tagH.fact}`,
+  lo:0.02,hi:0.1,typ:0.05,grp:1},
+ {k:'家里的路由器',q:'家里那个小盒子干了什么？',t:'把你的内网地址换成公网地址（NAT），并记一笔映射，回包才知道送回哪台电脑',
+  b:`家里所有设备共用一个公网地址，路由器靠「内网地址:端口 ↔ 公网端口」的表来分辨。${tagH.fact} 有线不到 1 ms；换成 Wi-Fi 要抢信道，1 – 10 ms 且抖动。${tagH.fact}`,
+  lo:0.2,hi:1,typ:0.5,grp:1},
+ {k:'运营商和骨干',q:'到服务器要跳几次？',t:'10 – 20 跳路由器，每跳查表转发；光纤里光速只有真空的 2/3，距离是硬下限',
+  b:`每台路由器收到包后查路由表，决定从哪个口发出去。${tagH.fact} 1000 km 光纤单程约 5 ms，这部分谁也省不掉。${tagH.fact} Riot 自建骨干（Riot Direct）就是为了少走弯路、少排队。${tagH.src} 同区单程一般 10 – 30 ms。${tagH.sim}`,
+  lo:10,hi:30,typ:20,grp:1},
+ {k:'服务器判定',q:'服务器怎么决定能不能闪？',t:'不是收到就算，要等下一个 tick；到点后查冷却、是否被晕、目标超过 400 码就截短、落点在墙里就就近改点，然后改写唯一的「真相」',
+  b:`服务器每 33 ms 跑一次模拟（约 30 tick/s），命令落在两次 tick 之间就等着，平均等 17 ms。${tagH.src} 闪现范围 400 码，超出截短。${tagH.src} 判定清单的具体顺序是推测。${tagH.guess} 这一站解释了「我明明按了闪现还是被抓」：对手的抓取命令如果在同一个或更早的 tick 到达，服务器就先处理它。`,
+  lo:0,hi:33,typ:17,grp:2},
+ {k:'广播回传',q:'回来的包是一句「批准」吗？',t:'不是，是新的世界状态：英雄在 tick N 位于新坐标，闪现进入冷却。同一份发给局内 10 个人，你自己也只是观众之一',
+  b:`服务器不单独回复你，它把更新后的状态广播给所有客户端。${tagH.src}${tagH.guess} 对面看到你闪现的时刻，是服务器判定时刻加对面的单程延迟，和你的 Ping 无关。${tagH.sim} 回程同样 10 – 30 ms。`,
+  lo:10,hi:30,typ:20,grp:1},
+ {k:'客户端渲染',q:'电脑收到后怎么把英雄画到新位置？',t:'更新实体位置、触发特效和音效，CPU 组好一帧交给 GPU，GPU 画完放进交换链排队',
+  b:`客户端把收到的状态写进本地世界，下一帧按新位置画。${tagH.fact} CPU 和 GPU 是流水线，开垂直同步时队列里可能多堆 1 – 2 帧。${tagH.fact} 典型 5 – 20 ms。${tagH.sim}`,
+  lo:5,hi:20,typ:10,grp:3},
+ {k:'显示器',q:'像素什么时候真正变色？',t:'显示器从上到下逐行扫描，144 Hz 一帧 6.9 ms，英雄在屏幕中部就平均再等半帧；液晶翻转再 1 – 5 ms',
+  b:`新一帧送到显示器时，扫描线可能正走到屏幕任意位置，要等它扫到英雄所在的那一行。${tagH.fact} 液晶分子转过去还要 1 – 5 ms（厂商标的 1 ms 是最乐观情况）。${tagH.fact}`,
+  lo:3,hi:12,typ:6,grp:3},
+];
+const GRP=[{n:'键盘与电脑',c:'--s1'},{n:'网络',c:'--s2'},{n:'服务器',c:'--s4'},{n:'渲染与显示',c:'--s3'}];
+// 地图上的站位（U 形：上排 1–9 去程，下排 10–12 回程）
+const POS=[[70,90],[180,90],[290,90],[400,90],[510,90],[620,90],[730,90],[840,90],[930,165],[730,245],[400,245],[70,245]];
+let cur=0, done=-1, autoT=null, animStart=performance.now();
+
+function buildMap(){
+  const svg=$('#map'); let s='';
+  // 路线
+  const path=POS.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+  s+=`<path d="${path}" fill="none" stroke="${css('--line')}" stroke-width="6" stroke-linejoin="round"/>`;
+  s+=`<path id="mapProg" d="${path}" fill="none" stroke="${css('--accent')}" stroke-width="6" stroke-linejoin="round" stroke-dasharray="0 9999"/>`;
+  // 区域标签
+  s+=`<text x="70" y="38" font-size="13" fill="${css('--ink3')}">你的桌子</text><text x="620" y="38" font-size="13" fill="${css('--ink3')}">家里的网 → 运营商</text><text x="930" y="38" font-size="13" text-anchor="middle" fill="${css('--ink3')}">机房</text><text x="70" y="300" font-size="13" fill="${css('--ink3')}">回到你的桌子</text>`;
+  POS.forEach((p,i)=>{
+    const st=STEPS[i], c=css(GRP[st.grp].c);
+    s+=`<g class="node" data-i="${i}" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="22" fill="${css('--panel')}" stroke="${c}" stroke-width="3"/>
+    <text x="${p[0]}" y="${p[1]+5}" text-anchor="middle" font-size="14" font-weight="700" fill="${css('--ink')}" class="mono">${i+1}</text>
+    <text x="${p[0]}" y="${p[1]+(i>=9?-32:42)}" text-anchor="middle" font-size="13" fill="${css('--ink2')}">${st.k}</text></g>`;
+  });
+  s+=`<circle id="mapDot" r="8" fill="${css('--accent')}"/>`;
+  svg.innerHTML=s;
+  svg.querySelectorAll('.node').forEach(n=>n.addEventListener('click',()=>go(+n.dataset.i)));
+  $('#tlegend').innerHTML=GRP.map(g=>`<span><i style="background:${css(g.c)}"></i>${g.n}</span>`).join(' ');
+}
+function buildStepBtns(){
+  $('#stepBtns').innerHTML=STEPS.map((s,i)=>`<button data-i="${i}" title="${s.k}">${i+1}</button>`).join('');
+  $('#stepBtns').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.i)));
+}
+function go(i){
+  cur=Math.max(0,Math.min(STEPS.length-1,i)); done=Math.max(done,cur); animStart=performance.now();
+  const st=STEPS[cur];
+  $('#pk').textContent=`第 ${cur+1} 站 / ${STEPS.length} · ${GRP[st.grp].n}`;
+  $('#pq').textContent=st.q; $('#pt').textContent=st.t;
+  $('#pms').textContent=`典型 ${st.lo} – ${st.hi} ms，本页按 ${st.typ} ms 累加`;
+  $('#pb').innerHTML=st.b;
+  let sum=0; for(let j=0;j<=cur;j++) sum+=STEPS[j].typ;
+  $('#tsum').textContent=fmt(sum,1);
+  $('#stepBtns').querySelectorAll('button').forEach((b,j)=>{b.setAttribute('aria-current',j===cur);b.classList.toggle('done',j<cur)});
+  $('#prev').disabled=cur===0; $('#next').disabled=cur===STEPS.length-1;
+  // 地图进度
+  const path=$('#mapProg'); const L=path.getTotalLength(); let acc=0;
+  const segLen=[]; for(let j=1;j<POS.length;j++){segLen.push(Math.hypot(POS[j][0]-POS[j-1][0],POS[j][1]-POS[j-1][1]))}
+  for(let j=0;j<cur;j++) acc+=segLen[j];
+  path.setAttribute('stroke-dasharray',acc+' 9999');
+  const d=$('#mapDot'); d.setAttribute('cx',POS[cur][0]); d.setAttribute('cy',POS[cur][1]);
+  $('#map').querySelectorAll('.node circle').forEach((c,j)=>c.setAttribute('fill',j<=cur?css(GRP[STEPS[j].grp].c)+'33':css('--panel')));
+}
+$('#prev').addEventListener('click',()=>go(cur-1));
+$('#next').addEventListener('click',()=>go(cur+1));
+$('#auto').addEventListener('click',()=>{
+  if(autoT){clearInterval(autoT);autoT=null;$('#auto').textContent='自动走一遍';return}
+  go(0); $('#auto').textContent='停下';
+  autoT=setInterval(()=>{ if(cur>=STEPS.length-1){clearInterval(autoT);autoT=null;$('#auto').textContent='自动走一遍';return} go(cur+1)},2600);
+});
+
+/* ---------- 每站的小动画（SVG 1000×300，t 秒） ---------- */
+const ink=()=>css('--ink'), ink2=()=>css('--ink2'), ink3=()=>css('--ink3'), line=()=>css('--line'), acc=()=>css('--accent');
+const txt=(x,y,s,o={})=>`<text x="${x}" y="${y}" font-size="${o.fs||14}" fill="${o.c||ink2()}" text-anchor="${o.a||'start'}" ${o.mono?'class="mono"':''} font-weight="${o.w||400}">${s}</text>`;
+const rect=(x,y,w,h,f,o={})=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" stroke="${o.s||'none'}" stroke-width="${o.sw||1}" rx="${o.r||3}" opacity="${o.op??1}"/>`;
+const lineS=(x1,y1,x2,y2,c,w=2,o={})=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" ${o.dash?`stroke-dasharray="${o.dash}"`:''} opacity="${o.op??1}"/>`;
+const circ=(x,y,r,f,o={})=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" stroke="${o.s||'none'}" stroke-width="${o.sw||1}" opacity="${o.op??1}"/>`;
+const ANIM=[
+ // 1 键盘矩阵扫描
+ (t)=>{let s=''; const rows=4,cols=8,x0=80,y0=50,cw=52,ch=44; const scanRow=Math.floor((t*6)%rows);
+  const keys=['Q','W','E','R','T','Y','U','I','A','S','D','F','G','H','J','K','Z','X','C','V','B','N','M',',','Ctrl','Alt','空格','','','','',''];
+  for(let r=0;r<rows;r++){ s+=lineS(x0-20,y0+r*ch+ch/2,x0+cols*cw,y0+r*ch+ch/2,r===scanRow?acc():line(),r===scanRow?3:1);
+   s+=txt(x0-30,y0+r*ch+ch/2+5,'行'+(r+1),{a:'end',fs:12,c:ink3()});}
+  for(let c=0;c<cols;c++) s+=lineS(x0+c*cw+cw/2,y0-10,x0+c*cw+cw/2,y0+rows*ch,line(),1);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const k=keys[r*cols+c]; if(!k)continue; const isD=k==='D'; const hit=isD&&r===scanRow;
+   s+=rect(x0+c*cw+6,y0+r*ch+5,cw-12,ch-10,hit?acc():(isD?css('--accent-bg'):css('--stage')),{s:isD?acc():line()});
+   s+=txt(x0+c*cw+cw/2,y0+r*ch+ch/2+5,k,{a:'middle',fs:13,c:hit?css('--bg'):ink(),w:isD?700:400});}
+  // 去抖波形
+  const wx=560,wy=70; s+=txt(wx,wy-20,'触点电平（去抖）',{fs:13});
+  let d=`M${wx} ${wy+60}`; for(let i=0;i<=300;i++){const tt=i/300*12; let v; if(tt<3)v=0; else if(tt<6)v=(Math.sin(tt*25)>0)?1:0; else v=1; d+=` L${wx+i*1.2} ${wy+60-v*50}`;}
+  s+=`<path d="${d}" fill="none" stroke="${css('--s2')}" stroke-width="2"/>`;
+  s+=rect(wx+3*30,wy+2,3*30,66,css('--s2'),{op:.12}); s+=txt(wx+90,wy+90,'抖动 1 – 5 ms',{fs:12,a:'start',c:css('--s2')});
+  s+=txt(wx+280,wy+90,'稳定，算按下',{fs:12,c:css('--ok')});
+  s+=txt(80,270,`正在扫第 ${scanRow+1} 行，一遍扫完不到 1 ms；D 在第 2 行第 3 列`,{fs:13,c:ink3()});
+  return s;},
+ // 2 USB 轮询
+ (t)=>{let s=''; const x0=80,W=840,y=120; const period=W/8; const ph=(t*0.9)%1; const keyX=x0+period*2.35;
+  s+=lineS(x0,y,x0+W,y,line(),2); for(let i=0;i<=8;i++){s+=lineS(x0+i*period,y-18,x0+i*period,y+18,ink3(),2); s+=txt(x0+i*period,y+40,i+' ms',{a:'middle',fs:12,mono:1,c:ink3()});}
+  s+=txt(x0,60,'电脑每 1 ms 问一次「有按键吗？」（1000 Hz）',{fs:14,c:ink()});
+  s+=lineS(keyX,y-60,keyX,y+18,acc(),3); s+=txt(keyX,y-68,'按键在这里确认',{a:'middle',fs:12,c:acc()});
+  const nextX=x0+period*3; s+=rect(keyX,y-10,nextX-keyX,20,acc(),{op:.2}); s+=txt((keyX+nextX)/2,y-24,'等 0.65 ms',{a:'middle',fs:12,c:acc()});
+  // 主机询问脉冲
+  const px=x0+period*((t*2)%8); s+=circ(px,y,7,css('--s2')); s+=txt(px,y-30,'问',{a:'middle',fs:12,c:css('--s2')});
+  // 报告
+  if(((t*2)%8)>3&&((t*2)%8)<3.6){const k=(((t*2)%8)-3)/0.6; s+=rect(nextX-40+k*0,y+55,120,34,css('--panel'),{s:css('--s2')}); s+=txt(nextX+20,y+77,'8 字节报告: D',{a:'middle',fs:12,mono:1,c:css('--s2')});}
+  s+=txt(x0,250,'普通键盘 125 Hz 则每 8 ms 问一次，平均多等 3.5 ms',{fs:13,c:ink3()});
+  return s;},
+ // 3 操作系统层
+ (t)=>{let s=''; const layers=['USB 主控器：中断','HID 驱动：扫描码 → 按键事件','内核输入系统：投递给前台窗口','游戏窗口消息队列 / Raw Input']; const n=layers.length;
+  const x0=220,w=560,h=46,y0=250; const k=(t*1.1)%(n+0.8);
+  layers.forEach((L,i)=>{const y=y0-i*(h+10); const on=k>=i&&k<i+1; s+=rect(x0,y-h,w,h,on?acc():css('--stage'),{s:on?acc():line()}); s+=txt(x0+16,y-h/2+5,L,{fs:14,c:on?css('--bg'):ink()});});
+  const yy=Math.min(k,n-1); s+=circ(x0-30,y0-yy*(h+10)-h/2,9,acc());
+  s+=txt(x0+w+20,y0-h/2+5,'↑ 一路向上，不到 1 ms',{fs:13,c:ink3()});
+  s+=txt(x0,y0+40,'中断：硬件主动打断 CPU 说「有事」，CPU 才不用一直问',{fs:13,c:ink3()});
+  return s;},
+ // 4 帧时间线
+ (t)=>{let s=''; const x0=80,W=840,y=130,F=6.9,n=6,fw=W/n; const keyF=2.4;
+  s+=txt(x0,60,'游戏主循环：每帧开头读一次输入（144 fps，一帧 6.9 ms）',{fs:14,c:ink()});
+  for(let i=0;i<n;i++){s+=rect(x0+i*fw+2,y-22,fw-4,44,css('--stage'),{s:line()}); s+=rect(x0+i*fw+2,y-22,18,44,css('--s2'),{op:.5}); s+=txt(x0+i*fw+fw/2,y+5,'更新 → 渲染',{a:'middle',fs:12,c:ink2()}); s+=txt(x0+i*fw+11,y+38,'读',{a:'middle',fs:11,c:css('--s2')});}
+  const kx=x0+keyF*fw; s+=lineS(kx,y-60,kx,y+22,acc(),3); s+=txt(kx,y-68,'按键到达（这帧已经读过输入了）',{a:'middle',fs:12,c:acc()});
+  const nx=x0+3*fw+2; s+=rect(kx,y-10,nx-kx,20,acc(),{op:.2}); s+=txt((kx+nx)/2,y+70,`等 ${(fw*(3-keyF)/fw*F).toFixed(1)} ms 到下一帧`,{a:'middle',fs:13,c:acc()});
+  const px=x0+((t*120)%W); s+=circ(px,y-40,5,ink3());
+  s+=txt(x0,250,'帧率越高，这一站等得越短；60 fps 时平均等 8 ms',{fs:13,c:ink3()});
+  return s;},
+ // 5 命令卡
+ (t)=>{let s=''; const x=300,y=60,w=400,h=170; s+=rect(x,y,w,h,css('--panel'),{s:acc(),sw:2,r:8}); s+=txt(x+20,y+32,'命令（约几十字节）',{fs:14,c:ink(),w:700});
+  const rows=[['技能槽','D（召唤师技能 2）'],['目标坐标','(8231, 4120)  鼠标所指'],['序号','#1842'],['发送方','你的客户端']]; const k=Math.min(rows.length,Math.floor((t*1.5)%(rows.length+2)));
+  rows.slice(0,k).forEach((r,i)=>{s+=txt(x+20,y+66+i*28,r[0],{fs:13,c:ink3()}); s+=txt(x+120,y+66+i*28,r[1],{fs:13,mono:1,c:ink()});});
+  s+=txt(x,y+h+40,'包里没有「闪现动画」，也没有「闪现成功」，只有「我想做什么」。字段是推测。',{fs:13,c:ink3()});
+  s+=txt(x,y+h+62,'英雄此刻还站在原地。',{fs:13,c:acc(),w:700});
+  return s;},
+ // 6 封装
+ (t)=>{let s=''; const L=[['以太网帧','目的 MAC = 路由器','#8E5BD6'],['IP 头','目的 IP = 服务器','#2A78D6'],['UDP 头','目的端口 5000 – 5500','#1BAF7A'],['游戏命令','技能 D，坐标，序号','#EB6834']]; const k=(t*0.8)%5;
+  const cx=500,cy=150; for(let i=0;i<4;i++){const vis=k>=3-i; if(!vis)continue; const pad=i*24; const w=600-pad*2,h=210-pad*2; s+=rect(cx-w/2,cy-h/2,w,h,L[i][2],{op:.15,s:L[i][2]}); s+=txt(cx-w/2+10,cy-h/2+20,L[i][0]+'：'+L[i][1],{fs:13,c:L[i][2],w:700});}
+  s+=txt(80,275,'由内向外一层层加头；每台路由器只看 IP 头，只有服务器拆到最里面。',{fs:13,c:ink3()});
+  return s;},
+ // 7 NAT
+ (t)=>{let s=''; const k=(t*0.7)%3; s+=rect(60,70,220,150,css('--stage'),{s:line()}); s+=txt(170,95,'家里（内网）',{a:'middle',fs:13,c:ink3()});
+  s+=rect(80,110,180,30,css('--panel'),{s:line()}); s+=txt(170,130,'你的电脑 192.168.1.5:51234',{a:'middle',fs:11,mono:1,c:ink()});
+  s+=rect(80,160,180,30,css('--panel'),{s:line()}); s+=txt(170,180,'手机 192.168.1.8',{a:'middle',fs:11,mono:1,c:ink3()});
+  s+=rect(360,100,160,90,css('--panel'),{s:acc(),sw:2}); s+=txt(440,125,'路由器',{a:'middle',fs:14,c:ink(),w:700}); s+=txt(440,148,'公网 203.0.113.7',{a:'middle',fs:11,mono:1,c:ink2()});
+  s+=txt(440,172,'NAT 表',{a:'middle',fs:11,c:ink3()});
+  s+=rect(620,100,320,90,css('--stage'),{s:line()}); s+=txt(780,125,'外面（公网）→ 服务器',{a:'middle',fs:13,c:ink3()});
+  const px=k<1?260+k*100:(k<2?520+(k-1)*100:620); s+=circ(px,145,8,acc());
+  const lbl=k<1?'来源 192.168.1.5:51234':'来源 203.0.113.7:40001'; s+=txt(px,172,lbl,{a:'middle',fs:11,mono:1,c:acc()});
+  if(k>=1){s+=rect(300,230,400,36,css('--panel'),{s:acc()}); s+=txt(500,253,'192.168.1.5:51234  ⇄  203.0.113.7:40001  ⇄  服务器',{a:'middle',fs:12,mono:1,c:ink()});}
+  s+=txt(300,290,'记下这一行，回来的包才知道该给哪台设备',{fs:12,c:ink3()});
+  return s;},
+ // 8 跳
+ (t)=>{let s=''; const hops=[[80,200,'你家'],[170,150,'小区'],[260,190,'城域'],[370,120,'省骨干'],[480,170,'出口'],[590,110,'Riot Direct'],[700,160,'机房入口'],[820,130,'服务器']];
+  const ms=[0.5,1,2,4,5,4,1.5]; let tot=0; for(let i=0;i<hops.length-1;i++){s+=lineS(hops[i][0],hops[i][1],hops[i+1][0],hops[i+1][1],line(),3); tot+=ms[i]; s+=txt((hops[i][0]+hops[i+1][0])/2,(hops[i][1]+hops[i+1][1])/2-10,'+'+ms[i]+' ms',{a:'middle',fs:11,mono:1,c:ink3()});}
+  const k=(t*1.2)%(hops.length-1); const i=Math.floor(k),f=k-i; const px=hops[i][0]+(hops[i+1][0]-hops[i][0])*f, py=hops[i][1]+(hops[i+1][1]-hops[i][1])*f;
+  hops.forEach((h,j)=>{s+=circ(h[0],h[1],10,j<=i?acc():css('--panel'),{s:acc(),sw:2}); s+=txt(h[0],h[1]+28,h[2],{a:'middle',fs:12,c:ink2()});});
+  s+=circ(px,py,7,css('--s2'));
+  s+=txt(80,60,'每跳：收下整个包 → 查路由表 → 从对应的口发出去，排队时再等一会儿',{fs:14,c:ink()});
+  s+=txt(80,275,`合计约 ${tot} ms 单程（示意）。光纤里 1000 km 要 5 ms，这是物理下限。`,{fs:13,c:ink3()});
+  return s;},
+ // 9 服务器 tick
+ (t)=>{let s=''; const x0=80,W=840,y=110,T=33,n=5,tw=W/n; s+=txt(x0,30,'服务器每 33 ms 跑一次模拟（约 30 tick/s）',{fs:14,c:ink()});
+  s+=lineS(x0,y,x0+W,y,line(),2); for(let i=0;i<=n;i++){s+=lineS(x0+i*tw,y-16,x0+i*tw,y+16,ink3(),3); s+=txt(x0+i*tw,y+36,'tick '+(100+i),{a:'middle',fs:12,mono:1,c:ink3()});}
+  const arr=x0+1.4*tw; s+=lineS(arr,y-50,arr,y+16,acc(),3); s+=txt(arr-6,y-40,'你的命令到达',{a:'end',fs:12,c:acc()});
+  const opp=x0+1.75*tw; s+=lineS(opp,y-50,opp,y+16,css('--no'),3); s+=txt(opp+6,y-40,'对手的抓取到达',{fs:12,c:css('--no')});
+  s+=rect(arr,y-8,x0+2*tw-arr,16,acc(),{op:.2}); s+=txt(x0+2*tw+6,y-16,'两条都等到 tick 102 一起处理',{fs:12,c:ink2()});
+  const checks=['冷却好了？','没被晕/压制？','目标 ≤ 400 码？（超了就截短）','落点不在墙里？（在就就近改点）','→ 改写世界状态：英雄到新坐标']; const k=Math.floor((t*1.6)%(checks.length+2));
+  checks.forEach((c,i)=>{const on=i<k; s+=txt(x0+40,185+i*22,(on?'☑ ':'☐ ')+c,{fs:13,c:on?css('--ok'):ink3()});});
+  s+=txt(x0+520,185,'同一 tick 内先处理谁：推测',{fs:12,c:ink3()});
+  s+=txt(x0+520,207,'你屏幕上「已经按下」不算数，',{fs:12,c:ink3()}); s+=txt(x0+520,229,'服务器只认到达时刻。',{fs:12,c:ink3()});
+  return s;},
+ // 10 广播
+ (t)=>{let s=''; const sx=500,sy=150; const k=(t*0.8)%1.6; const cl=[];
+  for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI*2/10; const r=90+((i*37)%5)*18; cl.push([sx+Math.cos(a)*r*1.9,sy+Math.sin(a)*r*0.95,r]);}
+  cl.forEach((c,i)=>{const dist=c[2]/180; s+=lineS(sx,sy,c[0],c[1],line(),1.5); const f=Math.min(1,k/dist); if(k<1.3){s+=circ(sx+(c[0]-sx)*f,sy+(c[1]-sy)*f,5,css('--s2'));}
+   const arrived=k>=dist&&k<1.3; s+=circ(c[0],c[1],13,arrived?css('--ok-bg'):css('--panel'),{s:i===0?acc():line(),sw:i===0?3:1}); s+=txt(c[0],c[1]+4,i===0?'你':'P'+(i+1),{a:'middle',fs:11,c:ink()});});
+  s+=rect(sx-60,sy-24,120,48,acc()); s+=txt(sx,sy+5,'服务器',{a:'middle',fs:14,c:css('--bg'),w:700});
+  s+=txt(80,290,'同一份状态发给 10 个人，各自的线长短不同（Ping 不同）。观战还要再延迟 3 分钟。',{fs:13,c:ink3()});
+  return s;},
+ // 11 渲染流水线
+ (t)=>{let s=''; const x0=120,W=760,y1=90,y2=160,y3=230,fw=120; const k=(t*60)%fw;
+  s+=txt(x0-100,y1+5,'CPU',{fs:13,c:ink()}); s+=txt(x0-100,y2+5,'GPU',{fs:13,c:ink()}); s+=txt(x0-100,y3+5,'交换链',{fs:13,c:ink()});
+  for(let i=0;i<6;i++){const x=x0+i*fw-k; const cur=i===3; s+=rect(x,y1-18,fw-6,36,cur?acc():css('--stage'),{s:line()}); s+=txt(x+8,y1+5,cur?'收到新状态 → 组帧':'组帧 '+(i-3),{fs:12,c:cur?css('--bg'):ink2()});
+   s+=rect(x+fw*0.6,y2-18,fw-6,36,cur?acc():css('--stage'),{s:line(),op:cur?0.8:1}); s+=txt(x+fw*0.6+8,y2+5,'渲染',{fs:12,c:cur?css('--bg'):ink2()});
+   s+=rect(x+fw*1.2,y3-18,fw-6,36,cur?acc():css('--stage'),{s:line(),op:cur?0.6:1}); s+=txt(x+fw*1.2+8,y3+5,'排队等显示',{fs:12,c:cur?css('--bg'):ink2()});}
+  s+=txt(x0,40,'三级流水线：这一帧 CPU 在组，上一帧 GPU 在画，再上一帧在队列里等显示器取',{fs:14,c:ink()});
+  s+=txt(x0,280,'开垂直同步或帧率远高于刷新率，队列会多堆 1 – 2 帧，每帧 7 ms',{fs:13,c:ink3()});
+  return s;},
+ // 12 扫描线
+ (t)=>{let s=''; const mx=120,my=40,mw=420,mh=236; const f=(t*0.8)%1; const sy=my+f*mh; const heroY=my+mh*0.55;
+  s+=rect(mx-8,my-8,mw+16,mh+16,'#222',{r:8}); s+=rect(mx,my,mw,mh,'#0d1f2d',{r:2});
+  s+=rect(mx,my,mw,Math.max(0,sy-my),'#17364a',{r:0}); // 已刷新的区域
+  s+=lineS(mx,sy,mx+mw,sy,'#fff',2);
+  const shown=sy>heroY; s+=circ(mx+mw*0.6,heroY,12,shown?'#f0c040':'#334'); s+=txt(mx+mw*0.6,heroY+42,shown?'新位置已显示':'还画着旧位置',{a:'middle',fs:12,c:shown?'#f0c040':'#889'});
+  s+=txt(mx+mw+30,80,'144 Hz：从上到下扫一遍 6.9 ms',{fs:14,c:ink()});
+  s+=txt(mx+mw+30,110,'新帧送到时扫描线可能在任何位置，',{fs:13,c:ink2()}); s+=txt(mx+mw+30,132,'要等它扫到英雄所在的那一行。',{fs:13,c:ink2()});
+  s+=txt(mx+mw+30,170,'液晶分子翻转再 1 – 5 ms。',{fs:13,c:ink2()});
+  s+=txt(mx+mw+30,210,`现在扫到 ${(f*100).toFixed(0)}%`,{fs:13,mono:1,c:ink3()});
+  s+=txt(mx+mw+30,250,'到这里，你才「看见」闪现。',{fs:14,c:acc(),w:700});
+  return s;},
+];
+function frame(){ const t=(performance.now()-animStart)/1000; try{$('#detail').innerHTML=ANIM[cur](t)}catch(e){} requestAnimationFrame(frame); }
+
+/* ---------------- 猜题 ---------------- */
+function quiz(id,answer,html,unlockIds){
+  const box=$('#'+id), rv=$('#'+id+'r');
+  const settle=(k)=>{ box.querySelectorAll('button').forEach(b=>{b.disabled=true; if(b.dataset.k===answer)b.classList.add('right'); else if(b.dataset.k===k)b.classList.add('wrong')});
+    rv.innerHTML=(k?(k===answer?'<b>猜对了。</b>':'<b>不是这个。</b>'):'')+html; rv.hidden=false; $('#'+id+'skip').hidden=true;
+    unlockIds.forEach(u=>$('#'+u).classList.remove('locked')); };
+  box.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>settle(b.dataset.k)));
+  $('#'+id+'skip').addEventListener('click',()=>settle(null));
+}
+quiz('q1','C',`<p>整段大约 80 – 120 ms，其中<b>网络往返 + 等服务器 tick</b> 占一半以上，所以 C 是大头。${tagH.sim}</p><p>但 D 也不冤：渲染到显示自己就能吃掉 15 – 40 ms，比键盘和操作系统加起来还多。${tagH.fact} 选 A 的人最多，因为键盘是唯一看得见摸得着的零件，可它只占几毫秒。${tagH.fact}</p><p>往下看 12 站，顶上的计时器会告诉你每一站加了多少。</p>`,['journeySec','lab1','lab2','quiz2']);
+quiz('q2','B',`<p>答案是 B。${tagH.sim} 对面按下 Q 后，命令要 20 ms 到服务器，等到下一个 tick（平均 17 ms），再 80 ms 回到你这里：你看到钩子时已经晚了约 100 ms 的量级。你按 D 后，命令要 80 ms 才到服务器，还要等 tick。${tagH.sim}</p><p>选 D 的人最多。要打破的直觉是「服务器知道我什么时候按的」。它不知道，它只知道包什么时候到。服务器不按真实按键时刻排序，这一点没有 Riot 明文，但和服务器权威模型一致。${tagH.guess}</p><p>下面的实验 3 可以自己拖滑杆验证。</p>`,['lab3']);
+
+/* ---------------- 实验 1：延迟预算 ---------------- */
+const POLL=[125,500,1000], HZ=[60,144,240,360], TICK=[20,30,64,128];
+const SEG=[['键盘扫描+去抖','--s1'],['USB 轮询','--s1'],['操作系统','--s1'],['等下一帧读输入','--s1'],['去程网络','--s2'],['等服务器 tick','--s4'],['回程网络','--s2'],['渲染流水线','--s3'],['显示器扫描+液晶','--s3']];
+const L1=['poll','kb','fps','hz','vs','net','ping','tick'];
+const L1def={poll:2,kb:0,fps:144,hz:2,vs:0,net:0,ping:20,tick:1};
+function lab1(){
+  const v={}; L1.forEach(k=>v[k]=+$('#s_'+k).value);
+  $('#v_poll').textContent=POLL[v.poll]+' Hz'; $('#v_kb').textContent=v.kb?'蓝牙':'有线'; $('#v_fps').textContent=v.fps+' fps'; $('#v_hz').textContent=HZ[v.hz]+' Hz';
+  $('#v_vs').textContent=v.vs?'开':'关'; $('#v_net').textContent=v.net?'Wi-Fi':'有线'; $('#v_ping').textContent=v.ping+' ms'; $('#v_tick').textContent=TICK[v.tick]+' tick/s';
+  const seg=[3, 1000/POLL[v.poll]/2+(v.kb?20:0), 0.4, 1000/v.fps/2, v.ping+(v.net?4:0), 1000/TICK[v.tick]/2, v.ping+(v.net?4:0), 1000/v.fps+(v.vs?1000/HZ[v.hz]:0)+2, 1000/HZ[v.hz]/2+3];
+  const tot=seg.reduce((a,b)=>a+b,0); let mi=0; seg.forEach((x,i)=>{if(x>seg[mi])mi=i});
+  $('#l1total').textContent=fmt(tot,0)+' ms'; $('#l1max').textContent=SEG[mi][0]+' '+fmt(seg[mi],0)+' ms';
+  $('#l1local').textContent=fmt(seg[0]+seg[1]+seg[2]+seg[3],1)+' ms'; $('#l1net').textContent=fmt(seg[4]+seg[5]+seg[6],0)+' ms'; $('#l1disp').textContent=fmt(seg[7]+seg[8],1)+' ms';
+  let s='',x=0; const W=800; seg.forEach((val,i)=>{const w=val/tot*W; s+=`<rect x="${x}" y="20" width="${Math.max(w-1,0.5)}" height="50" fill="${css(SEG[i][1])}" opacity="${0.55+0.45*((i%2)?1:0.6)}"/>`; if(w>40) s+=`<text x="${x+w/2}" y="50" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">${fmt(val,0)}</text>`; x+=w;});
+  s+=`<text x="0" y="100" font-size="12" fill="${ink3()}">0 ms</text><text x="800" y="100" text-anchor="end" font-size="12" fill="${ink3()}">${fmt(tot,0)} ms</text>`;
+  $('#budget').innerHTML=s;
+  $('#l1legend').innerHTML=SEG.map((g,i)=>`<span><i style="background:${css(g[1])}"></i>${g[0]} ${fmt(seg[i],1)}</span>`).join('');
+  const kbgain=(1000/125/2)-(1000/1000/2);
+  $('#l1note').innerHTML=`把键盘从 125 Hz 换到 1000 Hz 只省 ${fmt(kbgain,1)} ms；Ping 从 60 降到 20 省 80 ms；tick 从 30 换到 128 省 ${fmt(1000/30/2-1000/128/2,0)} ms。谁在决定手感，一目了然。${tagH.sim}`;
+}
+L1.forEach(k=>$('#s_'+k).addEventListener('input',lab1));
+$('#l1reset').addEventListener('click',()=>{L1.forEach(k=>$('#s_'+k).value=L1def[k]);lab1()});
+
+/* ---------------- 实验 2：丢包抖动 ---------------- */
+let proto='udp';
+$('#proto').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{proto=b.dataset.v;$('#proto').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));lab2()}));
+['loss','jit','ping2'].forEach(k=>$('#s_'+k).addEventListener('input',lab2));
+$('#l2go').addEventListener('click',()=>{seed=Math.floor(Math.random()*1e9);lab2()});
+let seed=12345; function rnd(){seed=(seed*1664525+1013904223)%4294967296; return seed/4294967296}
+function lab2(){
+  const loss=+$('#s_loss').value, jit=+$('#s_jit').value, ping=+$('#s_ping2').value;
+  $('#v_loss').textContent=loss+' %'; $('#v_jit').textContent='±'+jit+' ms'; $('#v_ping2').textContent=ping+' ms';
+  const s0=seed; const N=20, gap=50; const pk=[];
+  for(let i=0;i<N;i++){const send=i*gap; const d1=ping+(rnd()*2-1)*jit, d2=ping+(rnd()*2-1)*jit; const lost=rnd()*100<loss; pk.push({send,d1:Math.max(1,d1),d2:Math.max(1,d2),lost});}
+  // 生效时刻
+  let eff=[]; if(proto==='udp'){pk.forEach(p=>eff.push(p.lost?null:p.send+p.d1+p.d2));}
+  else{ // 简化 TCP：丢的包在 RTO（约 1 RTT + 20ms）后重传；后续包必须等它
+    let gate=0; pk.forEach((p,i)=>{let arr=p.send+p.d1; if(p.lost){arr=p.send+2*ping+20+p.d1; p.retx=arr;} gate=Math.max(gate,arr); eff.push(gate+p.d2); p.arrive=gate;}); }
+  const c=$('#c2'), g=c.getContext('2d'); const W=c.width,H=c.height; g.clearRect(0,0,W,H);
+  const tmax=N*gap+4*ping+200; const X=t=>60+t/tmax*(W-80); const yC=60,yS=H-60;
+  g.fillStyle=ink3(); g.font='13px sans-serif'; g.fillText('你的电脑',8,yC+4); g.fillText('服务器',8,yS+4);
+  g.strokeStyle=line(); g.lineWidth=1; g.beginPath(); g.moveTo(60,yC);g.lineTo(W-20,yC);g.moveTo(60,yS);g.lineTo(W-20,yS);g.stroke();
+  let lostN=0, worst=0, sum=0, cnt=0;
+  pk.forEach((p,i)=>{ const x0=X(p.send); g.lineWidth=1.5;
+    if(p.lost){lostN++; g.strokeStyle=css('--no'); g.setLineDash([4,4]); g.beginPath(); g.moveTo(x0,yC); g.lineTo(X(p.send+p.d1*0.6),yC+(yS-yC)*0.6); g.stroke(); g.setLineDash([]);
+      if(proto==='tcp'){ g.strokeStyle=css('--s5'); g.beginPath(); g.moveTo(X(p.send+2*ping+20),yC); g.lineTo(X(p.retx),yS); g.stroke(); } }
+    else { g.strokeStyle=css('--s2'); g.beginPath(); g.moveTo(x0,yC); g.lineTo(X(p.send+p.d1),yS); g.stroke(); }
+    if(eff[i]!=null){ const xs=proto==='tcp'?X(p.arrive):X(p.send+p.d1); g.strokeStyle=css('--ok'); g.beginPath(); g.moveTo(xs,yS); g.lineTo(X(eff[i]),yC); g.stroke();
+      const lat=eff[i]-p.send; worst=Math.max(worst,lat); sum+=lat; cnt++; g.fillStyle=lat>3*ping?css('--no'):ink2(); g.font='11px monospace'; g.fillText(fmt(lat,0),X(eff[i])-8,yC-8); }
+    g.fillStyle=acc(); g.beginPath(); g.arc(x0,yC,3,0,7); g.fill();
+  });
+  g.fillStyle=ink3(); g.font='12px sans-serif'; g.fillText('橙点：按下 D   蓝线：命令去程   绿线：状态回程   红虚线：丢了'+(proto==='tcp'?'   黄线：重传':''),60,H-20);
+  g.fillText('数字：这次按键到生效的毫秒数',60,yC-30);
+  $('#l2worst').textContent=fmt(worst,0)+' ms'; $('#l2avg').textContent=cnt?fmt(sum/cnt,0)+' ms':'—'; $('#l2lost').textContent=lostN+' / 20';
+  seed=s0;
+}
+
+/* ---------------- 实验 3：谁先闪 ---------------- */
+['pa','pb','lead','tick3'].forEach(k=>$('#s_'+k).addEventListener('input',lab3));
+function lab3(){
+  const pa=+$('#s_pa').value,pb=+$('#s_pb').value,lead=+$('#s_lead').value,T=1000/TICK[+$('#s_tick3').value];
+  $('#v_pa').textContent=pa+' ms'; $('#v_pb').textContent=pb+' ms'; $('#v_lead').textContent=(lead>=0?'A 早 ':'B 早 ')+Math.abs(lead)+' ms'; $('#v_tick3').textContent=TICK[+$('#s_tick3').value]+' tick/s';
+  const tA=lead>=0?0:-lead, tB=lead>=0?lead:0; const arrA=tA+pa, arrB=tB+pb; const off=7; // tick 相位固定
+  const tickOf=x=>Math.ceil((x-off)/T); const kA=tickOf(arrA),kB=tickOf(arrB); const procA=off+kA*T, procB=off+kB*T;
+  const W=900,x0=120,xw=740,tmax=Math.max(procA+pa,procB+pb)+30; const X=t=>x0+t/tmax*xw; const yA=60,yS=150,yB=240;
+  let s=''; s+=txt(20,yA+5,'A 的电脑',{fs:13,c:ink()}); s+=txt(20,yS+5,'服务器',{fs:13,c:ink()}); s+=txt(20,yB+5,'B 的电脑',{fs:13,c:ink()});
+  [yA,yS,yB].forEach(y=>s+=lineS(x0,y,x0+xw,y,line(),2));
+  for(let k=0;off+k*T<tmax;k++){const x=X(off+k*T); s+=lineS(x,yS-12,x,yS+12,ink3(),2); s+=txt(x,yS+28,'t'+k,{a:'middle',fs:10,mono:1,c:ink3()});}
+  s+=lineS(X(tA),yA,X(arrA),yS,css('--s2'),2.5); s+=lineS(X(tB),yB,X(arrB),yS,css('--s1'),2.5);
+  s+=circ(X(tA),yA,6,css('--s2')); s+=txt(X(tA),yA-14,'A 按下 D',{a:'middle',fs:12,c:css('--s2')});
+  s+=circ(X(tB),yB,6,css('--s1')); s+=txt(X(tB),yB+26,'B 按下 D',{a:'middle',fs:12,c:css('--s1')});
+  s+=circ(X(arrA),yS,5,css('--s2')); s+=circ(X(arrB),yS,5,css('--s1'));
+  s+=rect(X(arrA),yS-5,X(procA)-X(arrA),10,css('--s2'),{op:.25}); s+=rect(X(arrB),yS-5,X(procB)-X(arrB),10,css('--s1'),{op:.25});
+  s+=lineS(X(procA),yS,X(procA+pa),yA,css('--s2'),2.5,{dash:'5 4'}); s+=lineS(X(procB),yS,X(procB+pb),yB,css('--s1'),2.5,{dash:'5 4'});
+  s+=txt(X(procA+pa),yA-14,'A 看到自己闪',{a:'middle',fs:11,c:css('--s2')}); s+=txt(X(procB+pb),yB+26,'B 看到自己闪',{a:'middle',fs:11,c:css('--s1')});
+  $('#race').innerHTML=s;
+  let v,bad=false;
+  if(kA<kB) v=`<b>A 先。</b> A 的命令落在 tick ${kA}，B 的落在 tick ${kB}。`;
+  else if(kB<kA){ v=`<b>B 先。</b> B 的命令落在 tick ${kB}，A 的落在 tick ${kA}。`; if(lead>0){v+=` A 明明早按了 ${lead} ms，但 Ping 高，到得晚。`; bad=true;} }
+  else { v=`<b>同一个 tick（tick ${kA}）。</b> 谁先由服务器那一 tick 内的处理顺序决定，本页不知道，Riot 也没说。${tagH.guess}`; }
+  v+=` 服务器只认到达时刻：A ${fmt(arrA,0)} ms，B ${fmt(arrB,0)} ms。${tagH.sim}`;
+  $('#l3v').innerHTML=v; $('#l3v').classList.toggle('bad',bad);
+}
+
+/* ---------------- 其他路线图 ---------------- */
+function routes(){
+  const W=900,x0=200,xw=660,tmax=140; const X=t=>x0+t/tmax*xw; let s='';
+  const rows=[['服务器权威（LoL）',[[0,'按 D'],[65,'看到闪现']],[[0,65,css('--s4')]]],['客户端预测（射击游戏）',[[0,'按 D'],[8,'先画出来'],[65,'服务器结果回来，对得上就不管']],[[0,8,css('--s3')],[8,65,css('--s3')+'55']]],['锁步（RTS）',[[0,'按 D'],[100,'所有人输入到齐才执行']],[[0,100,css('--s1')]]]];
+  rows.forEach((r,i)=>{const y=50+i*70; s+=txt(x0-12,y+5,r[0],{a:'end',fs:13,c:ink()}); s+=lineS(x0,y,x0+xw,y,line(),2);
+    r[2].forEach(b=>s+=rect(X(b[0]),y-9,X(b[1])-X(b[0]),18,b[2]));
+    r[1].forEach((m,j)=>{s+=lineS(X(m[0]),y-16,X(m[0]),y+16,ink2(),2); s+=txt(X(m[0])+4,y-20,m[1],{fs:11,c:ink2()});});});
+  for(let t=0;t<=tmax;t+=20) s+=txt(X(t),225,t+' ms',{a:'middle',fs:10,mono:1,c:ink3()});
+  $('#routesSvg').innerHTML=s;
+}
+
+/* ---------------- 启动 ---------------- */
+buildMap(); buildStepBtns(); go(0); requestAnimationFrame(frame); lab1(); lab2(); lab3(); routes();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{buildMap();go(cur);lab1();lab2();lab3();routes()});
+</script>
+</body>
+</html>
