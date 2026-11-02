@@ -300,7 +300,7 @@ footer{padding-block:40px 40px;color:var(--ink3);font-size:13px}
 
       <div class="prose" style="max-width:52em;margin-top:22px">
         <p><b>两种转动都很有用，但没有固定赢家。</b>基准布置下，方便当 <span data-num="bento.antenna"></span> 对 <span data-num="bento.turntable"></span>，杯子放中间 <span data-num="cup.antenna"></span> 对 <span data-num="cup.turntable"></span>，回转天线略好；大圆盘 <span data-num="disc.antenna"></span> 对 <span data-num="disc.turntable"></span>，杯子靠边 <span data-num="cupo.antenna"></span> 对 <span data-num="cupo.turntable"></span>，转盘更好。天线一卡住，便当就退到 <span data-num="bento.stuck"></span> 上下。<span class="tag t-sim">本页仿真</span></p>
-        <p id="varP" hidden>再动一下机器本身：转盘机的馈口换到另外两个位置，便当的结果在 <span data-range="bento.turntable"></span> 之间摆动；回转天线换成专利里的圆形板，在 <span data-range="bento.antenna"></span> 之间。所以光看有没有转盘判断不了均匀度，馈电布置的影响一样大。<span class="tag t-sim">本页仿真</span></p>
+        <p id="varP" hidden>再动一下机器本身：转盘机的馈口换到另外两个位置，便当的结果在 <span data-range="bento.turntable"></span> 之间摆动；回转天线换成专利里的圆形板，在 <span data-range="bento.antenna"></span> 之间。大圆盘和靠边的杯子在所有布置下都是转盘更匀，居中的杯子都是回转天线更匀，便当两边的范围重叠。所以光看有没有转盘判断不了均匀度，食物和馈电布置的影响一样大。<span class="tag t-sim">本页仿真</span></p>
         <p>转盘让食物上每一点沿圆周走，把图样按圆周平均掉，代价是同一半径永远受热相同，圆盘上能看到同心环。回转天线不移动食物，平均的是不同激发状态下的图样。这段解释是我根据热量图推的，没有单独做实验验证。<span class="tag t-guess">推测</span></p>
         <p>顺带一提，我一开始用上面那块二维切片比，便当是转盘大胜；换成完整三维，结论就翻了。二维只有 3 个腔模可用，回转天线能调动的东西太少，所以比较均匀度一定要看三维。<span class="tag t-guess">推测</span></p>
         <p>这和 CHOICE 的实测能对上：平板机综合得分 80–92，转盘机 69–96，两边明显重叠。不过那是综合分，不是专门测均匀度。<span class="tag t-src">评测</span></p>
