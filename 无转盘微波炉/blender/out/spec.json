@@ -1,0 +1,245 @@
+{
+ "X0": -250,
+ "X1": 250,
+ "Y0": -190,
+ "Y1": 205,
+ "Z0": 14,
+ "Z1": 336,
+ "FOOT": 14,
+ "SHELL_T": 1.5,
+ "CW": 320,
+ "CD": 340,
+ "CH": 205,
+ "CX": -66,
+ "CY": -8,
+ "FLOOR_Z": 110,
+ "GLASS_T": 4,
+ "DOOR_T": 26,
+ "DOOR_X0": -249,
+ "DOOR_X1": 98,
+ "FEED_TOP": 236,
+ "FEED_BOT": 156,
+ "FEED_Z": 84,
+ "WG_W": 90,
+ "WG_TOP": 84,
+ "WG_H1": 42,
+ "WG_H2": 22,
+ "WG_X0": -136,
+ "WG_X1": 236,
+ "WG_T": 1.5,
+ "MAG_X": 170,
+ "ANT_Z": 98,
+ "ANT_T": 1.0,
+ "ANT_R1": 60,
+ "ANT_R2": 45,
+ "ANT_TIP": 70,
+ "ANT_TIP_W": 50,
+ "SLOT_L": 35,
+ "SLOT_L3": 45,
+ "SLOT_W": 10,
+ "slots": [
+  [
+   "cross",
+   0.0,
+   33.0
+  ],
+  [
+   "cross",
+   0.0,
+   -33.0
+  ],
+  [
+   "line",
+   -24.0,
+   0.0
+  ]
+ ],
+ "parts": [
+  {
+   "name": "OuterCover",
+   "label": "外壳罩",
+   "group": "shell",
+   "desc": "一整块 U 形钢板折成顶和两侧，管防护和风道。挡微波的是里面的加热腔。"
+  },
+  {
+   "name": "FrontFrame",
+   "label": "前脸框",
+   "group": "shell",
+   "desc": "挡住腔体四周的缝隙。腔体法兰就贴在它后面。"
+  },
+  {
+   "name": "BasePlate",
+   "label": "底板",
+   "group": "shell",
+   "desc": "承托所有部件，电机、波导都吊装在这一层上方。"
+  },
+  {
+   "name": "BackPanel",
+   "label": "后板",
+   "group": "shell",
+   "desc": "后面留出排风缝和电源线。"
+  },
+  {
+   "name": "CavityBox",
+   "label": "加热腔",
+   "group": "cavity",
+   "desc": "六面都是金属的盒子。微波打到壁上被反射回来，来回叠加形成驻波，这就是热点的根源。"
+  },
+  {
+   "name": "CavityLamp",
+   "label": "腔内 LED 灯",
+   "group": "cavity",
+   "desc": "从冲孔背后照亮腔体。"
+  },
+  {
+   "name": "GlassFloor",
+   "label": "平板底板",
+   "group": "cavity",
+   "desc": "耐热玻璃或陶瓷，平整好擦。对微波近乎透明，所以能盖住下面的天线而不挡波。没有转盘，方形便当也不会卡住。"
+  },
+  {
+   "name": "FeedChamber",
+   "label": "馈能室",
+   "group": "feed",
+   "desc": "地板下方的金属凹槽，只朝上开口。天线在这里转，波只能朝上穿过底板进入加热腔。"
+  },
+  {
+   "name": "Waveguide",
+   "label": "波导",
+   "group": "feed",
+   "desc": "矩形金属管，相当于微波的水管。磁控管从右端把微波送进来，沿地板下方走到中央的天线轴。"
+  },
+  {
+   "name": "AntennaShaft",
+   "label": "天线金属轴",
+   "group": "feed",
+   "desc": "把波导里的微波耦合到天线板上，它既传动也传波。"
+  },
+  {
+   "name": "AntennaPlate",
+   "label": "回转天线",
+   "group": "feed",
+   "desc": "全机主角：0.5 mm 镀铝钢板，轮廓故意不对称，还开了十字槽。微波从边缘向四周、从槽口向上辐射，一转起来，激发出来的腔内驻波图样就跟着变。"
+  },
+  {
+   "name": "AntennaBearing",
+   "label": "天线支撑座",
+   "group": "feed",
+   "desc": "树脂托架，让板子保持水平转动，不碰到上面的底板。"
+  },
+  {
+   "name": "ResinShaft",
+   "label": "树脂传动轴",
+   "group": "feed",
+   "desc": "绝缘材料，把动力传上去，但不会把微波漏到波导外面。"
+  },
+  {
+   "name": "AntennaMotor",
+   "label": "天线电机",
+   "group": "feed",
+   "desc": "低转速小电机，装在波导下方。电机一停，天线就不转，热点也就固定了。"
+  },
+  {
+   "name": "Magnetron",
+   "label": "磁控管",
+   "group": "feed",
+   "desc": "把高压直流电变成 2.45 GHz 微波的真空管。阴极电子在磁场里打转，经过谐振腔时把能量交给电磁波，再从下端的小天线送进波导。"
+  },
+  {
+   "name": "FanShroud",
+   "label": "风道罩",
+   "group": "power",
+   "desc": "把风集中吹过磁控管散热片，再引向腔体冲孔和后板。"
+  },
+  {
+   "name": "FanBlade",
+   "label": "冷却风扇",
+   "group": "power",
+   "desc": "磁控管效率约七成（经验值，随机型变化），剩下的变成废热，必须吹走。"
+  },
+  {
+   "name": "FanMotor",
+   "label": "风扇电机",
+   "group": "power",
+   "desc": "罩极电机或直流风扇，开机就转。"
+  },
+  {
+   "name": "InverterBoard",
+   "label": "变频电源板",
+   "group": "power",
+   "desc": "把 100 V 市电整流、逆变再升到约 4 kV 给磁控管。比起老式工频变压器又轻又小，还能连续调功率，不用靠开关循环。"
+  },
+  {
+   "name": "Wiring",
+   "label": "高压线束",
+   "group": "power",
+   "desc": "红线是高压，黄白线是灯丝和控制信号。"
+  },
+  {
+   "name": "DoorFrame",
+   "label": "门框",
+   "group": "door",
+   "desc": "门的骨架。左侧铰链，右侧两个门钩插进机身触发联锁开关。"
+  },
+  {
+   "name": "DoorGlass",
+   "label": "门玻璃",
+   "group": "door",
+   "desc": "外层只是装饰和隔热，挡微波的是后面那层金属网。"
+  },
+  {
+   "name": "DoorMesh",
+   "label": "门上金属网",
+   "group": "door",
+   "desc": "孔径约 2 mm，比 122 mm 的波长小得多：微波过不去，可见光能过，所以能看里面又不漏波。"
+  },
+  {
+   "name": "DoorChoke",
+   "label": "扼流槽",
+   "group": "door",
+   "desc": "门缝处的四分之一波长沟槽（λ/4 ≈ 30 mm）。缝里的波走一个来回相位翻转，把自己抵消掉，所以门不用压得很紧也不漏波。"
+  },
+  {
+   "name": "PanelBody",
+   "label": "操作面板",
+   "group": "panel",
+   "desc": "右侧竖条，后面就是电源板和磁控管所在的机械室。"
+  },
+  {
+   "name": "Display",
+   "label": "显示屏",
+   "group": "panel",
+   "desc": "倒计时和功率。"
+  },
+  {
+   "name": "PanelPrint",
+   "label": "面板丝印",
+   "group": "panel",
+   "desc": "按键文字。"
+  },
+  {
+   "name": "ControlBoard",
+   "label": "控制板",
+   "group": "panel",
+   "desc": "单片机所在。读按键和传感器，决定功率、时长，也负责让天线电机、风扇一起转。"
+  },
+  {
+   "name": "IRSensor",
+   "label": "红外传感器",
+   "group": "sensor",
+   "desc": "隔着腔顶小孔看食物表面温度。机型不同，也可能换成湿度或多点扫描传感器。"
+  },
+  {
+   "name": "WeightSensors",
+   "label": "重量传感器",
+   "group": "sensor",
+   "desc": "部分机型在底面放的称重点。自动模式用重量推算时长，容器太重时可能加热过头。"
+  },
+  {
+   "name": "Bento",
+   "label": "便当",
+   "group": "food",
+   "desc": "长方形便当是平板式的主场：不用转，也不怕卡住，放哪里都行。"
+  }
+ ]
+}

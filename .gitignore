@@ -1,0 +1,8 @@
+node_modules/
+dist/
+runs*/
+logs*/
+*.bin
+*.waves
+sim3d/mw3d
+__pycache__/

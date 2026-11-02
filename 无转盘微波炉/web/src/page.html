@@ -1,0 +1,396 @@
+<title>不转盘的微波炉</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 布局：上半是一张检修台（左边机器、右边手册），下半是实验记录。 */
+:root{
+  --bg:#ECEFF1; --panel:#F8F9FA; --ink:#14181C; --ink2:#454E56; --ink3:#66707A; --line:#CFD6DB;
+  --stage:#DCE1E4; --copper:#A44A1F; --copper-bg:#F4E1D6; --led:#120A04; --amber:#FFA533;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --s1:#EB6834; --s2:#2A78D6; --s3:#1BAF7A;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101417; --panel:#181D21; --ink:#E9ECEE; --ink2:#B6BEC5; --ink3:#8E98A1; --line:#2E363C;
+  --stage:#1C2226; --copper:#E8925E; --copper-bg:#3A2418; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+p{margin:0}
+a{color:var(--copper);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+.top{padding-block:30px 22px}
+.top .wrap{display:flex;gap:28px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.top h1{font-size:clamp(32px,5.4vw,56px);font-weight:900;letter-spacing:-.02em}
+.lead{color:var(--ink2);max-width:40em;margin-top:8px;font-size:16px}
+.chip{display:flex;gap:12px;align-items:center;background:var(--led);border-radius:6px;padding:0 16px 0 2px;color:#E7B27A;font:500 12px/1.5 var(--mono)}
+.chip canvas{display:block;width:172px;height:76px}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:0;background:var(--stage);border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:560px;height:min(70vh,700px);min-width:0}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);font:500 14px var(--mono)}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:2px 8px;border-radius:3px;white-space:nowrap}
+.legend-hud{position:absolute;left:14px;bottom:12px;font:500 12px/1.4 var(--mono);color:var(--ink2);display:flex;gap:10px;align-items:center;pointer-events:none}
+.legend-hud i{display:inline-block;width:92px;height:9px;border-radius:2px}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;max-height:min(70vh,700px);min-height:560px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);flex:none}
+.tab{border:0;background:none;padding:11px 2px 9px;font-size:13px;font-weight:500;color:var(--ink2);border-bottom:3px solid transparent}
+.tab b{display:block;font:700 11px var(--mono);color:var(--ink3)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--copper);font-weight:700}
+.tab:disabled{opacity:.42;cursor:not-allowed}
+.pane{padding:18px 18px 8px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;flex:1}
+.pane h2{font-size:19px;font-weight:700}
+.pane p{color:var(--ink2);font-size:14.5px}
+.q{display:grid;gap:7px}
+.q button{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px 11px;font-size:14px;line-height:1.5}
+.q button:hover:not(:disabled){border-color:var(--copper)}
+.q button:disabled{cursor:default;color:var(--ink2)}
+.q button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ink)}
+.q button.wrong{background:var(--no-bg);border-color:var(--no);color:var(--ink)}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:5px;padding:8px 14px;font-weight:700;font-size:14px}
+.btn.alt{background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink3);text-decoration:underline;text-underline-offset:3px;font-size:13px;text-align:left}
+.row-c{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reading{display:grid;grid-template-columns:auto 1fr;gap:1px 12px;font-size:13.5px;color:var(--ink2)}
+.reading b{font:700 15px var(--mono);color:var(--ink)}
+.ctl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
+input[type=range]{width:100%;accent-color:var(--copper)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{border:1px solid var(--line);background:none;border-radius:3px;padding:2px 8px;font-size:13px;color:var(--ink2)}
+.chips button:hover{border-color:var(--copper);color:var(--ink)}
+.part{border-top:1px solid var(--line);padding:12px 18px 14px;flex:none;background:var(--panel)}
+.part h3{font-size:15px;color:var(--copper)}
+.part p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:2px}
+.tag{display:inline-block;font:700 10.5px/1.6 var(--mono);padding:0 5px;border-radius:2px;vertical-align:1px;white-space:nowrap}
+.t-fact{background:var(--ok-bg);color:var(--ok)}
+.t-src{background:var(--copper-bg);color:var(--copper)}
+.t-sim{background:color-mix(in srgb,var(--s2) 18%,transparent);color:var(--s2)}
+.t-guess{background:var(--line);color:var(--ink2)}
+
+section.s{padding-block:44px 8px}
+.s>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em}
+.prose{max-width:44em;color:var(--ink2);margin-top:10px;display:grid;gap:10px}
+.prose b{color:var(--ink)}
+.toyrow{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:26px;margin-top:20px;align-items:start}
+#toy{width:100%;aspect-ratio:320/340;display:block;border-radius:4px;cursor:crosshair;touch-action:pan-y;background:#08091a}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:0;background:none;padding:6px 12px;font-size:13.5px;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.note{font-size:13.5px;color:var(--ink2);border-left:3px solid var(--copper);padding-left:12px}
+
+.qbox{max-width:44em;margin-top:14px;display:grid;gap:10px}
+.labbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px}
+#labSeg{width:92px;height:42px;border-radius:4px;display:block}
+.labgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:8px;min-width:0;align-content:start}
+.card h3{font-size:16px}
+.card h3 small{display:block;font:400 12.5px/1.45 var(--sans);color:var(--ink3)}
+.maps{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:center}
+.maps canvas{display:block;max-width:100%}
+canvas.field{width:96px;height:102px;border-radius:3px}
+canvas.heat{width:100%;height:auto;aspect-ratio:1.42}
+.kv{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:13px;color:var(--ink2)}
+.kv b{font:700 14px var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.kv .big{font-size:22px}
+.scale{display:flex;align-items:center;gap:8px;font:500 12px var(--mono);color:var(--ink3);margin-top:10px;flex-wrap:wrap}
+.scale i{display:block;width:170px;height:10px;border-radius:2px;background:linear-gradient(90deg,#0c103e,#46166f,#b02c56 42%,#ee6026 56%,#fcb228 76%,#fff6d6)}
+
+.vizwrap{position:relative;margin-top:18px;max-width:900px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-bottom:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:block}
+.vz .row{display:grid;grid-template-columns:142px minmax(0,1fr);gap:12px;padding-block:9px;border-top:1px solid var(--line)}
+.cat b{display:block;font-size:14px}.cat span{font-size:12px;color:var(--ink3);line-height:1.4;display:block}
+.bars{display:grid;gap:2px}
+.bar{position:relative;height:17px}
+.bar i{position:absolute;left:0;top:2px;height:13px;border-radius:0 4px 4px 0;min-width:2px}
+.bar u{position:absolute;top:8px;height:2px;background:var(--ink);text-decoration:none}
+.bar em{position:absolute;top:0;font:500 12px/17px var(--mono);color:var(--ink2);font-style:normal}
+.s-antenna i{background:var(--s1)}.s-turntable i{background:var(--s2)}.s-stuck i{background:var(--s3)}
+#chartTip{position:absolute;background:var(--ink);color:var(--bg);font-size:12.5px;padding:3px 8px;border-radius:3px;pointer-events:none;white-space:nowrap;z-index:2}
+.tscroll{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;font-size:13.5px;min-width:100%}
+th,td{text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-size:12.5px;color:var(--ink3);font-weight:500}
+tbody th{font-weight:500}
+td{font-variant-numeric:tabular-nums;color:var(--ink2)}
+details{margin-top:10px;font-size:14px;max-width:900px}
+summary{cursor:pointer;color:var(--ink2)}
+
+.routes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.route{padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:grid;gap:7px;align-content:start}
+.route.main{border-color:var(--copper)}
+.route h3{font-size:16px}
+.route .st{font:700 11.5px var(--mono);color:var(--copper)}
+.route dl{margin:0;display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.route dt{font-weight:700;color:var(--ink);font-size:13px}
+.route dd{margin:0}
+.fail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 30px;margin:16px 0 0;padding:0;list-style:none;max-width:1000px}
+.fail li{font-size:14px;color:var(--ink2);min-width:0}
+.fail b{color:var(--ink);display:block}
+.tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.tiers h3{font-size:14px;margin-bottom:6px}
+.tiers ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink2);display:grid;gap:5px}
+.src{columns:2;column-gap:30px;font-size:13.5px;margin:14px 0 0;padding-left:18px;color:var(--ink2)}
+.src li{break-inside:avoid;margin-bottom:4px}
+footer{padding-block:40px 40px;color:var(--ink3);font-size:13px}
+@media (max-width:960px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:62vw;min-height:330px}
+  .manual{border-left:0;border-top:1px solid var(--line);max-height:none;min-height:0}
+  .labgrid,.routes{grid-template-columns:minmax(0,1fr)}
+  .toyrow{grid-template-columns:minmax(0,1fr)}
+  .tiers{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fail{grid-template-columns:minmax(0,1fr)}
+  .src{columns:1}
+}
+@media (max-width:520px){.tiers{grid-template-columns:minmax(0,1fr)}.vz .row{grid-template-columns:minmax(0,1fr)}.chip{display:none}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div>
+    <h1>不转盘的微波炉</h1>
+    <p class="lead">门打开，地板是平的，什么也不转。可金属腔里的微波天生分布不均，那到底是谁在动？这台机器是用 Blender 脚本建的，里面的波是解麦克斯韦方程算出来的。</p>
+  </div>
+  <div class="chip"><canvas id="hdrSeg" width="172" height="76"></canvas><div>GHz<br>λ = 122 mm</div></div>
+</div></header>
+
+<div class="bench">
+  <div class="viewport" id="viewport">
+    <canvas id="gl" aria-label="微波炉三维模型，可拖动旋转，点击零件看说明"></canvas>
+    <div id="loading">正在装配模型…</div>
+    <div id="tip" hidden></div>
+  </div>
+  <aside class="manual">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="look" aria-selected="true"><b>1</b>外观</button>
+      <button class="tab" role="tab" data-tab="floor" aria-selected="false" disabled><b>2</b>水平切开</button>
+      <button class="tab" role="tab" data-tab="section" aria-selected="false" disabled><b>3</b>竖着切开</button>
+      <button class="tab" role="tab" data-tab="explode" aria-selected="false" disabled><b>4</b>爆炸图</button>
+    </div>
+
+    <div class="pane" data-pane="look">
+      <h2>先猜：食物不动，是什么在动？</h2>
+      <div class="q" id="q1">
+        <button data-a="a">腔壁上有好几个磁控管，轮流发射</button>
+        <button data-a="b">地板下面有块金属片在转，腔内的波场跟着变</button>
+        <button data-a="c">什么都不用动，这种腔体的波本来就均匀</button>
+        <button data-a="d">门上的金属网把波散射均匀了</button>
+      </div>
+      <button class="linkbtn" id="q1skip">不猜了，直接看答案</button>
+      <p id="q1hint" hidden>上次已经答过，后面的步骤都打开了。</p>
+      <div id="q1r" hidden style="display:grid;gap:10px">
+        <p id="q1note"></p>
+        <div class="row-c"><button class="btn" data-go="floor">切开看地板下面</button></div>
+      </div>
+      <div class="row-c"><button class="btn alt" id="doorBtn">打开门</button></div>
+    </div>
+
+    <div class="pane" data-pane="floor" hidden>
+      <h2>地板下面藏了一块铝板</h2>
+      <p>把上半截拿掉，平板变成半透明。下面的金属凹槽叫馈能室，那块不对称的板就是回转天线，轮廓尺寸取自松下的公开专利。<span class="tag t-src">专利</span></p>
+      <p>盖在上面的亮斑是三维仿真结果，高度在便当半腰。天线每转一点，亮斑就换一个样子，可见波场在变，食物不用动。<span class="tag t-sim">本页仿真</span></p>
+      <div class="ctl"><input type="checkbox" id="heatToggle" checked><label for="heatToggle">叠加腔内热点</label></div>
+      <div class="ctl"><input type="checkbox" id="spinToggle" checked><label for="spinToggle">天线转动</label></div>
+      <div><label for="angRange" class="ctl">手动转天线</label><input type="range" id="angRange" min="0" max="350" step="10" value="0"></div>
+      <div class="reading"><b id="angVal">0°</b><span>天线角度</span><b id="angCv">—</b><span>只停在这一角度时，便当吸热的不均匀度</span></div>
+      <p style="font-size:13px">便当区域画的是吸热功率，四周画的是电场强度，两边各自归一化。</p>
+    </div>
+
+    <div class="pane" data-pane="section" hidden>
+      <h2>微波走的路</h2>
+      <p>这张切面上的红蓝是算出来的竖直电场，一红一蓝就是正负半周。<span class="tag t-sim">本页仿真</span></p>
+      <p>波从右边的磁控管出发，沿波导走到中央，被天线轴接走，再从天线板的边缘和槽口穿过平板进入腔体。</p>
+      <p style="font-size:13px">波导里的场比腔内强约 <span id="gainVal"></span> 倍。为了都看得见，两边的颜色各自归一化了。我没有调天线和波导的匹配，真机这个比值会小一些。</p>
+      <div class="row-c"><button class="btn" id="replay">从通电第一刻重放</button></div>
+      <div class="reading"><b>▸</b><span id="waveClock">稳态</span></div>
+    </div>
+
+    <div class="pane" data-pane="explode" hidden>
+      <h2>全部拆开</h2>
+      <p>点模型上的任何零件，或点下面的名字，都能看到它是干什么的。</p>
+      <div class="chips">
+        <button data-part="AntennaPlate">回转天线</button><button data-part="Magnetron">磁控管</button><button data-part="Waveguide">波导</button>
+        <button data-part="FeedChamber">馈能室</button><button data-part="GlassFloor">平板底板</button><button data-part="AntennaMotor">天线电机</button>
+        <button data-part="ResinShaft">树脂轴</button><button data-part="DoorChoke">扼流槽</button><button data-part="DoorMesh">门上金属网</button>
+        <button data-part="InverterBoard">变频电源板</button><button data-part="WeightSensors">重量传感器</button><button data-part="IRSensor">红外传感器</button>
+      </div>
+    </div>
+
+    <div class="part" id="partCard" hidden><h3 id="partName"></h3><p id="partDesc"></p></div>
+  </aside>
+</div>
+
+<main id="after" hidden>
+  <section class="s"><div class="wrap">
+    <h2>为什么非得有东西在动</h2>
+    <div class="prose">
+      <p>微波在金属腔里来回反射，和自己叠加，形成<b>驻波</b>。波腹处场很强，波节处几乎没有，相邻波腹隔半个波长，也就是 <b>61 mm</b>。图样不动的话，食物就是一块热一块冷。<span class="tag t-fact">公认</span></p>
+      <p>下面是一层俯视切片，正在实时解方程。拖动白点换馈电位置，看整张图怎么变。</p>
+    </div>
+    <div class="toyrow">
+      <canvas id="toy" width="630" height="669"></canvas>
+      <div class="prose" style="margin-top:0">
+        <div class="seg" role="group" aria-label="显示方式"><button data-view="avg" aria-pressed="true">平均热点</button><button data-view="wave" aria-pressed="false">慢放瞬时波</button></div>
+        <p id="toyPos" style="font:500 13px var(--mono)"></p>
+        <p>亮斑并没有跟着白点跑，而是整张图换了个样子。腔内的场可以写成一组固定腔模的叠加，<b>馈电位置决定每个腔模分到多少</b>。回转天线就是在做这件事：腔模本身不变，只不断改变它们的比例。<span class="tag t-fact">公认</span></p>
+        <p class="note">这块切片只用来看现象，别拿它比谁更均匀：2.35–2.55 GHz 之间它只有 3 个腔模，同尺寸的三维腔有 29 个。</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>再猜一题：转天线和转食物，谁更匀？</h2>
+    <div class="prose"><p>下面用完整三维模型比：腔体、波导、馈能室、回转天线全按 Blender 里的尺寸。经典转盘用同尺寸腔体，右侧壁馈电，食物放玻璃转盘上。</p></div>
+    <div class="qbox">
+      <div class="q" id="q2">
+        <button data-a="a">回转天线总是更匀，所以高级机型才用它</button>
+        <button data-a="b">转盘总是更匀，食物真的动了嘛</button>
+        <button data-a="c">没有固定赢家，要看食物形状和馈口布置</button>
+        <button data-a="d">差不多，转不转影响不大</button>
+      </div>
+      <button class="linkbtn" id="q2skip">不猜了，直接看</button>
+      <p id="q2r" hidden><span id="q2note" style="font-weight:700"></span></p>
+    </div>
+
+    <div id="labBody" hidden>
+      <div class="labbar">
+        <button class="btn" id="labRun">开始加热一圈</button>
+        <button class="btn alt" id="labReset">清零</button>
+        <canvas id="labSeg" width="92" height="56"></canvas>
+        <span style="font:500 12px var(--mono);color:var(--ink3)">转过的角度</span>
+        <div class="seg" role="group" aria-label="食物">
+          <button data-food="bento" aria-pressed="true">方便当</button><button data-food="disc" aria-pressed="false">大圆盘</button><button data-food="cup" aria-pressed="false">杯·居中</button><button data-food="cupo" aria-pressed="false">杯·靠边</button>
+        </div>
+        <span id="foodNote" style="font-size:13px;color:var(--ink3)"></span>
+      </div>
+      <div class="labgrid">
+        <article class="card" data-lab="antenna">
+          <h3>回转天线<small>食物不动，天线转</small></h3>
+          <div class="maps"><canvas class="field" width="192" height="204"></canvas><canvas class="heat" width="480" height="338"></canvas></div>
+          <div class="kv"><span>不均匀度 CV</span><b class="big" data-v="cv">—</b><span>低于平均一半的区域</span><b data-v="cold">—</b><span>最冷 – 最热（相对平均）</span><b data-v="span">—</b></div>
+        </article>
+        <article class="card" data-lab="turntable">
+          <h3>经典转盘<small>侧壁馈电，食物转</small></h3>
+          <div class="maps"><canvas class="field" width="192" height="204"></canvas><canvas class="heat" width="480" height="338"></canvas></div>
+          <div class="kv"><span>不均匀度 CV</span><b class="big" data-v="cv">—</b><span>低于平均一半的区域</span><b data-v="cold">—</b><span>最冷 – 最热（相对平均）</span><b data-v="span">—</b></div>
+        </article>
+        <article class="card" data-lab="stuck">
+          <h3>天线卡住<small>电机停了，<label for="stuckRange">停在</label> <span id="stuckLabel">0°</span></small></h3>
+          <div class="maps"><canvas class="field" width="192" height="204"></canvas><canvas class="heat" width="480" height="338"></canvas></div>
+          <div class="kv"><span>不均匀度 CV</span><b class="big" data-v="cv">—</b><span>低于平均一半的区域</span><b data-v="cold">—</b><span>最冷 – 最热（相对平均）</span><b data-v="span">—</b></div>
+          <input type="range" id="stuckRange" min="0" max="350" step="10" value="0" aria-label="天线卡住的角度">
+        </article>
+      </div>
+      <div class="scale"><span>冷</span><i></i><span>平均的 2 倍以上</span><span style="margin-left:14px">左边小图：腔内电场，白框是食物，白色半透明是天线</span></div>
+
+      <div class="prose" style="max-width:52em;margin-top:22px">
+        <p><b>两种转动都很有用，但没有固定赢家。</b>基准布置下，方便当 <span data-num="bento.antenna"></span> 对 <span data-num="bento.turntable"></span>，杯子放中间 <span data-num="cup.antenna"></span> 对 <span data-num="cup.turntable"></span>，回转天线略好；大圆盘 <span data-num="disc.antenna"></span> 对 <span data-num="disc.turntable"></span>，杯子靠边 <span data-num="cupo.antenna"></span> 对 <span data-num="cupo.turntable"></span>，转盘更好。天线一卡住，便当就退到 <span data-num="bento.stuck"></span> 上下。<span class="tag t-sim">本页仿真</span></p>
+        <p id="varP" hidden>再动一下机器本身：转盘机的馈口换到另外两个位置，便当的结果在 <span data-range="bento.turntable"></span> 之间摆动；回转天线换成专利里的圆形板，在 <span data-range="bento.antenna"></span> 之间。所以光看有没有转盘判断不了均匀度，馈电布置的影响一样大。<span class="tag t-sim">本页仿真</span></p>
+        <p>转盘让食物上每一点沿圆周走，把图样按圆周平均掉，代价是同一半径永远受热相同，圆盘上能看到同心环。回转天线不移动食物，平均的是不同激发状态下的图样。这段解释是我根据热量图推的，没有单独做实验验证。<span class="tag t-guess">推测</span></p>
+        <p>顺带一提，我一开始用上面那块二维切片比，便当是转盘大胜；换成完整三维，结论就翻了。二维只有 3 个腔模可用，回转天线能调动的东西太少，所以比较均匀度一定要看三维。<span class="tag t-guess">推测</span></p>
+        <p>这和 CHOICE 的实测能对上：平板机综合得分 80–92，转盘机 69–96，两边明显重叠。不过那是综合分，不是专门测均匀度。<span class="tag t-src">评测</span></p>
+      </div>
+
+      <div class="vizwrap">
+        <h3 style="font-size:16px;margin-bottom:8px">四种食物的不均匀度（CV，越短越均匀）</h3>
+        <div class="legend"><span><i style="background:var(--s1)"></i>回转天线</span><span><i style="background:var(--s2)"></i>经典转盘</span><span><i style="background:var(--s3)"></i>天线卡住（36 个角度的中位数）</span><span><i style="background:none;height:2px;width:18px;border-radius:0;box-shadow:inset 0 0 0 1px var(--ink)"></i>细线：改布置或改角度后的范围</span></div>
+        <div class="vz" id="chart"></div>
+        <div id="chartTip" hidden></div>
+      </div>
+      <details><summary>看数据表</summary><div class="tscroll"><table id="chartTable"><thead><tr><th>食物</th><th>回转天线（基准、圆板）</th><th>经典转盘（基准、低位、高位馈口）</th><th>天线卡住（范围）</th></tr></thead><tbody></tbody></table></div></details>
+      <details open><summary>这些数字有多稳？</summary>
+        <div class="prose" style="max-width:52em"><p>先看网格。同一份方便当，转盘几乎不随网格变，回转天线在 4 mm 时明显偏乐观。可能是因为天线板上的槽只有 10 mm 宽，4 mm 网格画不准。<span class="tag t-guess">推测</span> 3 mm 和 2 mm 已经接近，所以全页用 3 mm。</p></div>
+        <div class="tscroll"><table id="gridTable"><thead><tr><th>网格</th><th>回转天线 CV</th><th>经典转盘 CV</th></tr></thead><tbody></tbody></table></div>
+        <div class="prose" style="max-width:52em;margin-top:14px"><p>再看其他条件。这几行是早先在 4 mm 网格上做的，只看相对变化：频率差 10 MHz、建场时间、天线轴长度都影响很小，真正左右结果的是食物形状和馈电布置。</p></div>
+        <div class="tscroll"><table id="sensTable"><thead><tr><th>改动（4 mm 网格）</th><th>回转天线 CV</th><th>经典转盘 CV</th></tr></thead><tbody></tbody></table></div>
+      </details>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>不用转盘的三条路线</h2>
+    <div class="routes">
+      <article class="route main">
+        <div class="st">家用平板机的主流做法</div>
+        <h3>回转天线，底部馈电</h3>
+        <dl><dt>做法</dt><dd>天线板在平板下转，改变各腔模的比例。</dd>
+          <dt>好处</dt><dd>地板平，好擦，方形容器放得下，也不会卡住转不动。<span class="tag t-src">科普</span></dd>
+          <dt>代价</dt><dd>地板下要留出馈能室和波导的高度。专利里也在想办法缩小这块空间。<span class="tag t-src">专利</span></dd>
+          <dt>失效</dt><dd>电机或轴卡住，就退化成固定热点。</dd></dl>
+      </article>
+      <article class="route">
+        <div class="st">有产品，家用较少见（我的判断，没查到份额数据）</div>
+        <h3>搅拌叶片</h3>
+        <dl><dt>做法</dt><dd>风扇状金属叶片在馈口附近转，把波打向不同方向，常藏在腔顶或护板后。<span class="tag t-src">科普</span></dd>
+          <dt>好处</dt><dd>馈口可以放在腔顶，地板下不用留空间。<span class="tag t-guess">推测</span></dd>
+          <dt>代价</dt><dd>腔顶要让出高度，叶片形状只能靠实验和仿真调。<span class="tag t-guess">推测</span></dd>
+          <dt>失效</dt><dd>和回转天线一样，靠电机。</dd></dl>
+      </article>
+      <article class="route">
+        <div class="st">尚未普及（我的判断）</div>
+        <h3>固态多路源</h3>
+        <dl><dt>做法</dt><dd>半导体功放代替磁控管，多路同频输出。改相位能挪驻波，改频率能换吸收情况。<span class="tag t-src">行业文章</span></dd>
+          <dt>好处</dt><dd>没有运动部件，功率能微秒级调节。<span class="tag t-src">行业文章</span></dd>
+          <dt>代价</dt><dd>磁控管的强项就是便宜地出大功率，固态要在成本上追上它。<span class="tag t-src">行业文章</span></dd>
+          <dt>失效</dt><dd>依赖控制算法读懂腔内状态。<span class="tag t-guess">推测</span></dd></dl>
+      </article>
+    </div>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>依赖哪些前提，什么时候会失效</h2>
+    <ul class="fail">
+      <li><b>天线转得比建场慢得多</b>腔内的场在纳秒级建立，电机转一圈按秒计，所以每个角度都可以当稳态看。这条几乎不会破。</li>
+      <li><b>食物不能太厚</b>2.45 GHz 进含水食物约 1 cm 就衰减到 37%：土豆 0.9 cm，肉 0.9–1.2 cm。更深的地方靠热传导，天线转得再勤也帮不上。<span class="tag t-fact">公认</span></li>
+      <li><b>电机卡住</b>回转天线退化成单一角度。便当的不均匀度会在 <span data-num="bento.stuck.min"></span> 到 <span data-num="bento.stuck.max"></span> 之间，看卡在哪。平板挡着，肉眼看不出来。<span class="tag t-sim">本页仿真</span></li>
+      <li><b>冷冻食物</b>冰几乎不吸微波，化开的水吸得多，于是化了的地方越来越热，没化的还是冰。这个问题转什么都解决不了。<span class="tag t-fact">公认</span></li>
+      <li><b>容器和包装骗过传感器</b>重量传感器按总重算时长，重容器可能加热过头；湿度传感器遇到保鲜膜看不到蒸气。<span class="tag t-src">科普</span></li>
+      <li><b>金属进腔</b>金属会改变腔内边界，算好的图样就不算数了，尖角处还可能打火。<span class="tag t-fact">公认</span></li>
+    </ul>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>这页内容的证据强弱</h2>
+    <div class="tiers">
+      <div><h3><span class="tag t-fact">公认</span> 教科书级</h3><ul><li>2.45 GHz 真空波长 122 mm</li><li>金属腔内形成驻波，场可展开成腔模</li><li>水 ε′≈78、ε″≈12，冰近乎透明</li></ul></div>
+      <div><h3><span class="tag t-src">资料</span> 有来源，不是定论</h3><ul><li>天线尺寸来自一份专利的实施例，别家可能不同</li><li>"平板机靠地板下的回转天线"来自科普和评测，不是厂家白皮书</li><li>CHOICE 的分数是综合分</li></ul></div>
+      <div><h3><span class="tag t-sim">本页仿真</span> 初步</h3><ul><li>一台虚构机型的结果，不代表所有平板机</li><li>求解器用 30 个空腔谐振频率校验过，平均误差 0.02%，这只说明解方程没错</li>
+        <li>4 mm 网格下回转天线的数字偏差明显，换到 3 mm 后才和 2 mm 接近，差约 3 个百分点</li><li>天线和波导的匹配没有优化，转盘试了 3 个馈口位置，天线试了 2 种板型，样本很少</li></ul></div>
+      <div><h3><span class="tag t-guess">推测</span> 我的判断</h3><ul><li>转盘为什么留同心环、天线为什么不挑形状</li><li>搅拌叶片的取舍</li><li>两条非主流路线的普及程度</li></ul></div>
+    </div>
+    <details style="max-width:none"><summary>三维仿真的完整假设</summary>
+      <div class="prose" style="max-width:52em"><p>三维时域有限差分，网格 3 mm，约 175 万单元，每个工况 36 个角度，每角度先等约 10 个射频周期建场，再取 3 个周期平均。金属按理想导体，门当作完整金属壁。食物用恒定的 ε′=35、σ=1.5 S/m（ε″≈11），对应约 1 cm 穿透深度，不随温度变。只算 2.45 GHz 单频，而真实磁控管有频宽。每个角度按相同吸收功率归一，近似磁控管的恒功率。没有算热传导，所以 CV 是<b>吸热功率</b>的不均匀度，不是温度，实际温差会被热传导抹平一些。</p></div>
+    </details>
+  </div></section>
+
+  <section class="s"><div class="wrap">
+    <h2>来源</h2>
+    <ol class="src">
+      <li><a href="https://patents.google.com/patent/JP6861397B2" target="_blank" rel="noopener">JP6861397B2 マイクロ波加熱装置（Panasonic）</a></li>
+      <li><a href="https://news.allabout.co.jp/articles/o/83304/" target="_blank" rel="noopener">All About：ターンテーブル式とフラットテーブル式</a></li>
+      <li><a href="https://news.allabout.co.jp/articles/o/95676/" target="_blank" rel="noopener">All About：フラットテーブルとセンサー</a></li>
+      <li><a href="https://www.choice.com.au/home-and-living/kitchen/microwaves/articles/flatbed-vs-turntable-microwaves" target="_blank" rel="noopener">CHOICE：Flatbed vs turntable microwaves</a></li>
+      <li><a href="https://kadenfan.hitachi.co.jp/support/range/q_a/a06.html" target="_blank" rel="noopener">日立：電子レンジのセンサー</a></li>
+      <li><a href="https://engineerfix.com/why-do-some-microwaves-not-spin/" target="_blank" rel="noopener">EngineerFix：Why do some microwaves not spin?</a></li>
+      <li><a href="https://water.lsbu.ac.uk/water/microwave_water.html" target="_blank" rel="noopener">LSBU：Water and microwaves</a></li>
+      <li><a href="https://www.pueschner.com/en/microwave-technology/penetration-depths" target="_blank" rel="noopener">Püschner：Penetration depths</a></li>
+      <li><a href="https://electropages.com/blog/2016/12/six-ways-to-improve-microwave-cooking-solid-state-devices" target="_blank" rel="noopener">Electropages：Six ways to improve microwave cooking</a></li>
+    </ol>
+  </div></section>
+  <footer><div class="wrap">模型由 Blender 脚本生成，共 31 个零件。三维仿真由 C 写的 FDTD 求解器离线完成，源码在 GitHub 仓库 HTML-classroom 的同名文件夹里。</div></footer>
+</main>
