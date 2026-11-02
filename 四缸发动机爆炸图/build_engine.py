@@ -13,6 +13,7 @@
     engine.blend   Blender 工程，按空格播放：第 1~120 帧按拆机顺序拆开，第 150~270 帧反顺序装回
     engine.glb     glTF 模型（单位米，每个单元一个节点，extras 里有零件号、中文名、材料、作用、爆炸路线），
                    虚幻工程 MyVRToyBox 的 Tools/import_model.py 直接导入（MODEL_NAME=Engine）
+    四缸发动机_离线版.html  双击就能看的网页（结构 / 原理 / 模型），模型嵌在文件里，需要同目录的 viewer_template.html
     parts.json     零件表
     render_*.png   加 --render 时用 Cycles 渲染装配 / 爆炸预览图
 
@@ -29,6 +30,7 @@
 
 兼容: Blender 4.2 ~ 5.x
 """
+import base64
 import json
 import math
 import os
@@ -1984,6 +1986,23 @@ def export_glb(glb_path):
         json.dump(rows, f, ensure_ascii=False, indent=1)
 
 
+def write_html(glb_path):
+    """把 glb 以 base64 填进 viewer_template.html（three.js 已打包在内），生成离线网页"""
+    tpl = os.path.join(HERE, 'viewer_template.html')
+    if not os.path.exists(tpl):
+        print('[WARN] viewer_template.html not found, skip html')
+        return
+    with open(tpl, encoding='utf-8') as f:
+        html = f.read()
+    with open(glb_path, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode('ascii')
+    html = html.replace('"__GLB_BASE64__"', '"' + b64 + '"')
+    dst = os.path.join(OUT, '四缸发动机_离线版.html')
+    with open(dst, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print('[OK] wrote', dst, f'({len(html) / 1e6:.1f} MB)')
+
+
 def main():
     global ROOT
     reset()
@@ -1997,6 +2016,7 @@ def main():
     animate_explode()
     viewport_defaults()
     export_glb(os.path.join(OUT, 'engine.glb'))
+    write_html(os.path.join(OUT, 'engine.glb'))
     bpy.context.scene.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'engine.blend'))
     print('[OK] saved engine.blend')
