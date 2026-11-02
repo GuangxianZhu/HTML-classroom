@@ -7,6 +7,7 @@
 |---|---|
 | ![装配](preview/render_assembled.jpg) | ![爆炸](preview/render_exploded.jpg) |
 
+- **网页版（手机可看）**：<https://claude.ai/artifact/WYqSfwmKgtW4dnCBH1aZe9>（默认只有自己能打开，要给别人看需在页面的 Share 里开启分享）
 - **离线网页**：运行一次 `启动.bat` 后，`output\迷你车床_离线版.html` 双击就能看（模型嵌在文件里，不用联网，手机也能打开）。三种模式见下面「网页」一节。
 
 ## 用法
@@ -95,7 +96,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `viewer_src.html` | 网页源码（three.js 从 CDN 加载）。改网页从这里改 |
+| `viewer_src.html` | 网页源码（three.js 从 CDN 加载）。改网页从这里改。发布成网页版时，模型以 base64 文本 `lathe_glb.txt` 放在页面旁边 |
 | `viewer_template.html` | 离线模板（three.js r170 已打包在内）。`build_lathe.py` 把 glb 用 base64 填进去，生成 `output\迷你车床_离线版.html` |
 | `tools/make_template.mjs` | 改了 `viewer_src.html` 之后跑一次，重新打包模板：`cd tools && npm install --no-save esbuild@0.24.0 three@0.170.0 && node make_template.mjs` |
 

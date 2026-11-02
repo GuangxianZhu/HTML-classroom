@@ -299,16 +299,9 @@ const itemByName = new Map(), partByNo = new Map();
 /* ───────── load ───────── */
 async function load(){
   const loader = new GLTFLoader();
-  const b64 = window.__GLB_B64;
-  let buf;
-  if(b64 && b64.length > 100){
-    $('ld-t').textContent = '正在解码模型…';
-    await new Promise(r=>setTimeout(r, 30));
-    const bin = atob(b64.trim()); buf = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
-    buf = buf.buffer;
-  } else {
-    // published page: the model ships next to it as a separate .glb
+  let b64 = window.__GLB_B64;
+  if(!b64 || b64.length < 100){
+    // published page: the model ships next to it as base64 text (PROJ.glbFile, e.g. lathe_glb.txt)
     const res = await fetch(PROJ.glbFile);
     if(!res.ok) throw new Error(PROJ.glbFile + ' ' + res.status);
     const total = +res.headers.get('content-length') || 0, reader = res.body.getReader(), chunks = [];
@@ -316,9 +309,13 @@ async function load(){
     for(;;){ const { done, value } = await reader.read(); if(done) break; chunks.push(value); got += value.length;
       $('ld-t').textContent = `正在下载模型… ${(got/1e6).toFixed(1)}${total ? ' / ' + (total/1e6).toFixed(1) : ''} MB`;
       if(total) $('ld-b').style.width = (100*got/total).toFixed(0) + '%'; }
-    buf = await new Blob(chunks).arrayBuffer();
+    b64 = new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
   }
-  return loader.parseAsync(buf, '');
+  $('ld-t').textContent = '正在解码模型…';
+  await new Promise(r=>setTimeout(r, 30));
+  const bin = atob(b64.trim()), buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return loader.parseAsync(buf.buffer, '');
 }
 
 function setup(gltf){
@@ -718,7 +715,7 @@ let G = {};
 const STEP_T = 4.2;
 
 PROJ = {
-  glbFile: 'ai_server.glb',
+  glbFile: 'ai_server_glb.txt',
   dirs: { struct:V3(1,.8,.45), model:V3(1,.55,.6), principle:V3(1,.95,.3) },
   hide: new Set([2]),
   principleMargin: 18,
