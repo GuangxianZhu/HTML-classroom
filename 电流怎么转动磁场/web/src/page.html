@@ -1,0 +1,360 @@
+<title>电流怎么转动磁场</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: 实验记录本。每一步左边读、右边动手（图固定不动），手机上读一段、动一下、再读。
+   主角是小磁针阵列和 N/S 两个字母：红 N、蓝 S，铜色给线圈和强调。 */
+:root{
+  --bg:#E9EEF0; --panel:#F7F9FA; --panel2:#DFE6EA; --ink:#14202B; --ink2:#3F4D59; --ink3:#5F6C78; --line:#C9D3D9;
+  --copper:#A9531C; --copper-soft:#F0DCCD; --n:#D3312F; --s:#2259C4; --tail:#8E9AA5;
+  --ph-u:#b97a00; --ph-v:#0b8f7a; --ph-w:#8a4fd0; --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --wire:#C8743A; --wire-back:#D9B59A;
+  --f-cn:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F151A; --panel:#171F26; --panel2:#1F2932; --ink:#E8EEF2; --ink2:#B7C3CD; --ink3:#8E9DAA; --line:#2E3A45;
+  --copper:#E59A5E; --copper-soft:#3A2618; --n:#FF6B63; --s:#74A7FF; --tail:#5F6E7B;
+  --ph-u:#f0b429; --ph-v:#3ed6b4; --ph-w:#b78cff; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --wire:#D98A4E; --wire-back:#5A3F2E; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0F151A; --panel:#171F26; --panel2:#1F2932; --ink:#E8EEF2; --ink2:#B7C3CD; --ink3:#8E9DAA; --line:#2E3A45;
+  --copper:#E59A5E; --copper-soft:#3A2618; --n:#FF6B63; --s:#74A7FF; --tail:#5F6E7B;
+  --ph-u:#f0b429; --ph-v:#3ed6b4; --ph-w:#b78cff; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --wire:#D98A4E; --wire-back:#5A3F2E; color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{box-sizing:border-box;scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 var(--f-cn);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-block:26px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:46px}
+.N{color:var(--n)} .S{color:var(--s)}
+.pole{font-family:var(--f-num);font-weight:700}
+
+.hero{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font:500 13px/1 var(--f-mono);color:var(--copper);letter-spacing:.06em}
+h1{margin:0;font-size:clamp(30px,5.2vw,52px);line-height:1.2;font-weight:900;letter-spacing:.01em;text-wrap:balance}
+h1 .pole{font-size:1.2em;line-height:.8}
+.hero p{margin:0;max-width:44em;font-size:17px;color:var(--ink2)}
+.hero .fig{margin-top:6px}
+.steps{display:flex;flex-wrap:wrap;gap:6px 8px;margin:6px 0 0;padding:0;list-style:none;font-size:13.5px}
+.steps a{display:inline-flex;gap:6px;align-items:baseline;padding:4px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink2);text-decoration:none}
+.steps a:hover{border-color:var(--copper);color:var(--ink)}
+.steps b{font:700 15px/1 var(--f-num);color:var(--copper)}
+
+.sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);grid-template-areas:"a f" "b f";grid-template-rows:auto 1fr;gap:6px 34px;scroll-margin-top:12px;border-top:1px solid var(--line);padding-top:24px}
+.sec.tall{grid-template-areas:"a f" "b f"}
+.sec>.a{grid-area:a;min-width:0}
+.sec>.b{grid-area:b;min-width:0}
+.sec>.f{grid-area:f;min-width:0;display:flex;flex-direction:column;gap:12px;align-self:start;position:sticky;top:12px}
+.num{font:700 15px/1 var(--f-num);letter-spacing:.1em;color:var(--copper);display:block;margin-bottom:6px}
+h2{margin:0 0 8px;font-size:clamp(23px,3vw,29px);line-height:1.3;font-weight:900;text-wrap:balance}
+p{margin:0 0 .75em;max-width:38em}
+.b p:last-child,.a p:last-child{margin-bottom:0}
+h3{margin:1em 0 .3em;font-size:16px;font-weight:700}
+b,strong{font-weight:700}
+.key{border-left:0;background:var(--copper-soft);border-radius:5px;padding:11px 14px;margin:.4em 0 .9em;font-weight:500;max-width:38em}
+.lim{font-size:14px;line-height:1.7;color:var(--ink3);margin:.9em 0 0;max-width:40em}
+.ev{font:500 11.5px/1 var(--f-cn);padding:3px 6px;border-radius:3px;border:1px solid currentColor;white-space:nowrap;margin-right:5px;vertical-align:1px}
+.ev.a{color:var(--ok)} .ev.c{color:var(--copper)} .ev.d{color:var(--ph-w)}
+.sym{font-family:var(--f-mono);font-size:1.05em}
+
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.fig canvas{display:block;width:100%;border-radius:3px;touch-action:pan-y}
+.fig canvas.grab{touch-action:none;cursor:grab}
+.cap{font-size:13.5px;line-height:1.6;color:var(--ink2);min-height:1.6em;margin:0;max-width:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn{font:500 14px/1.2 var(--f-cn);padding:8px 11px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:var(--copper)}
+.btn[aria-pressed="true"]{background:var(--copper);border-color:var(--copper);color:var(--panel)}
+.btn.main{background:var(--copper);border-color:var(--copper);color:var(--panel);font-weight:700}
+.btn:focus-visible,input:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.ctl{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) 7.2em;gap:4px 10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.ctl input{width:100%;min-width:0;accent-color:var(--copper)}
+.ctl output{font:500 12.5px var(--f-mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.guess{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:.3em 0 .9em;display:flex;flex-direction:column;gap:7px;max-width:38em}
+.guess .q{font-weight:500;margin:0}
+.guess .btn{background:var(--panel2)}
+.guess .btn.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.guess .btn.wrong{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.guess .r{margin:0;font-size:14.5px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kpi{border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:var(--panel)}
+.kpi span{display:block;font-size:12px;color:var(--ink3);line-height:1.4}
+.kpi b{font:700 22px/1.2 var(--f-num);font-variant-numeric:tabular-nums}
+.kpi small{font:400 12px var(--f-cn);color:var(--ink3);margin-left:2px}
+.pt{font-size:13px;color:var(--ink3);margin:0 0 -5px;display:flex;flex-wrap:wrap;gap:0 12px;max-width:none}
+.pt i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:3px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+tr:last-child td,tr:last-child th{border-bottom:0}
+th{font-weight:500;color:var(--ink3);white-space:nowrap}
+tbody th{white-space:normal;min-width:76px}
+td{min-width:86px}
+.plate{position:relative;margin:0;border-radius:6px;overflow:hidden;background:#0d1626;max-width:100%}
+.plate img{display:block;width:100%;height:auto}
+.plate span{position:absolute;transform:translate(-50%,-50%);font-size:12.5px;line-height:1.3;color:#fff;background:rgba(10,16,26,.8);padding:2px 6px;border-radius:3px;white-space:nowrap}
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 34px}
+.faq h3{margin:0 0 .2em}
+.faq p{margin:0}
+.end{border-top:1px solid var(--line);padding-top:22px}
+a{color:var(--copper)}
+@media (max-width:920px){
+  .wrap{gap:34px}
+  .sec,.sec.tall{grid-template-columns:minmax(0,1fr);grid-template-areas:"a" "f" "b";grid-template-rows:auto;gap:12px}
+  .sec>.f{position:static}
+  .faq{grid-template-columns:minmax(0,1fr)}
+  .ctl{grid-template-columns:minmax(64px,auto) minmax(0,1fr) 6.2em}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">零基础电机课 · 一个公式都不用背</div>
+    <h1>电流绕圈的方向，决定哪头是 <span class="pole N">N</span></h1>
+    <p>电流一反，线圈的 <b class="N">N</b> 和 <b class="S">S</b> 就对调。几个线圈一起通电时，磁场合成一个总方向，改一改每个线圈的电流比例，总方向就转起来了。整个过程线圈一动不动。下面九步把这几句话讲透。</p>
+    <div class="fig">
+      <canvas id="h" aria-label="一个通电线圈周围摆满小磁针。电池反接后，所有小磁针一起掉头，线圈两端的 N 和 S 对调"></canvas>
+      <div class="row"><button class="btn main" id="h-flip" type="button">把电池反过来接</button><p class="cap" id="h-cap" style="flex:1 1 220px"></p></div>
+    </div>
+    <ul class="steps" aria-label="九个步骤">
+      <li><a href="#s1"><b>1</b>看见磁场</a></li><li><a href="#s2"><b>2</b>电流生磁</a></li><li><a href="#s3"><b>3</b>绕成线圈</a></li>
+      <li><a href="#s4"><b>4</b>一个不够</a></li><li><a href="#s5"><b>5</b>比例定方向</a></li><li><a href="#s6"><b>6</b>三相电</a></li>
+      <li><a href="#s7"><b>7</b>扭矩和转速</a></li><li><a href="#s8"><b>8</b>开关</a></li><li><a href="#s9"><b>9</b>真实电机</a></li>
+    </ul>
+  </header>
+
+  <section class="sec" id="s1">
+    <div class="a">
+      <span class="num">第 1 步</span><h2>先学会看磁场</h2>
+      <p>磁场看不见，我们拿指南针当眼睛。指南针红色那头叫 <b class="N">N</b> 极。把它放到某个位置，红头指向哪，那里的<b>磁场方向</b>就是哪。这个词的意思就这么简单。</p>
+      <p>拖动大指南针绕磁铁走一圈，再把磁铁调个头。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f1" class="grab" aria-label="条形磁铁周围的小磁针阵列，可以拖动一个大指南针"></canvas>
+      <div class="row"><button class="btn" id="f1-flip" type="button">把磁铁调个头</button></div>
+    </div></div>
+    <div class="b">
+      <p>磁极之间同名相斥、异名相吸，所以红头（N）总是朝着磁铁的 <b class="S">S</b> 极那边偏。磁铁一调头，所有小针全跟着反过来。</p>
+      <p class="lim"><span class="ev a">公认</span>磁场是真实存在的物理量。“磁力线”只是画图的工具，空气里并没有一根根线。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s2">
+    <div class="a">
+      <span class="num">第 2 步</span><h2>电流自己就能造出磁场</h2>
+      <p>电流就是电荷在导线里排着队走。它有大小，也有方向，电池接反，它就倒过来走。</p>
+      <p>1820 年，奥斯特发现通电导线旁边的指南针会偏转：<b>电流周围自己就有磁场。</b>磁场绕着导线转圈，就像水绕着排水口转。</p>
+      <p>图里是俯视：一根导线竖直穿过纸面。<span class="sym">⊙</span> 表示电流朝你出来，好比看到飞来的箭头尖；<span class="sym">⊗</span> 表示电流离开你，好比看到飞走的箭尾。</p>
+      <div class="guess" data-guess="g1">
+        <p class="q">猜一下：电流反过来，这圈指南针会怎样？</p>
+        <div class="row"><button class="btn" type="button" data-a="0">纹丝不动</button><button class="btn" type="button" data-a="1">全部掉头</button><button class="btn" type="button" data-a="2">全部指向导线</button></div>
+        <p class="r" hidden>全部掉头。磁场绕导线转圈的方向，跟着电流方向一起反过来。图里已经帮你反了电流，你也可以自己拖滑杆。</p>
+      </div>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f2" aria-label="俯视图：导线穿过纸面，周围两圈小指南针随电流方向偏转。右上角的瓶盖演示拧的方向"></canvas>
+      <label class="ctl" for="f2-i"><span>电流</span><input id="f2-i" type="range" min="-20" max="20" step="1" value="12"><output id="f2-o" for="f2-i"></output></label>
+      <p class="cap" id="f2-cap"></p>
+    </div></div>
+    <div class="b">
+      <h3>只记一条：拧瓶盖</h3>
+      <p>逆时针拧，瓶盖朝你走出来；顺时针拧，瓶盖往里走。<b>电流好比瓶盖移动的方向，磁场好比你拧的方向。</b>物理书里的右手螺旋定则，说的是同一件事。</p>
+      <p>电流为什么会产生磁场？这是自然界的基本规律，实验反复验证过。再往下追要用到相对论，学电机用不上，先当成事实接受就好。</p>
+      <p class="lim"><span class="ev a">公认</span>电流方向按惯例规定为正电荷流动的方向，金属里的电子其实反着走。判断磁场一律用规定的电流方向。<br><span class="ev c">本页简化</span>导线当成无限长，地磁场取 40 μT，指南针同时受地磁和导线的影响，所以电流小时只偏一点。</p>
+    </div>
+  </section>
+
+  <section class="sec tall" id="s3">
+    <div class="a">
+      <span class="num">第 3 步</span><h2>绕成线圈，就是一块能翻转的磁铁</h2>
+      <p>一根导线的磁场散在四周，很弱。把导线绕成圈，每一段导线的磁场在线圈中间都朝同一个方向，全部叠在一起，线圈就成了一根条形磁铁，一头 <b class="N">N</b> 一头 <b class="S">S</b>。</p>
+      <p>第一张图把线圈从中间切开：上排电流朝你 <span class="sym">⊙</span>，下排离开你 <span class="sym">⊗</span>。两排导线各转各的圈，到了线圈中间，方向正好相同。</p>
+      <div class="guess" data-guess="g2">
+        <p class="q">猜一下：正对着线圈看，电流逆时针绕。朝你这面是？</p>
+        <div class="row"><button class="btn" type="button" data-a="0">N 极</button><button class="btn" type="button" data-a="1">S 极</button><button class="btn" type="button" data-a="2">说不准</button></div>
+        <p class="r" hidden>N 极。用瓶盖想：逆时针拧，瓶盖朝你出来，所以磁场朝你出来。磁场出来的那面就是 N。</p>
+      </div>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f3" aria-label="线圈切面图，上排导线电流朝外，下排朝里，周围小磁针显示磁场，两端标出 N 和 S"></canvas>
+      <label class="ctl" for="f3-n"><span>绕几圈</span><input id="f3-n" type="range" min="1" max="10" step="1" value="6"><output id="f3-no" for="f3-n"></output></label>
+      <div class="row"><button class="btn" id="f3-rev" type="button">电流反向</button><button class="btn" id="f3-fe" type="button" aria-pressed="false">放进铁芯</button></div>
+      <p class="cap" id="f3-cap"></p>
+      <canvas id="f3b" aria-label="正对线圈看，电流绕圈的方向决定这一面是 N 还是 S"></canvas>
+      <div class="row" role="group" aria-label="电流绕向"><button class="btn" id="f3-ccw" type="button" aria-pressed="true">逆时针绕</button><button class="btn" id="f3-cw" type="button" aria-pressed="false">顺时针绕</button></div>
+    </div></div>
+    <div class="b">
+      <p class="key">这就是你问的答案。磁场的方向由电流绕圈的方向决定。电流一反，绕圈方向就反，N 和 S 马上对调，线圈本身没有动。</p>
+      <p>圈数越多、电流越大，磁场越强。放一根铁芯，磁场还能再强几百到几千倍：铁里本来就有无数小磁体，线圈的磁场把它们排齐，它们再一起帮忙。</p>
+      <p class="lim"><span class="ev a">公认</span>铁芯有上限。小磁体全排齐以后，再加电流也增强不了多少，这叫饱和。<br><span class="ev c">本页简化</span>切面图用两排长直导线近似，线圈中段准确，两端的细节只是大致形状。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s4">
+    <div class="a">
+      <span class="num">第 4 步</span><h2>一个线圈转不起来</h2>
+      <p>电机里转的那部分叫<b>转子</b>。把它想成一根能绕轴转的大号指南针，它永远想让红头 N 指向磁场方向。</p>
+      <p>试试看：只用这一个线圈，来回切换电流方向，能不能让转子一直朝同一个方向转？</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f4" aria-label="转子是一根可转动的磁铁，左侧一个线圈，可以切换电流方向"></canvas>
+      <div class="row" role="group" aria-label="线圈电流"><button class="btn" id="f4-p" type="button" aria-pressed="false">通电：磁场向右</button><button class="btn" id="f4-0" type="button" aria-pressed="true">断电</button><button class="btn" id="f4-n" type="button" aria-pressed="false">通电：磁场向左</button></div>
+      <p class="cap" id="f4-cap"></p>
+    </div></div>
+    <div class="b">
+      <p>你会发现两个毛病。第一，转子转到和磁场对齐就停了，这时拉力正好穿过转轴，就像对着门轴推门，推不动。第二，这时把电流反过来，转子和磁场正好反向，拉力还是穿过转轴，它只能靠一点点晃动才掉头，而且往哪边掉说不准。这个位置叫<b>死点</b>。</p>
+      <p>所以光能翻转还不够。磁场得能指向别的方向。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s5">
+    <div class="a">
+      <span class="num">第 5 步</span><h2>加一组线圈，电流比例决定方向</h2>
+      <p>再加一组线圈，和第一组垂直摆放。A 组把磁场往右推，B 组往上推。两组同时通电，总磁场就是两者的合力，就像两个人拉一条船：一个往东拉，一个往北拉，船往东北走。</p>
+      <div class="guess" data-guess="g3">
+        <p class="q">猜一下：A、B 的电流一样大，总磁场指向哪？</p>
+        <div class="row"><button class="btn" type="button" data-a="0">向右</button><button class="btn" type="button" data-a="1">向上</button><button class="btn" type="button" data-a="2">右上方 45°</button></div>
+        <p class="r" hidden>右上方 45°。力气一样大，船走正中间。图里已经帮你调好了。</p>
+      </div>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f5" aria-label="两组互相垂直的线圈和转子，两个滑杆调两组电流，箭头显示合成方向"></canvas>
+      <label class="ctl" for="f5-a"><span>A 组电流</span><input id="f5-a" type="range" min="-100" max="100" step="1" value="80"><output id="f5-ao" for="f5-a"></output></label>
+      <label class="ctl" for="f5-b"><span>B 组电流</span><input id="f5-b" type="range" min="-100" max="100" step="1" value="30"><output id="f5-bo" for="f5-b"></output></label>
+      <div class="row"><span class="cap" style="min-height:0">手动换相：</span><button class="btn" id="f5-1" type="button">A 正</button><button class="btn" id="f5-2" type="button">B 正</button><button class="btn" id="f5-3" type="button">A 负</button><button class="btn" id="f5-4" type="button">B 负</button><button class="btn" id="f5-auto" type="button" aria-pressed="false">平滑自动转</button></div>
+    </div></div>
+    <div class="b">
+      <p class="key">线圈一动没动，只改了两组电流的比例，磁场方向就变了。电机调磁场方向靠的就是这个。</p>
+      <p>按顺序点“A 正、B 正、A 负、B 负”，你就成了一台步进电机的控制器，转子一步转 90°。倒着点，它就倒转。死点也解决了：转子对齐后，下一组线圈的拉力正好在它侧面。</p>
+      <p>按“平滑自动转”，两组电流不再跳变，而是连续地此消彼长，转子就顺滑地转起来。</p>
+      <p class="lim"><span class="ev a">公认</span>磁场可以像力一样按平行四边形相加，这叫叠加原理。<br><span class="ev c">本页简化</span>假设线圈磁场和电流成正比，铁芯没有饱和。</p>
+    </div>
+  </section>
+
+  <section class="sec tall" id="s6">
+    <div class="a">
+      <span class="num">第 6 步</span><h2>三相电是算出来的</h2>
+      <p>电动车用三组线圈，互相差 120°，叫 U、V、W。原因是省线：三组电流加起来始终等于零，电流从一根线进去、从另外两根线回来，不用单独的回流线。两组线圈要四根线，三组只要三根。</p>
+      <p>现在把问题倒过来：<b>我想让总磁场指向某个方向，三组线圈各该给多少电流？</b>拖动圆圈上的手柄试试，三根柱子就是答案。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f6" class="grab" aria-label="三组线圈围成一圈，拖动手柄设定总磁场方向，旁边三根柱子显示三组电流"></canvas>
+      <div class="row"><button class="btn" id="f6-auto" type="button" aria-pressed="false">让箭头匀速转</button><button class="btn" id="f6-rev" type="button">反向转（调换 V、W）</button></div>
+      <p class="pt"><span>三组电流随时间的变化</span><span><i style="background:var(--ph-u)"></i>U</span><span><i style="background:var(--ph-v)"></i>V</span><span><i style="background:var(--ph-w)"></i>W</span></p>
+      <canvas id="f6t" aria-label="三相电流随时间变化的曲线"></canvas>
+    </div></div>
+    <div class="b">
+      <p>按“让箭头匀速转”，下面就画出三条互相错开的波浪线。这就是<b>三相交流电</b>。它的形状是算出来的：要总磁场大小不变、匀速旋转，每组电流就只能长这样。</p>
+      <p class="key">磁场转动就像体育场里的人浪。每个人只是站起来又坐下，浪却绕场跑了一圈。每组线圈只是电流一涨一落，总磁场却转了起来。</p>
+      <p>波浪的<b>快慢</b>决定磁场转多快，波浪的<b>高低</b>决定磁场多强。这两个旋钮，就是控制器手里的全部东西。</p>
+      <p class="lim"><span class="ev a">公认</span>三相正弦电流合成的磁场大小恒定，是单组峰值的 1.5 倍。<br><span class="ev c">本页简化</span>每组线圈画成一块。真实电机的线圈分散在几十个槽里，让磁场更接近理想的旋转，见第 9 步。</p>
+    </div>
+  </section>
+
+  <section class="sec tall" id="s7">
+    <div class="a">
+      <span class="num">第 7 步</span><h2>转子怎么跟上：扭矩和转速</h2>
+      <p>磁场转起来，转子就像被牵着跑的狗。两个词在这里登场：</p>
+      <p><b>扭矩</b>是转动的力气，也就是绳子拉转子的劲。磁场超前转子 90° 时拉得最狠，对齐时不出力。<b>转速</b>是每分钟转多少圈。</p>
+      <p>让磁场带着转子走，有两种思路：</p>
+      <p><b>开环：</b>先定好转速，磁场自己按这个速度转，转子在后面追。简单，风机水泵常用。但提速太猛或负载太重，绳子就断了，转子一下跟不上，这叫<b>失步</b>。</p>
+      <p><b>闭环（电动车的主流做法）：</b>传感器时刻报告转子在哪，磁场永远放在转子前方 90°，所以不会失步。踏板决定电流，也就是拉力。拉力大于阻力就加速，等于阻力就匀速。转速是这样“较量”出来的，控制器不用直接规定它。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f7" aria-label="转子跟随旋转磁场，蓝色虚线箭头是磁场，弧线标出两者夹角"></canvas>
+      <div class="row" role="group" aria-label="控制方式"><button class="btn" id="f7-open" type="button" aria-pressed="true">开环：磁场自己转</button><button class="btn" id="f7-closed" type="button" aria-pressed="false">闭环：磁场超前 90°</button></div>
+      <label class="ctl" for="f7-s" id="f7-sl"><span>设定转速</span><input id="f7-s" type="range" min="0" max="2.4" step="0.05" value="0.8"><output id="f7-so" for="f7-s"></output></label>
+      <label class="ctl" for="f7-c" id="f7-cl"><span>电流（踏板）</span><input id="f7-c" type="range" min="0" max="100" step="1" value="70"><output id="f7-co" for="f7-c"></output></label>
+      <label class="ctl" for="f7-l"><span>负载阻力</span><input id="f7-l" type="range" min="0" max="100" step="1" value="20"><output id="f7-lo" for="f7-l"></output></label>
+      <div class="kpis"><div class="kpi"><span>转子转速</span><b id="f7-k1">–</b></div><div class="kpi"><span>磁场超前角</span><b id="f7-k2">–</b></div><div class="kpi"><span>拉力</span><b id="f7-k3">–</b></div></div>
+      <p class="cap" id="f7-cap"></p>
+      <p class="pt"><span>转速随时间的变化（转/秒）</span><span><i style="background:var(--copper)"></i>转子</span><span><i style="background:var(--s)"></i>磁场</span></p>
+      <canvas id="f7t" aria-label="转子转速和磁场转速随时间的变化"></canvas>
+    </div></div>
+    <div class="b">
+      <p>可以这样玩：开环下把“设定转速”慢慢拖高，转子跟得上；再一下子拖到最高，看它失步。切到闭环，把负载加大，转子只是变慢，不会丢。</p>
+      <p class="lim"><span class="ev c">本页简化</span>负载当成恒定阻力，单位是相对值，转速也放慢了，真实转子每秒转几十到几百圈。超前 90° 是最简单的情况，真实的永磁电机最佳角度还要再大一点。</p>
+    </div>
+  </section>
+
+  <section class="sec tall" id="s8">
+    <div class="a">
+      <span class="num">第 8 步</span><h2>电池是直流，怎么变出这些电流</h2>
+      <p>电池的正负极是固定的。想让线圈里的电流能正能反，就用四个开关搭一座“桥”，叫 <b>H 桥</b>。闭合左上和右下，电流从左往右流；闭合右上和左下，电流从右往左流。不用真的把电池拆下来反接。</p>
+      <p>同一侧上下两个开关绝对不能同时闭合，试试看会发生什么。</p>
+      <p>电流大小靠“快速开关”来调。线圈不喜欢电流突变：开关闭合时电流慢慢涨，断开时慢慢跌。开关每秒动作上万次，电流就稳定在平均值附近。闭合时间占的比例叫<b>占空比</b>，占空比越大电流越大。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f8" aria-label="H 桥：电池、四个开关和中间的线圈，流动的点显示电流方向"></canvas>
+      <div class="row" role="group" aria-label="开关组合"><button class="btn" id="f8-a" type="button" aria-pressed="true">左上 + 右下</button><button class="btn" id="f8-b" type="button" aria-pressed="false">右上 + 左下</button><button class="btn" id="f8-0" type="button" aria-pressed="false">全断开</button><button class="btn" id="f8-x" type="button" aria-pressed="false">左上 + 左下</button></div>
+      <p class="cap" id="f8-cap"></p>
+      <label class="ctl" for="f8-d"><span>占空比</span><input id="f8-d" type="range" min="0" max="100" step="1" value="60"><output id="f8-do" for="f8-d"></output></label>
+      <p class="pt"><span><i style="background:var(--tail)"></i>开关状态</span><span><i style="background:var(--copper)"></i>线圈电流</span></p>
+      <canvas id="f8t" aria-label="开关脉冲和线圈电流的波形"></canvas>
+    </div></div>
+    <div class="b">
+      <p>三组线圈，每组一对开关，一共六个开关，这就是电动车的<b>逆变器</b>。</p>
+      <h3>给线圈换向的三种做法</h3>
+      <div class="tw"><table>
+        <thead><tr><th>做法</th><th>怎么换向</th><th>取舍</th><th>常见于</th></tr></thead>
+        <tbody>
+          <tr><th>有刷直流</th><td>电刷和换向器随转子一起切换</td><td>最简单便宜；电刷会磨损、打火</td><td>玩具、小家电</td></tr>
+          <tr><th>无刷方波</th><td>六个开关，每次通两相，跳着走</td><td>控制简单；扭矩有脉动，有噪声</td><td>风扇、无人机电调</td></tr>
+          <tr><th>正弦矢量控制（电动车主流）</th><td>六个开关，三相比例连续变化</td><td>平顺高效；算法和传感器更复杂</td><td>电动车、机器人关节</td></tr>
+        </tbody>
+      </table></div>
+      <p class="lim"><span class="ev a">公认</span>线圈电流不能突变，是因为磁场里存着能量，不能一瞬间清空。<br><span class="ev c">本页简化</span>开关理想，没有损耗；波形只画了几个周期，真实开关快得多。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s9">
+    <div class="a">
+      <span class="num">第 9 步</span><h2>回到真实的电机</h2>
+      <p>这张截面图来自上一页那台电动车电机的 Blender 模型。黄、绿、紫三色就是 U、V、W 三组线圈，只是被拆散放进了 48 个槽。红蓝两色是转子里的磁铁。</p>
+      <p>它有 8 个磁极，而不是玩具的 2 个。电流走一个周期，磁场只挪过一对磁极，也就是 1/4 圈。代价是电流频率要高 4 倍，好处是同样大小的电机能出更大的扭矩。</p>
+      <div class="tw"><table>
+        <thead><tr><th>这里学到的</th><th>真实电机里叫</th></tr></thead>
+        <tbody>
+          <tr><td>三组线圈</td><td>定子三相绕组</td></tr>
+          <tr><td>大号指南针</td><td>转子（永磁体）</td></tr>
+          <tr><td>六个开关</td><td>逆变器</td></tr>
+          <tr><td>报告转子位置</td><td>旋转变压器</td></tr>
+          <tr><td>绳子的拉力</td><td>扭矩</td></tr>
+          <tr><td>闭环跟随</td><td>矢量控制（FOC）</td></tr>
+          <tr><td>波浪的快慢</td><td>电频率</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="f">
+      <figure class="plate">
+        <img src="__SECTION_IMG__" alt="电动车电机的横截面：外圈定子槽里是三色线圈，内圈转子里是红蓝 V 形磁铁" width="900" height="900">
+        <span style="left:50%;top:6.5%">定子：48 个槽装三相线圈</span>
+        <span style="left:50%;top:36%">转子：8 极磁铁</span>
+        <span style="left:50%;top:50%">转轴穿过这里</span>
+      </figure>
+    </div>
+    <div class="b">
+      <p>把过程倒过来就是发电。车轮带着转子转，磁铁扫过线圈，线圈里感应出电流，电机变成发电机，这就是<b>能量回收</b>。同一套线圈和开关，电流方向反一下。</p>
+      <p>现在回头看<a href="https://claude.ai/artifact/BqbJ9PDxXpVG6ecwJu1KDq" target="_blank" rel="noopener">电动车电机调速那一页</a>，第 3 章的“超前角”就是这里绳子的角度，第 6 章的矢量控制就是第 7 步的闭环。</p>
+    </div>
+  </section>
+
+  <section class="end">
+    <h2>常见卡点</h2>
+    <div class="faq">
+      <div><h3>磁场真的在“转”吗？</h3><p>总磁场的方向在转，没有任何东西在机械转动。可以回看第 6 步的人浪比喻。</p></div>
+      <div><h3>电压和电流有什么区别？</h3><p>可以先用水管想象：电压是水压，电流是水流量。线圈的磁场只看电流，电压负责把电流推进去。转速高了线圈里会产生反向电压，推起来更费劲，所以高速需要更高电压。水管比喻到这里就够了，别往交流电和磁场上套。</p></div>
+      <div><h3>永磁铁里面也有电流吗？</h3><p>磁铁的磁性来自内部电子的自旋和运动，可以粗略想成无数极小的环形电流排齐了。所以磁铁和线圈算是同一类东西，只是一个关不掉，一个能开关。<span class="ev a">公认</span>这个图像是简化版，严格说要用量子力学。</p></div>
+      <div><h3>记不住左手右手怎么办？</h3><p>这一页只需要拧瓶盖这一条。判断受力方向时，用“磁针总想转到和磁场对齐”也够用了。</p></div>
+      <div><h3>这些比喻哪里不准？</h3><p>瓶盖只用来记方向，导线周围并没有东西在拧。拉船的比喻依赖“磁场和电流成正比”，铁芯饱和后就不准了。牵狗绳只说明角度和拉力的关系，转子和磁场之间没有绳子，靠的是磁力。</p></div>
+      <div><h3>铁芯为什么是一片片叠起来的？</h3><p>变化的磁场会在整块铁里感应出打转的电流，白白发热，这叫涡流。把铁芯做成互相绝缘的薄钢片，涡流就被切断了。<span class="ev a">公认</span></p></div>
+    </div>
+  </section>
+</div>
