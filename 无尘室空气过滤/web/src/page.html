@@ -1,0 +1,420 @@
+<title>无尘室空气过滤</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 布局：上半是一张厂房剖面的检修台（左模型右手册），下半按尺度从 1 µm 走到整座厂的几个实验。 */
+:root{
+  --bg:#EDF1F2; --panel:#F8FAFA; --ink:#121A1F; --ink2:#3F4C54; --ink3:#606E77; --line:#CBD4D9;
+  --accent:#0B6E80; --accent-bg:#DAECEF; --amber:#9A5B00; --amber-bg:#F7E9CF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --s1:#EB6834; --s2:#2A78D6; --s3:#1BAF7A; --micro-bg:#10171B;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1417; --panel:#161D21; --ink:#E7ECEE; --ink2:#B4BFC6; --ink3:#8D99A2; --line:#2C363C;
+  --accent:#58C2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1417; --panel:#161D21; --ink:#E7ECEE; --ink2:#B4BFC6; --ink3:#8D99A2; --line:#2C363C;
+  --accent:#58C2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --s1:#D95926; --s2:#3987E5; --s3:#199E70; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.8 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.28}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{padding-block:30px 20px}
+.top h1{font-size:clamp(32px,5.4vw,54px);font-weight:900;letter-spacing:-.02em}
+.top .lead{color:var(--ink2);max-width:44em;margin-top:8px;font-size:16.5px}
+/* 折叠滤纸的褶：3 mm 节距放大后的分隔线 */
+.pleat{display:block;width:100%;height:12px;color:var(--line)}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 380px;background:#10171B;border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:600px;height:min(76vh,760px);min-width:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:#A9BBC4;font:500 14px var(--mono);padding:24px;text-align:center}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;display:flex;align-items:center;gap:6px;color:#E8F0F3;font:500 12.5px/1.2 var(--sans);margin:-11px 0 0 -11px;white-space:nowrap}
+.pin b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 3px;border-radius:11px;background:#11202A;border:1.5px solid #7FC8DE;color:#CFEFF7;font:700 11.5px var(--mono)}
+.pin b:empty{min-width:12px;width:12px;height:12px;margin:5px;padding:0}
+.pin span{background:rgba(13,22,27,.78);padding:2px 7px;border-radius:3px;opacity:0;transition:opacity .15s}
+.pin:hover span,.pin.on span,.pin:focus-visible span{opacity:1}
+.pin.on b{background:#FFC24A;border-color:#FFC24A;color:#241600}
+.keep .pin span{opacity:1}
+.bar{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:2;padding-top:env(safe-area-inset-top,0px)}
+.bar button{background:rgba(16,26,32,.86);border:1px solid #3B4B55;color:#DCE7EB;border-radius:4px;padding:5px 11px;font-size:13.5px}
+.bar button:hover{border-color:#7FC8DE}
+.bar button[aria-pressed="true"]{background:#CFEFF7;color:#0B1E25;border-color:#CFEFF7;font-weight:700}
+.legendhud{position:absolute;left:12px;bottom:12px;display:flex;gap:4px 14px;flex-wrap:wrap;color:#D5E0E5;font:500 12px/1.5 var(--sans);pointer-events:none;max-width:calc(100% - 24px);background:rgba(13,22,27,.84);padding:5px 10px;border-radius:4px}
+.legendhud i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.legendhud label{pointer-events:auto;cursor:pointer}
+.legendhud input{margin:0 4px 0 0;vertical-align:-1px}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;height:min(76vh,760px);min-height:600px}
+#detail{padding:18px 18px 12px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+#detail h2{font-size:21px;font-weight:700}
+#detail p{color:var(--ink2);font-size:14.5px;line-height:1.75}
+#detail p.leadline{color:var(--ink);font-weight:500;font-size:15.5px}
+.kicker{font:500 12px var(--mono)!important;color:var(--ink3)!important}
+.facts{display:grid;gap:0;margin:2px 0 0}
+.facts div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:5px 0;font-size:13.5px}
+.facts dt{color:var(--ink3)}
+.facts dd{margin:0;font-family:var(--mono);font-weight:500;text-align:right;font-size:12.5px;align-self:center}
+#stations{border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:0;padding:6px;flex:none}
+#stations button{border:0;background:none;text-align:left;padding:3px 7px;border-radius:3px;font-size:13px;line-height:1.5;color:var(--ink2);min-width:0}
+#stations button b{font:700 11px var(--mono);margin-right:6px;color:var(--ink3)}
+#stations button:hover{background:var(--accent-bg)}
+#stations button[aria-current="true"]{background:var(--accent);color:var(--panel);font-weight:700}
+#stations button[aria-current="true"] b{color:inherit}
+.tourbar{display:flex;border-top:1px solid var(--line);padding:8px}
+#btnTour{flex:1;background:var(--ink);color:var(--panel);border:0;border-radius:4px;padding:7px;font-weight:700;font-size:14px}
+
+.ev{font-style:normal;font:500 11px/1 var(--sans);padding:2px 5px;border-radius:3px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.ev.a{background:var(--ok-bg);color:var(--ok)}
+.ev.b{background:var(--accent-bg);color:var(--accent)}
+.ev.c{background:var(--amber-bg);color:var(--amber)}
+
+.thesis{padding-block:26px}
+.thesis h2{font-size:20px;font-weight:700;margin-bottom:12px}
+.who{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:2px solid var(--ink)}
+.who div{padding:10px 14px 2px 0;min-width:0}
+.who div+div{border-left:1px solid var(--line);padding-left:14px}
+.who h3{font-size:16px;font-weight:700}
+.who b{display:block;font:700 13px var(--mono);color:var(--accent);margin-top:2px}
+.who p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:4px}
+
+section.sec{padding-block:30px 34px;border-top:1px solid var(--line)}
+.scale{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.02em}
+section.sec>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em;margin-top:2px}
+.intro{max-width:46em;color:var(--ink2);margin-top:8px}
+.intro+.intro{margin-top:8px}
+.lab{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+.lab>*{min-width:0}
+canvas.plot{display:block;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;touch-action:pan-y}
+canvas.dark{background:var(--micro-bg);border-color:var(--micro-bg)}
+.cap{font-size:13px;color:var(--ink3);margin-top:5px;line-height:1.6}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.two>*{min-width:0}
+.ctl{display:grid;gap:9px}
+.ctl label{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:14px;align-items:baseline}
+.ctl label output,.ctl label span.v{font:500 13px var(--mono);color:var(--ink)}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:3px 0 0}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:13.5px}
+.btns button:hover{border-color:var(--accent)}
+.btns button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700}
+.read{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:4px}
+.read div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding:5px 0;font-size:13.5px;color:var(--ink3);min-width:0}
+.read b{font:700 13px var(--mono);color:var(--ink);text-align:right}
+.note{font-size:14px;color:var(--ink2);margin-top:10px;line-height:1.7}
+.good{color:var(--ok)}.bad{color:var(--no)}
+.assume{margin-top:18px;max-width:52em;font-size:14px;color:var(--ink2)}
+.assume summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.assume ul{margin:6px 0 0;padding-left:20px}
+.assume li{margin:3px 0}
+.tw{overflow-x:auto;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:7px 10px 7px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{font-size:13px;color:var(--ink3);font-weight:500;border-bottom:2px solid var(--ink)}
+td{color:var(--ink2)}
+td.num,#looptable td{font-family:var(--mono);font-size:13px}
+tbody th{font-weight:700}
+.tag{font:500 11px/1 var(--sans);background:var(--accent);color:var(--panel);padding:2px 6px;border-radius:3px;margin-left:6px;white-space:nowrap;vertical-align:2px}
+.sources{columns:2;column-gap:32px;margin:12px 0 0;padding-left:18px;font-size:13.5px}
+.sources li{margin:3px 0;break-inside:avoid}
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 32px;margin-top:12px}
+.limits>div{min-width:0;border-top:1px solid var(--line);padding-block:7px}
+.limits h3{font-size:15px;font-weight:700}
+.limits p{font-size:14px;color:var(--ink2);line-height:1.7}
+#charttip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.5;padding:4px 9px;border-radius:3px;max-width:240px}
+footer{padding-block:22px 34px;font-size:13px;color:var(--ink3);border-top:1px solid var(--line)}
+
+@media (max-width:980px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:62vh;min-height:430px}
+  .manual{height:auto;min-height:0;border-left:0;border-top:1px solid var(--line)}
+  .lab{grid-template-columns:minmax(0,1fr)}
+  .who{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .who div:nth-child(3){border-left:0;padding-left:0}
+  .sources{columns:1}.limits{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .two,.who{grid-template-columns:minmax(0,1fr)}
+  .who div+div{border-left:0;padding-left:0;border-top:1px solid var(--line)}
+  .read{grid-template-columns:minmax(0,1fr)}
+  .pin span{display:none}
+}
+</style>
+
+<header class="top"><div class="wrap">
+  <h1>无尘室空气过滤</h1>
+  <p class="lead">半导体工厂里，空气也是一条生产线。下面先跟着一团空气走完一整圈：屋顶新风、FFU、无尘室、华夫板、干盘管，再回到起点。走完之后，再把其中的原理一个个拆开，从 1 µm 的纤维一直算到整座厂的能耗。</p>
+</div></header>
+
+<svg class="pleat" aria-hidden="true" preserveAspectRatio="none"><defs><pattern id="pl" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M0 11 L6 1 L12 11" fill="none" stroke="currentColor" stroke-width="1"/></pattern></defs><rect width="100%" height="12" fill="url(#pl)"/></svg>
+
+<div class="bench">
+  <div class="viewport" id="vp">
+    <canvas id="gl" aria-label="晶圆厂剖面三维模型，可拖动旋转"></canvas>
+    <div id="pins"></div>
+    <div id="loading">正在载入模型</div>
+    <div class="bar" role="group" aria-label="视图">
+      <button type="button" data-view="section" aria-pressed="true">全厂剖面</button>
+      <button type="button" data-view="layers" aria-pressed="false">分层爆炸</button>
+      <button type="button" data-view="ffu" aria-pressed="false">FFU 爆炸图</button>
+      <button type="button" data-view="mau" aria-pressed="false">MAU 剖切</button>
+    </div>
+    <div class="legendhud" id="airtoggles">
+      <label><input type="checkbox" id="tgAir" checked><i style="background:#4DB3FF"></i>盘管后的冷风<i style="background:#FF9442;margin-left:10px"></i>带着热的回风</label>
+      <label><input type="checkbox" id="tgDust" checked><i style="background:#FF5C78"></i>颗粒，到 FFU 就没了</label>
+      <span><i style="background:#6BFFA8"></i>新风</span>
+      <span><i style="background:#FFA848"></i>工艺排风</span>
+      <span>流速 4 倍速</span>
+    </div>
+  </div>
+  <aside class="manual">
+    <div id="detail"></div>
+    <div id="stations"></div>
+    <div class="tourbar"><button type="button" id="btnTour" aria-pressed="false">自动走一圈</button></div>
+  </aside>
+</div>
+
+<div class="wrap thesis">
+  <h2>整套系统其实只做一件事：把四种污染分开管</h2>
+  <div class="who">
+    <div><h3>颗粒</h3><b>ULPA + 单向流</b><p>FFU 负责滤，气流组织负责带走。两者缺一不可。</p></div>
+    <div><h3>湿度</h3><b>只归 MAU</b><p>新风在进门时除湿到位，循环风里不再脱水。</p></div>
+    <div><h3>温度</h3><b>只归干盘管</b><p>循环风量大，每圈降 2 K 左右，就能带走全部显热。</p></div>
+    <div><h3>气态分子</h3><b>化学过滤</b><p>ULPA 拦不住，要靠吸附和化学反应留住。</p></div>
+  </div>
+</div>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：整圈回路</p>
+  <h2>一圈的账</h2>
+  <p class="intro">FFU 是回路里唯一的风机，所有阻力都由它付账。风机把压力顶上去，滤芯吃掉大半，剩下的在地板和盘管里一点点花完，最后回到上风仓时，比房间还低约 30 Pa。这一点很要紧：吊顶缝隙的漏风因此朝上走，脏空气进不了房间。下面的数字都是默认工况。</p>
+  <div class="lab">
+    <div><canvas class="plot" id="cvPress" style="height:300px" aria-label="回路各点静压折线图，风机处最高约加 104 帕，上风仓最低约减 18 帕"></canvas>
+    <p class="cap">阻力数值是本页按滤芯目录值和常见盘管、地板阻力估算的。<i class="ev c">本页假设</i> 风机升压落在 100–200 Pa 的实测范围内。<i class="ev b">行业常见</i></p></div>
+    <div class="tw" style="margin-top:0"><table style="min-width:440px"><thead><tr><th>位置</th><th>°C</th><th>≥0.1 µm /m³</th><th>m/s</th><th>Pa</th></tr></thead><tbody id="looptable"></tbody></table></div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：1 µm</p>
+  <h2>滤纸不是筛子</h2>
+  <p class="intro">ULPA 的纤维只占滤纸体积的一成左右甚至更少，纤维之间的空隙比要拦的颗粒大得多。颗粒是撞到纤维上被粘住的，不是被卡住的。怎么撞上去，取决于颗粒大小。<i class="ev a">公认</i></p>
+  <p class="intro">大颗粒要么跟不上流线转弯（惯性），要么擦边蹭到（拦截）。小颗粒被空气分子撞得到处乱跑（扩散），迟早碰到纤维。中间尺寸两头都不占：大到跑不动，小到蹭不着。这个最难拦的粒径叫 MPPS，标准就按它来定级，测的是最坏情况。</p>
+  <div class="lab">
+    <div>
+      <canvas class="plot dark" id="cvMicro" style="height:400px" aria-label="一根纤维周围的颗粒轨迹动画"></canvas>
+      <p class="cap">一根纤维的横截面，按真实尺寸画。颗粒的速度、布朗运动和惯性都是用实际物理量算的，只是慢放了。橙点在飞，红点已粘住。穿过 / 撞上的计数换算出单纤维效率：<b id="mcEta">统计中</b>。<span id="mcCount"></span></p>
+    </div>
+    <div class="ctl">
+      <label>粒径 <span class="v" id="lab_d"></span><input type="range" id="sl_d" min="-2" max="0.3" step="0.01" value="-0.699"></label>
+      <label>滤纸面积 / 出风面积 <span class="v" id="lab_area"></span><input type="range" id="sl_area" min="1" max="60" step="0.1" value="41.4"></label>
+      <label>纤维直径 <span class="v" id="lab_df"></span><input type="range" id="sl_df" min="0.3" max="2" step="0.01" value="0.65"></label>
+      <label>滤纸厚度 <span class="v" id="lab_t"></span><input type="range" id="sl_t" min="0.2" max="1" step="0.01" value="0.47"></label>
+      <label>纤维填充率 <span class="v" id="lab_alpha"></span><input type="range" id="sl_alpha" min="2" max="12" step="0.1" value="5"></label>
+      <div class="btns">
+        <button type="button" data-fp='{"area":41.4,"df":0.65,"t":0.47,"alpha":5}'>U15 默认</button>
+        <button type="button" data-fp='{"area":1,"df":0.65,"t":0.47,"alpha":5}'>不折叠</button>
+        <button type="button" data-fp='{"area":41.4,"df":1.6,"t":0.47,"alpha":5}'>粗纤维</button>
+        <button type="button" data-fp='{"d":0.012}'>小颗粒</button>
+        <button type="button" data-fp='{"d":1.5}'>大颗粒</button>
+      </div>
+      <div class="read">
+        <div>穿过滤纸的风速<b id="fU"></b></div><div>滤纸压降<b id="fDp"></b></div>
+        <div>MPPS<b id="fMpps"></b></div><div>MPPS 穿透率<b id="fPm"></b></div>
+        <div>等级<b id="fCls"></b></div><div>当前粒径穿透率<b id="fP"></b></div>
+        <div style="grid-column:1/-1">当前主要机理<b id="fDom"></b></div>
+      </div>
+      <p class="note" id="fNote"></p>
+    </div>
+  </div>
+  <div class="two">
+    <div><canvas class="plot" id="cvPen" style="height:270px" aria-label="穿透率随粒径变化曲线，中段最高"></canvas><p class="cap">穿透率：曲线越高越容易穿过。虚线是 EN 1822 各等级的上限。竖线是当前粒径，鼠标移上去看数值。</p></div>
+    <div><canvas class="plot" id="cvMech" style="height:270px" aria-label="单纤维效率随粒径变化，扩散随粒径减小，拦截和惯性随粒径增大"></canvas><p class="cap">三种机理各自的单纤维效率。点划线是总和。扩散管小颗粒，拦截和惯性管大颗粒，低谷就是 MPPS。</p></div>
+  </div>
+  <p class="intro" style="margin-top:14px"><b>为什么要折叠。</b>同样的出风面积，把滤纸折成 41 倍面积，穿过滤纸的风速就从 45 cm/s 降到 1 cm/s 出头。风慢了，颗粒在纤维旁待得久，扩散更有效；压降正比于风速，也小了 41 倍。点“不折叠”看代价：压降到几千帕，穿透率差好几个数量级。这也是拿出风速度算效率时容易犯的错，那个 0.45 m/s 不是滤纸里的风速。</p>
+  <details class="assume"><summary>这个模型依赖什么，什么时候失效</summary><ul>
+    <li>公式把滤纸当成直径均一、排列均匀的纤维。真实滤纸粗细混杂，所以这里的 0.65 µm 是拟合出来的等效值。<i class="ev c">本页假设</i></li>
+    <li>按这组参数算出 MPPS 约 0.20 µm，穿透率 3.2×10⁻⁶，压降 121 Pa。产品资料是 0.12 µm 上下、≥99.9995%、约 103 Pa。效率和压降都对得上，MPPS 偏大一些，公开数据里 ULPA 的 MPPS 通常在 0.1–0.2 µm。</li>
+    <li>蒙特卡洛和公式的最低点都在 0.2 µm 附近，但中段效率差到约 2 倍。公式是大佩克莱数的渐近式，又按实测校过；蒙特卡洛是理想均匀阵列。趋势可信，绝对值别直接比。</li>
+    <li>没算静电。有驻极的滤材新的时候会好看很多，电荷衰减后下降。无尘室用的玻纤 ULPA 基本不靠静电。<i class="ev b">行业常见</i></li>
+    <li>粒子撞上就算粘住。极小粒子（约 3 nm 以下）可能弹回，这里没算。</li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：18 m 宽的一个横截面</p>
+  <h2>气流要往下推，不能搅匀</h2>
+  <p class="intro">FFU 把风均匀送下来，地板的阻力把它拉成竖直的。只要气流保持单向，人和设备产生的颗粒就会被直接带进地板，碰不到旁边的晶圆。下面是实时解的二维流动。试试把地板开孔率拉到 100%，气流会往两侧的回风口歪；再停掉一台 FFU，看它下面的空气怎么被两侧卷进去。</p>
+  <div style="margin-top:18px"><canvas class="plot dark" id="cvFlow" style="aspect-ratio:18/5.1;min-height:230px" aria-label="无尘室截面的实时气流模拟，可停 FFU、拖动人"></canvas>
+    <p class="cap">蓝线是洁净气流，粉点是人身上掉下来的颗粒，黄框是敞开的上料口，灰块是设备。</p></div>
+    <div class="lab" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));margin-top:12px">
+    <div class="ctl">
+      <label>FFU 出风速度 <span class="v" id="lab_fv">0.40 m/s</span><input type="range" id="sl_fv" min="0.2" max="0.5" step="0.01" value="0.4"></label>
+      <label>穿孔地板开孔率 <span class="v" id="lab_open">25 %</span><input type="range" id="sl_open" min="10" max="100" step="1" value="25"></label>
+      <div class="btns">
+        <button type="button" id="btnFlowStop">停两台 FFU</button>
+        <button type="button" id="btnFlowHalf">覆盖率减半</button>
+        <button type="button" id="btnFlowReset">恢复</button>
+      </div>
+      <div class="read">
+        <div>工作面横竖风速比<b id="flTilt"></b></div>
+        <div>颗粒进上料口<b id="flReach"></b></div>
+        <div style="grid-column:1/-1">地板阻力<b id="flZeta"></b></div>
+      </div>
+    </div>
+    <div>
+      <p class="note" style="margin-top:0">地板的压降只有几帕，比滤芯小得多，但比地板下空腔里的压差大。只要它大过空腔压差，各处回风就差不多，气流就直。这是系统设计里常见的思路：用一层小阻力换均匀性。</p>
+    </div>
+  </div>
+  <details class="assume"><summary>这个模型依赖什么，什么时候失效</summary><ul>
+    <li>二维、网格 12.5 cm、等效黏性远大于真实值，雷诺数被压低了很多。能看趋势，看不到真实的湍流细节，也不能拿来做设计。</li>
+    <li>颗粒按示踪粒子算，跟着气流走，再加一点随机扩散。没算沉降和壁面吸附。≥5 µm 的颗粒会明显偏离气流。</li>
+    <li>地板下用一个 3 m 空腔代表地板下加下技术夹层，回风全从两端走。真实厂房还有华夫板孔的分配作用。</li>
+    <li>地板阻力用 Idelchik 的薄孔板式。真实地板的板厚和孔型会让系数偏离。</li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：每平方米地板</p>
+  <h2>颗粒账本：换更好的滤芯，房间未必更干净</h2>
+  <p class="intro">这里有个容易想错的地方。稳态下，房间下游的颗粒浓度基本等于“产生速率 ÷ 风量”，滤芯好不好几乎不影响它。滤芯决定的是 FFU 出风口那一股空气的干净程度。这就是单向流和微环境的意义：让晶圆待在刚出滤芯的空气里，而不是房间平均的空气里。把滤芯从 U15 换成 H13 试试，看哪一行动了。</p>
+  <div class="lab">
+    <div><canvas class="plot" id="cvBudget" style="height:400px" aria-label="空气沿途颗粒浓度的对数条形图，从室外到回风"></canvas>
+    <p class="cap">横轴是对数。≥0.1 µm 时，ISO 等级 N 的上限正好是 10ᴺ 颗/m³，所以可以直接读等级。<i class="ev a">公认</i></p></div>
+    <div class="ctl">
+      <label>FFU 出风速度 <span class="v" id="lab_bv"></span><input type="range" id="sl_bv" min="0.2" max="0.5" step="0.01" value="0.4"></label>
+      <label>FFU 覆盖率 <span class="v" id="lab_bc"></span><input type="range" id="sl_bc" min="15" max="100" step="1" value="73"></label>
+      <label>新风比例 <span class="v" id="lab_bf"></span><input type="range" id="sl_bf" min="2" max="30" step="1" value="10"></label>
+      <label>房间内部产尘 <span class="v" id="lab_bg"></span><input type="range" id="sl_bg" min="1" max="5" step="0.05" value="3.78"></label>
+      <label>设备发热 <span class="v" id="lab_bq"></span><input type="range" id="sl_bq" min="200" max="1500" step="10" value="700"></label>
+      <div class="btns" role="group" aria-label="滤芯等级">
+        <button type="button" data-cls="H13">H13</button><button type="button" data-cls="H14">H14</button><button type="button" data-cls="U15">U15</button><button type="button" data-cls="U16">U16</button><button type="button" data-cls="U17">U17</button>
+      </div>
+      <div class="read">
+        <div>换气次数<b id="bAch"></b></div><div>换一遍空气<b id="bTau"></b></div>
+        <div>出风口等级<b id="bFirst"></b></div><div>下游等级<b id="bRoom"></b></div>
+        <div>风机耗电<b id="bFan"></b></div><div>风吸热温升<b id="bDt"></b></div>
+      </div>
+      <p class="note" id="bWhy"></p>
+    </div>
+  </div>
+  <p class="intro" style="margin-top:14px"><b>风机的账也要算。</b>滤芯压降近似正比风速，管路压降正比风速平方，所以风速提高，风机功率涨得比风量快。风机的电最后全变成热，又落到干盘管头上。公开资料里空气处理和冷冻水合计约占全厂用电的 39%（EPA 对 12 座厂的调查）。所以现代厂不追求处处满铺 FFU，而是把最干净的地方缩到晶圆身边。</p>
+  <details class="assume"><summary>这个模型依赖什么，什么时候失效</summary><ul>
+    <li>把房间下游和回风当成充分混合。真实房间里靠近产尘点的局部浓度可以高得多，而上游可以低得多。</li>
+    <li>产尘量是自由参数，默认值是为了让下游落在 ISO 4–5 反推的，不是测量值。<i class="ev c">本页假设</i></li>
+    <li>有一组公开实测：穿连体洁净服的人，≥0.5 µm 颗粒站着约 61 颗/分、走动约 225 颗/分。这只是一项研究的结果，不同服装和动作差别很大，不能外推。</li>
+    <li>滤芯全程按 MPPS 穿透率算，这是偏保守的。≥0.1 µm 的累积穿透率实际更低。</li>
+    <li>滤芯完好才成立。出现针孔泄漏时，下面那一小片气流不经混合就到了工作面，所以出厂和安装后都要扫描检漏。</li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：一千克空气</p>
+  <h2>温度和湿度，为什么要分开管</h2>
+  <p class="intro">普通空调用一个盘管同时降温除湿，湿度跟着温度一起飘。无尘室把两件事拆开：MAU 只处理很少量的新风，但把它的湿度一次做到位；干盘管处理巨大的循环风，水温高于露点，所以只降温不脱水。这样改温度不影响湿度，反过来也一样。文献把这种做法称为完全解耦，比耦合系统节能 39–80%，不过这是模拟结果。<i class="ev b">行业常见</i></p>
+  <div class="lab">
+    <div><canvas class="plot" id="cvClimate" style="height:380px" aria-label="焓湿图，显示新风除湿路径和循环风的等湿线"></canvas>
+    <p class="cap">绿线是新风在 MAU 里走的路：先降温到饱和，沿饱和线除湿，再加热。蓝线和橙线几乎重合在同一水平线上，含湿量不变，这就是干工况。</p></div>
+    <div class="ctl">
+      <label>室外温度 <span class="v" id="lab_cTo"></span><input type="range" id="sl_cTo" min="-5" max="38" step="1" value="33"></label>
+      <label>室外相对湿度 <span class="v" id="lab_cRHo"></span><input type="range" id="sl_cRHo" min="20" max="95" step="1" value="65"></label>
+      <label>室内相对湿度 <span class="v" id="lab_cRHr"></span><input type="range" id="sl_cRHr" min="35" max="55" step="1" value="45"></label>
+      <label>干盘管进水温度 <span class="v" id="lab_cTw"></span><input type="range" id="sl_cTw" min="6" max="18" step="0.5" value="13"></label>
+      <div class="read">
+        <div>室内露点<b id="cDew"></b></div><div>室内含湿量<b id="cW"></b></div>
+        <div>MAU 每千克要拿走<b id="cMau"></b></div><div>其中潜热占比<b id="cLat"></b></div>
+        <div style="grid-column:1/-1">干盘管状态<b id="cCoil"></b></div>
+      </div>
+      <p class="note" id="cNote"></p>
+    </div>
+  </div>
+  <details class="assume"><summary>这个模型依赖什么，什么时候失效</summary><ul>
+    <li>室内 23 °C、MAU 送风 16 °C 都是示例。文献里常见的室内设计值是 22–24 °C、40–50%，光刻区控得更严。</li>
+    <li>盘管翅片表面按比水温高 1.5 K 估算。真实值取决于水流量和风量，水进口端最容易先结露。<i class="ev c">本页假设</i></li>
+    <li>焓湿关系用 Magnus 近似和 101.325 kPa，在 −5–40 °C 内足够准。</li>
+    <li>室内也有少量湿源（人、湿法设备排气不完全时的逸出），所以 MAU 要把露点压得比室内略低。这里只留了 0.15 g/kg 的余量。</li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：不到 1 nm</p>
+  <h2>ULPA 拦不住的东西</h2>
+  <p class="intro">气体分子的尺寸比 MPPS 小两个数量级，扩散又极强，照理说撞纤维的机会很多。但颗粒撞上纤维会被范德华力粘住，气体分子撞上会弹开。所以 ULPA 对分子基本无效，要靠活性炭的微孔吸附，或者靠浸渍药剂发生化学反应，把分子留下。<i class="ev a">公认</i> 这类污染叫 AMC（气态分子污染）。</p>
+  <div class="tw"><table><thead><tr><th>类别</th><th>例子</th><th>害处</th><th>常用介质</th></tr></thead><tbody>
+    <tr><th scope="row">酸</th><td>HF、HCl、SO₂</td><td>腐蚀裸露金属线</td><td>浸渍碳、离子交换</td></tr>
+    <tr><th scope="row">碱</th><td>氨、胺类</td><td>中和光刻胶里的化学放大反应</td><td>浸渍碳、离子交换</td></tr>
+    <tr><th scope="row">可凝有机物</th><td>硅氧烷</td><td>在掩模和镜头上形成雾状沉积</td><td>活性炭</td></tr>
+    <tr><th scope="row">掺杂物</th><td>硼、磷</td><td>意外改变器件电性</td><td>专用吸附介质</td></tr>
+  </tbody></table></div>
+  <p class="intro" style="margin-top:12px">化学过滤按层布防：MAU 进风口拦室外的，循环风或 FFU 顶上拦屋内的，光刻机这类敏感设备再自带一层。层内常见顺序是先有机物，再碱，再酸。下技术夹层和上风仓目前多数工厂还没有过滤。<i class="ev b">行业常见</i> 这些介质和颗粒滤芯有个不同：颗粒滤芯越用压降越大，效率不掉；化学介质吸满后悄无声息地穿透，要靠在线监测判断寿命。</p>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">尺度：整座厂</p>
+  <h2>几种做法的取舍</h2>
+  <p class="intro">同样的目标有不同的搭法。下面两组是最常被比较的选择，标了“主流”的是目前新建高端厂最常见的做法，这不等于在所有情况下都最好。</p>
+  <div class="tw"><table><thead><tr><th>循环风怎么驱动</th><th>做法</th><th>好处</th><th>代价</th></tr></thead><tbody>
+    <tr><th scope="row">FFU + 干盘管 + MAU<span class="tag">主流</span></th><td>风机分散到每块滤芯上</td><td>上风仓不带正压，单台可调，改造灵活，温湿度完全解耦</td><td>风机台数多，单台效率低。1998 年的一份比较里约 12.6 W/(m³/min)</td></tr>
+    <tr><th scope="row">FMU + 静压箱</th><td>几台大风机把风压进静压箱</td><td>大风机效率高，同一比较里约 6.5 W/(m³/min)，风机数量是 FFU 的 1/5–1/10</td><td>静压箱是正压，密封要求高；一台风机影响一大片</td></tr>
+    <tr><th scope="row">集中循环机组 + 风道</th><td>风机房集中送风，风道分配</td><td>设备集中，维修不进洁净区</td><td>风道占空间，改造难，同一比较里约 13.9 W/(m³/min)，多见于较早的厂房</td></tr>
+  </tbody></table></div>
+  <div class="tw"><table><thead><tr><th>洁净度放在哪里</th><th>做法</th><th>好处</th><th>代价</th></tr></thead><tbody>
+    <tr><th scope="row">大房间 + 微环境<span class="tag">主流</span></th><td>房间 ISO 4–5，FOUP 和 EFEM 到 ISO 1–2</td><td>风量和能耗大降，人的影响被隔开</td><td>依赖 FOUP 密封和 AMHS，片盒内的 AMC 和湿度要单独管</td></tr>
+    <tr><th scope="row">整间高洁净</th><td>整个房间做到 ISO 3 甚至更高</td><td>不挑设备，能接受敞开操作</td><td>FFU 满铺，风机和制冷能耗高</td></tr>
+    <tr><th scope="row">隧道（bay and chase）</th><td>工艺区高洁净，设备后方是低洁净检修区</td><td>检修不进高洁净区，较早的厂房和成熟制程常见</td><td>隔墙不灵活，换设备布局时代价大</td></tr>
+  </tbody></table></div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">这一页的边界</p>
+  <h2>哪些可以信，哪些只是示意</h2>
+  <p class="intro">标记的含义：<i class="ev a">公认</i> 是标准或教科书结论；<i class="ev b">行业常见</i> 是公开资料里的常见值或做法，各厂会不同；<i class="ev c">本页假设</i> 是为了能算下去而取的值或推算，不是测量结果。</p>
+  <div class="limits">
+    <div><h3>模型</h3><p>厂房和设备都是虚构的，尺寸是教学示意，外形不对应任何真实工厂或产品。</p></div>
+    <div><h3>三维流线</h3><p>来自二维、无惯性的流函数解，加了 FFU、地板、盘管三层阻力。绕流和分流是对的，涡看不出来。</p></div>
+    <div><h3>新风和排风</h3><p>绿色和橙色的支流是沿管路画的示意路径，不是解出来的。</p></div>
+    <div><h3>沿途数字</h3><p>“一圈的账”里的颗粒数和压力是默认工况的估算。颗粒数依赖假设的产尘量，只看量级和相对关系。</p></div>
+    <div><h3>能效比较</h3><p>FFU、FMU 的功率数据来自 1998 年的资料，今天的 EC 风机已经明显改善，比例不能照搬。</p></div>
+    <div><h3>解耦节能</h3><p>39–80% 来自建筑能耗模拟，结果依赖气候和工况，不是实测账单。</p></div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">资料来源</p>
+  <ol class="sources">
+    <li><a href="https://cleanroom.net/faqs/what-are-the-iso-classes-of-air-cleanliness-by-particle-concentration/">ISO 14644-1:2015 等级表</a></li>
+    <li><a href="https://airfiltration.mann-hummel.com/air-knowledge/filtration-standards/en1822">EN 1822 分级与 MPPS 测试（MANN+HUMMEL）</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Ultra-low_particulate_air">Ultra-low particulate air（Wikipedia）</a></li>
+    <li><a href="https://sbcfen.imweb.me/35">ULPA 迷你褶滤芯规格（SBC）</a></li>
+    <li><a href="https://arxiv.org/pdf/1405.1300">过滤效率计算公式（arXiv 1405.1300）</a></li>
+    <li><a href="https://sst.semiconductor-digest.com/?p=44951">The remarkable fibrous filter（Solid State Technology）</a></li>
+    <li><a href="https://digital.library.unt.edu/ark:/67531/metadc786265/m2/1/high_res_d/833571.pdf">FFU 性能与能耗测试（LBNL 报告）</a></li>
+    <li><a href="https://semiconductorx.com/semiconductor-cleanrooms.html">Fab cleanrooms &amp; HVAC（SemiconductorX）</a></li>
+    <li><a href="https://proceedings.open.tudelft.nl/clima2022/article/download/281/261/270">MAU+DCC+FFU 系统能耗敏感性（CLIMA 2022）</a></li>
+    <li><a href="https://www.energy-proceedings.org/wp-content/uploads/icae2021/1643095938.pdf">不同气候下的洁净室空调能耗（ICAE 2021）</a></li>
+    <li><a href="https://ideas.repec.org/a/eee/energy/v261y2022ipas0360544222021697.html">解耦系统节能评估（Energy, 2022）</a></li>
+    <li><a href="https://www.oki.com/en/otr/downloads/otr-160-12.pdf">FFU、FMU、干盘管比较（OKI Technical Review, 1998）</a></li>
+    <li><a href="https://www.dastex.com/fileadmin/2_Media/3_Veroeffentlichungen/en/Kontaminationsquelle_Mensch_2020__01-2010__E_01.pdf">人员产尘实测（Dastex）</a></li>
+    <li><a href="https://www.entegris.com/content/en/pure/rare-air-semiconductor-fab.html">The Rare Air of the Semiconductor Fab（Entegris）</a></li>
+    <li><a href="https://www.aafintl.com/us/resources/news/details/2025/07/09/from-particles-to-molecules-why-amc-carbon-filtration-matters-in-the-age-of-nanoelectronics">AMC 分类与化学过滤布置（AAF）</a></li>
+    <li><a href="https://www.testo.com/en-MY/applications/cleanroom-pressure">洁净室压差 5–20 Pa（testo）</a></li>
+    <li><a href="https://sst.semiconductor-digest.com/?p=44297">单向流与微环境早期案例（Solid State Technology）</a></li>
+  </ol>
+</div></section>
+
+<footer><div class="wrap">HTML 教室 · 模型由 Blender 脚本生成，三维流线、过滤和气流实验都是实时或离线解出来的，假设写在各节末尾。</div></footer>
+<div id="charttip" hidden></div>

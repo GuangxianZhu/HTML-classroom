@@ -1,0 +1,4 @@
+blender_path.txt
+*.blend1
+web/node_modules/
+web/dist/
