@@ -1,0 +1,326 @@
+<title>液体调压阀：药液压力怎么稳住</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 布局：上半是一张检修台（左三维模型，右说明和旋钮），下半是三个原理实验、专利和结论。 */
+:root{
+  --bg:#EEF1F0; --panel:#F9FAF9; --ink:#141B1F; --ink2:#3F4C54; --ink3:#5F6D76; --line:#CCD4D7;
+  --accent:#0E6A7E; --accent-bg:#DBECEF; --amber:#995A00; --amber-bg:#F7E9CF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD;
+  --c-manual:#9A6B3F; --c-open:#D9831C; --c-pfb:#2A78D6; --c-qfb:#169E6A; --c-sp:#5F6D76;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1416; --panel:#161D20; --ink:#E6EBEC; --ink2:#B3BEC4; --ink3:#8C98A0; --line:#2C363B;
+  --accent:#5BC2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C;
+  --c-manual:#C39064; --c-open:#F0A040; --c-pfb:#4B92EC; --c-qfb:#2CC08A; --c-sp:#8C98A0; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.8 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.28}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{padding-block:30px 22px}
+.top h1{font-size:clamp(32px,5.4vw,54px);font-weight:900;letter-spacing:-.02em}
+.top .lead{color:var(--ink2);max-width:46em;margin-top:8px;font-size:16.5px}
+.name{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px;margin-top:18px;max-width:60em;border-left:3px solid var(--accent);padding:4px 0 4px 16px}
+.name b{font-size:15px}
+.name p{font-size:14.5px;color:var(--ink2);line-height:1.75}
+/* 压力刻度：分隔线做成一根从低压到高压的色带 */
+.ramp{display:block;height:6px;width:100%}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 390px;background:#10171B;border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:600px;height:min(78vh,780px);min-width:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:#A9BBC4;font:500 14px var(--mono);padding:24px;text-align:center}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;display:flex;align-items:center;gap:6px;color:#E8F0F3;font:500 12.5px/1.2 var(--sans);margin:-7px 0 0 -7px;white-space:nowrap}
+.pin b{display:block;width:14px;height:14px;border-radius:7px;background:#11202A;border:1.5px solid #7FC8DE}
+.pin span{background:rgba(13,22,27,.8);padding:2px 7px;border-radius:3px;opacity:0;transition:opacity .15s}
+.pin em{font:700 11.5px var(--mono);font-style:normal;color:#FFD27A}
+.pin:hover span,.pin.on span,.pin:focus-visible span,.labels .pin span{opacity:1}
+.pin.on b{background:#FFC24A;border-color:#FFC24A}
+.bar{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:2;padding-top:env(safe-area-inset-top,0px)}
+.bar button,.hud button{background:rgba(16,26,32,.86);border:1px solid #3B4B55;color:#DCE7EB;border-radius:4px;padding:5px 11px;font-size:13.5px}
+.bar button:hover,.hud button:hover{border-color:#7FC8DE}
+.bar button[aria-pressed="true"],.hud button[aria-pressed="true"]{background:#CFEFF7;color:#0B1E25;border-color:#CFEFF7;font-weight:700}
+.hud{position:absolute;left:12px;bottom:12px;right:12px;display:flex;gap:6px 10px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;pointer-events:none}
+.hud>*{pointer-events:auto}
+.hud .grp{display:flex;gap:6px;flex-wrap:wrap}
+.legend{background:rgba(13,22,27,.84);padding:6px 10px;border-radius:4px;color:#D5E0E5;font:500 11.5px/1.4 var(--sans)}
+.legend .bar2{display:block;width:190px;height:8px;border-radius:2px;margin:4px 0 2px}
+.legend .ticks{display:flex;justify-content:space-between;width:190px;font:500 10.5px var(--mono);color:#A9BBC4}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;height:min(78vh,780px);min-height:600px}
+#detail{padding:18px 18px 10px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:9px}
+#detail h2{font-size:21px;font-weight:700}
+#detail p{color:var(--ink2);font-size:14.5px;line-height:1.75}
+#detail p.leadline{color:var(--ink);font-weight:500;font-size:15.5px}
+.kicker{font:500 12px var(--mono)!important;color:var(--ink3)!important}
+.partbox{border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.partbox h3{font-size:15.5px}
+.partbox p{font-size:14px!important}
+#knobs{border-top:1px solid var(--line);padding:10px 18px 14px;flex:none}
+.ctl{display:grid;gap:9px}
+.ctl label{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:14px;align-items:baseline}
+.ctl label output,.ctl label span.v{font:500 13px var(--mono);color:var(--ink)}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:3px 0 0}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:13.5px}
+.btns button:hover{border-color:var(--accent)}
+.btns button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700}
+.read{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:4px}
+.read div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding:5px 0;font-size:13.5px;color:var(--ink3);min-width:0}
+.read b{font:700 13px var(--mono);color:var(--ink);text-align:right}
+.state{font-size:13.5px;margin-top:6px;padding:6px 9px;border-radius:4px;background:var(--ok-bg);color:var(--ok);line-height:1.6}
+.state.warn{background:var(--amber-bg);color:var(--amber)}
+.state.bad{background:var(--no-bg);color:var(--no)}
+
+.ev{font-style:normal;font:500 11px/1 var(--sans);padding:2px 5px;border-radius:3px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.ev.a{background:var(--ok-bg);color:var(--ok)}
+.ev.b{background:var(--accent-bg);color:var(--accent)}
+.ev.c{background:var(--amber-bg);color:var(--amber)}
+
+.thesis{padding-block:26px}
+.thesis h2{font-size:20px;font-weight:700;margin-bottom:12px}
+.who{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:2px solid var(--ink)}
+.who div{padding:10px 14px 2px 0;min-width:0}
+.who div+div{border-left:1px solid var(--line);padding-left:14px}
+.who h3{font-size:16px;font-weight:700}
+.who b{display:block;font:700 13px var(--mono);color:var(--accent);margin-top:2px}
+.who p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:4px}
+
+section.sec{padding-block:30px 34px;border-top:1px solid var(--line)}
+.scale{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.02em}
+section.sec>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em;margin-top:2px}
+.intro{max-width:46em;color:var(--ink2);margin-top:8px}
+.lab{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+.lab>*{min-width:0}
+canvas.plot{display:block;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;touch-action:pan-y}
+.cap{font-size:13px;color:var(--ink3);margin-top:5px;line-height:1.6}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.two>*{min-width:0}
+.note{font-size:14px;color:var(--ink2);margin-top:10px;line-height:1.7}
+.keys{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-top:6px}
+.keys label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.keys i{display:inline-block;width:16px;height:3px;border-radius:2px}
+.assume{margin-top:18px;max-width:52em;font-size:14px;color:var(--ink2)}
+.assume summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.assume ul{margin:6px 0 0;padding-left:20px}
+.assume li{margin:3px 0}
+.tw{overflow-x:auto;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{padding:7px 10px 7px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{font-size:13px;color:var(--ink3);font-weight:500;border-bottom:2px solid var(--ink)}
+td{color:var(--ink2)}
+td.num{font-family:var(--mono);font-size:13px}
+tbody th{font-weight:700}
+.pat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;margin-top:14px}
+.pat article{border-top:1px solid var(--line);padding:10px 0 12px;min-width:0}
+.pat h3{font-size:15.5px}
+.pat h3 a{font-family:var(--mono);font-size:14px}
+.pat .meta{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.pat p{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:4px}
+.pat p b{color:var(--ink);font-weight:500}
+.sources{columns:2;column-gap:32px;margin:12px 0 0;padding-left:18px;font-size:13.5px}
+.sources li{margin:3px 0;break-inside:avoid}
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 32px;margin-top:12px}
+.limits>div{min-width:0;border-top:1px solid var(--line);padding-block:7px}
+.limits h3{font-size:15px;font-weight:700}
+.limits p{font-size:14px;color:var(--ink2);line-height:1.7}
+#charttip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.5;padding:4px 9px;border-radius:3px;max-width:260px}
+footer{padding-block:22px 34px;font-size:13px;color:var(--ink3);border-top:1px solid var(--line)}
+
+@media (max-width:980px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:64vh;min-height:440px}
+  .manual{height:auto;min-height:0;border-left:0;border-top:1px solid var(--line)}
+  .lab{grid-template-columns:minmax(0,1fr)}
+  .who{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .who div:nth-child(3){border-left:0;padding-left:0}
+  .sources{columns:1}.limits,.pat{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .two,.who,.name{grid-template-columns:minmax(0,1fr)}
+  .who div+div{border-left:0;padding-left:0;border-top:1px solid var(--line)}
+  .read{grid-template-columns:minmax(0,1fr)}
+  .pin span{display:none}
+  .legend .bar2,.legend .ticks{width:150px}
+  .legend .ticks span:nth-child(even){visibility:hidden}
+}
+</style>
+
+<header class="top"><div class="wrap">
+  <h1>液体调压阀：药液压力怎么稳住</h1>
+  <p class="lead">半导体湿法设备里，药液和纯水从厂务管路进来，压力会跟着别的机台用液忽高忽低。调压阀把它压成一个稳定的值，喷到晶圆上的流量才稳。下面用 Blender 建了四种调压阀的剖切模型和一条闭环供液线，结构参照公开专利，可以拖动、拧旋钮、改供压，看阀芯怎么动。</p>
+  <div class="name">
+    <b>是不是叫整流器？</b>
+    <p>不是。整流器（rectifier）是电学里把交流变成直流的器件。<i class="ev a">公认</i> 液体用的这个，中文一般叫<b>调压阀、减压阀</b>或<b>稳压阀</b>，日语叫<b>レギュレータ</b>、減圧弁、定圧弁；只守上游压力的那种叫<b>背压阀</b>（背圧弁）。<i class="ev b">厂商目录</i> 容易混的原因是日语的“整流”还有第二个意思：把紊乱的流动理顺，比如整流板。那是让流线变直，不管压力高低，和调压是两回事。</p>
+  </div>
+</div></header>
+
+<svg class="ramp" aria-hidden="true" preserveAspectRatio="none"><defs><linearGradient id="rg"><stop offset="0" stop-color="#2F6FD6"/><stop offset=".26" stop-color="#2FA9C2"/><stop offset=".52" stop-color="#7CC06A"/><stop offset=".74" stop-color="#E3BB37"/><stop offset="1" stop-color="#E2603A"/></linearGradient></defs><rect width="100%" height="6" fill="url(#rg)"/></svg>
+
+<div class="bench">
+  <div class="viewport" id="vp">
+    <canvas id="gl" aria-label="调压阀三维模型，可拖动旋转"></canvas>
+    <div id="pins"></div>
+    <div id="loading">正在载入模型</div>
+    <div class="bar" role="group" aria-label="选择模型" id="tabs"></div>
+    <div class="hud">
+      <div class="grp" role="group" aria-label="显示">
+        <button type="button" id="tgCut" aria-pressed="true">剖开</button>
+        <button type="button" id="tgFluid" aria-pressed="true">液体按压力着色</button>
+        <button type="button" id="tgFlow" aria-pressed="true">流动粒子</button>
+        <button type="button" id="tgLabels" aria-pressed="false">全部标注</button>
+      </div>
+      <div class="legend" id="legend">液体颜色 = 压力（MPa）<span class="bar2" style="background:linear-gradient(90deg,#2F6FD6,#2FA9C2 26%,#7CC06A 52%,#E3BB37 74%,#E2603A)"></span><span class="ticks"><span>0</span><span>0.12</span><span>0.24</span><span>0.34</span><span>0.46</span></span><span id="legendNote" style="display:block;margin-top:3px;color:#A9BBC4">绿色气室：先导气压　阀芯动作放大显示</span></div>
+    </div>
+  </div>
+  <aside class="manual">
+    <div id="detail"></div>
+    <div id="knobs"></div>
+  </aside>
+</div>
+
+<div class="wrap thesis">
+  <h2>不管哪一种，都是三股力在一根阀杆上掰手腕</h2>
+  <div class="who">
+    <div><h3>设定</h3><b>弹簧或气压</b><p>从上面压膜片，往开的方向推。旋钮和电气比例阀改的都是它。</p></div>
+    <div><h3>反馈</h3><b>出口压力 × 膜片面积</b><p>从下面顶膜片，往关的方向推。出口压力高了，阀自己就关小。</p></div>
+    <div><h3>干扰</h3><b>入口压力 × 阀座面积</b><p>供压一变，这股力就变。平衡膜片的用处就是把它抵消掉。</p></div>
+    <div><h3>结果</h3><b>开度 → 压降</b><p>三股力打平的位置决定阀芯开多大，开度决定阀口吃掉多少压力。</p></div>
+  </div>
+</div>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">实验一：一台阀</p>
+  <h2>力的账本，和两条特性曲线</h2>
+  <p class="intro">调压阀不是把出口压力“锁死”在设定值上。它要靠出口压力的一点点变化去改变膜片上的力，阀芯才会动。所以流量越大，出口压力越低一点（下垂）；供压一变，出口压力也跟着动一点（入口压力效应）。<i class="ev a">公认</i> 目录里画的“流量特性”和“压力特性”两条曲线，量的就是这两件事。</p>
+  <div class="lab">
+    <div>
+      <canvas class="plot" id="cvForce" style="height:200px" aria-label="作用在阀杆上的各个力的条形图"></canvas>
+      <p class="cap">阀杆受力（N）。上面一条往开的方向，下面几条往关的方向，两边长度总是相等，这就是“平衡”。</p>
+      <div class="two">
+        <div><canvas class="plot" id="cvFlowCurve" style="height:240px" aria-label="流量特性：出口压力随流量下降的曲线"></canvas><p class="cap">流量特性：拧动“下游开度”，工作点沿曲线走。虚线是另一种加载方式，作对比。</p></div>
+        <div><canvas class="plot" id="cvPresCurve" style="height:240px" aria-label="压力特性：出口压力随入口压力变化的曲线"></canvas><p class="cap">压力特性：实线是当前设置，虚线是把平衡膜片切换后的样子。</p></div>
+      </div>
+    </div>
+    <div class="ctl">
+      <div><div class="btns" role="group" aria-label="加载方式" id="l1Load"><button type="button" data-v="spring" aria-pressed="true">弹簧加载</button><button type="button" data-v="air" aria-pressed="false">气压加载</button></div></div>
+      <div><div class="btns" role="group" aria-label="平衡膜片" id="l1Bal"><button type="button" data-v="0" aria-pressed="true">不平衡阀芯</button><button type="button" data-v="1" aria-pressed="false">加平衡膜片</button></div></div>
+      <label>设定（下游关死时的出口压力） <span class="v" id="l1SetV"></span><input type="range" id="l1Set" min="0.05" max="0.4" step="0.005" value="0.2"></label>
+      <label>供液压力 <span class="v" id="l1PinV"></span><input type="range" id="l1Pin" min="0.15" max="0.6" step="0.005" value="0.4"></label>
+      <label>下游开度（开几个喷嘴） <span class="v" id="l1KV"></span><input type="range" id="l1K" min="0" max="1" step="0.01" value="0.35"></label>
+      <div class="read" id="l1Read"></div>
+      <div class="state" id="l1State"></div>
+      <p class="note" id="l1Note"></p>
+    </div>
+  </div>
+  <details class="assume"><summary>这台阀用了哪些假设</summary><ul>
+    <li>主膜片有效直径 50 mm，阀座 6 mm，最大开度 1.5 mm；弹簧式主弹簧刚度 55 N/mm，膜片自身刚度 3–4 N/mm。专利里没有给这些数，是按常见 3/8 英寸药液调压阀的量级取的示意值。<i class="ev c">本页假设</i></li>
+    <li>阀口按锐边孔口算，流量系数 0.62；喷嘴和过滤器也都当孔口（流量和压差的平方根成正比）。药液按水的密度算。</li>
+    <li>没算流体冲击阀芯的力、阀芯的惯性、液体的压缩性和水锤。真实的阀在这些因素下会有振荡和噪声，这里看不到。</li>
+    <li>设定范围取 0.05–0.4 MPa，和 SMC SRF 这类氟树脂调压阀目录（0.02–0.4 MPa）的量级一致。<i class="ev b">厂商目录</i> 先导气源按常见的 0.5 MPa 压缩空气取。<i class="ev c">本页假设</i></li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">实验二：一条供液线，20 秒</p>
+  <h2>开环和闭环：控制器看不看结果</h2>
+  <p class="intro">先澄清一个容易搞混的地方：调压阀本身已经是个小闭环，膜片时时刻刻在感受出口压力。<i class="ev a">公认</i> 所以设备上说的“开环/闭环”，指的是外面那一圈：控制器发出设定以后，回不回头看实际的压力或流量。</p>
+  <p class="intro">下面四种做法用同一套扰动跑 20 秒：2 秒时配方把流量从 1.2 改到 1.8 L/min，6–10 秒供液压力掉下去，12–20 秒过滤器慢慢堵。真实的过滤器要几周才堵成这样，这里压缩在 8 秒里。</p>
+  <div class="lab">
+    <div>
+      <canvas class="plot" id="cvSimQ" style="height:270px" aria-label="四种做法的喷嘴流量随时间变化"></canvas>
+      <div class="keys" id="simKeys"></div>
+      <canvas class="plot" id="cvSimP" style="height:190px;margin-top:10px" aria-label="四种做法的出口压力随时间变化"></canvas>
+      <p class="cap">上：喷嘴流量（虚线是配方值）。下：调压阀出口压力。灰色竖带是扰动发生的时段。</p>
+    </div>
+    <div class="ctl">
+      <div class="btns" role="group" aria-label="扰动" id="simEv">
+        <button type="button" data-v="recipe" aria-pressed="true">配方改流量</button>
+        <button type="button" data-v="dip" aria-pressed="true">供压下降</button>
+        <button type="button" data-v="clog" aria-pressed="true">过滤器变堵</button>
+      </div>
+      <label>供压降到 <span class="v" id="simDipV"></span><input type="range" id="simDip" min="0.22" max="0.42" step="0.005" value="0.33"></label>
+      <label>反馈增益（两种闭环） <span class="v" id="simGainV"></span><input type="range" id="simGain" min="-1.4" max="1.8" step="0.05" value="0"></label>
+      <div class="btns" role="group" aria-label="选项" id="simOpt">
+        <button type="button" data-v="noise" aria-pressed="true">传感器噪声</button>
+        <button type="button" data-v="aw" aria-pressed="true">抗积分饱和</button>
+      </div>
+      <div class="tw" style="margin-top:4px"><table style="min-width:0;font-size:13px"><thead><tr><th>做法</th><th>配方改后</th><th>供压低时</th><th>堵了以后</th></tr></thead><tbody id="simTable"></tbody></table></div>
+      <p class="cap">表里是各阶段末尾喷嘴流量相对配方的偏差。</p>
+      <p class="note" id="simNote"></p>
+    </div>
+  </div>
+  <div class="limits">
+    <div><h3>手动弹簧式</h3><p>开机时拧一次旋钮就不管了。配方一改它根本不知道，流量一直停在旧值；过滤器一堵流量就往下掉。适合设定很少改、下游很稳定的地方。</p></div>
+    <div><h3>气控 + 固定指令（开环）</h3><p>控制器按标定表把配方换成气压，改设定很快。带平衡膜片的气控阀自己就把大半供压波动挡掉了。剩下的偏差来自标定只在一个点准、电气比例阀的非线性和迟滞。它看不见过滤器堵了。</p></div>
+    <div><h3>气控 + 压力反馈</h3><p>把出口压力拉回设定，开环的零头误差都能修掉。但它守的是压力，不是流量：过滤器堵了，压力照样“正确”，流量却少了。这时候控制器以为一切正常。</p></div>
+    <div><h3>气控 + 流量反馈</h3><p>直接盯着工艺要的量，过滤器堵、供压降都能补回来，代价是要一台流量计，而且读数慢，增益调高了会来回振。补偿也有极限：要的压力超过供压能给的，阀全开也够不着（试试把供压降到 0.25 MPa）。</p></div>
+  </div>
+  <details class="assume"><summary>仿真用了哪些假设</summary><ul>
+    <li>喷嘴：0.18 MPa 时 1.5 L/min；过滤器：干净时 1.5 L/min 压降 0.02 MPa，堵后 0.10 MPa。<i class="ev c">本页假设</i></li>
+    <li>电气比例阀时间常数 0.12 s、纯滞后 0.03 s，非线性取满量程 ±0.8%；压力传感器 0.02 s；超声波流量计时间常数 0.25 s、纯滞后 0.1 s。量级参照常见规格，不对应具体型号。<i class="ev c">本页假设</i></li>
+    <li>控制器每 10 ms 算一次 PI，带前馈（按标定表直接给出大致的气压）和设定值滤波；“抗积分饱和”指指令顶到 0.5 MPa 时积分不再往上累。</li>
+    <li>膜片组件按准静态处理，加了 2–3 N 的摩擦/迟滞，所以开环时出口压力会停在一个小区间里的任意位置。</li>
+  </ul></details>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">实验三：一条循环主管</p>
+  <h2>背压阀：守住阀前的压力</h2>
+  <p class="intro">药液在设备或厂务里通常是循环的：泵从槽里抽出来，经过滤器绕一圈主管，再回到槽里。一直流着，过滤和温控才有效，管里也不会有死水。<i class="ev b">行业常见</i> 各台设备从主管上取液。取的台数一变，主管压力就跟着变——除非回流口装的是背压阀。</p>
+  <div class="lab">
+    <div>
+      <canvas class="plot" id="cvLoop" style="height:250px" aria-label="循环回路示意图：泵、主管、取液的设备和回流阀"></canvas>
+      <canvas class="plot" id="cvLoopCurve" style="height:220px;margin-top:10px" aria-label="主管压力随用液台数变化的曲线"></canvas>
+      <p class="cap">下图：主管压力随用液台数的变化。橙色是背压阀，灰色是固定开度的手动阀。</p>
+    </div>
+    <div class="ctl">
+      <label>正在用液的设备 <span class="v" id="lpNV"></span><input type="range" id="lpN" min="0" max="8" step="1" value="3"></label>
+      <div class="btns" role="group" aria-label="回流方式" id="lpMode"><button type="button" data-v="bpr" aria-pressed="true">背压阀</button><button type="button" data-v="fixed" aria-pressed="false">固定节流阀</button></div>
+      <label>背压设定 <span class="v" id="lpSetV"></span><input type="range" id="lpSet" min="0.15" max="0.35" step="0.005" value="0.25"></label>
+      <div class="read" id="lpRead"></div>
+      <div class="state" id="lpState"></div>
+      <p class="note">背压阀把“泵多给的那部分”放回槽里：用液的设备多了，它就关小一点，主管压力几乎不动。可它只能少放，不能多给。用液超过泵的余量，回流降到零，阀就关死了，压力照样往下掉。<i class="ev a">公认</i></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">参照</p>
+  <h2>公开专利里是怎么做的</h2>
+  <p class="intro">四个阀和闭环线的结构关系，都取自下面这些公开专利：零件有哪些、谁压谁、往哪边动是开。外形、尺寸和颜色是本页原创的示意，不对应任何真实产品。专利的“要解决什么问题”一栏，是专利自己写的动机，不代表实测效果。</p>
+  <div class="pat" id="patents"></div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <p class="scale">结论</p>
+  <h2>结论和它的边界</h2>
+  <div class="limits">
+    <div><h3>调压阀靠“偏差”工作</h3><p>出口压力必须偏离一点，膜片上的力才会变，阀芯才会动。所以下垂是原理带来的，不是质量问题；能做的是让它变小：膜片做大、弹簧做软，或者干脆用气压加载。<i class="ev a">公认</i></p></div>
+    <div><h3>平衡膜片挡供压，挡不了下游</h3><p>平衡结构让入口压力的力互相抵消，供压波动的影响能降一个数量级（本页模型里从约 −2.7 kPa 降到 0.2 kPa / 0.2 MPa）。数值是本页模型算的。<i class="ev c">本页估算</i></p></div>
+    <div><h3>压力稳 ≠ 流量稳</h3><p>喷嘴流量由出口压力和下游阻力一起决定。过滤器堵、喷嘴磨损、药液黏度变，都会在压力不变的情况下改变流量。要稳流量，得测流量。<i class="ev a">公认</i></p></div>
+    <div><h3>闭环不是万能的</h3><p>它只控得住它测到的量，补偿能力受供压和阀的全开流量限制；传感器慢、增益高会振荡，指令顶到头时要防积分饱和。专利里也把入口脉动导致的振荡列为要解决的问题。<i class="ev b">专利</i></p></div>
+    <div><h3>固定阀芯式的入口压力效应</h3><p>按力的方向推，这种结构里入口压力往开的方向推，效应和弹簧式反号，大小约等于小膜片和大膜片的面积比。专利没有给数值，本页按示意尺寸算，出口压力的变化约为供压变化的 +8%。<i class="ev c">推测</i></p></div>
+    <div><h3>材料决定了形状</h3><p>药液调压阀接液的部分几乎全是 PTFE/PFA，弹簧放在不接液的一侧，或者干脆不用弹簧；不用滑动件，是为了不产生颗粒。专利里的很多设计动机都是腐蚀、蠕变和颗粒，而不是调压精度本身。<i class="ev b">专利</i></p></div>
+  </div>
+  <p class="note" style="max-width:60em">标签：<i class="ev a">公认</i> 教科书和厂商资料都这样讲；<i class="ev b">专利 / 厂商目录 / 行业常见</i> 有公开资料，但只代表那一家或那一类做法；<i class="ev c">本页假设 / 估算 / 推测</i> 是这一页为了能算出数而取的值，换了尺寸就会变。</p>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <h2 style="font-size:20px">来源</h2>
+  <ol class="sources" id="sources"></ol>
+</div></section>
+
+<footer><div class="wrap">模型由 Blender 脚本生成（blender/build_regulators.py），物理核心见 web/src/reg_core.js。外形为原创教学示意，不对应任何厂商的产品。</div></footer>
+<div id="charttip" hidden></div>
