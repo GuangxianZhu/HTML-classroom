@@ -48,6 +48,7 @@ ol li, ul li { margin: 4px 0; }
 .viewer .stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .viewer .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .viewer.live .stage img, .viewer.live .play { display: none; }
+html:not(.js) .viewer .play, html:not(.js) .exp .ctls, html:not(.js) .exp canvas { display: none; }
 .viewer .play { position: absolute; right: 12px; bottom: 12px; border: 0; background: var(--accent); color: #fff; font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer; box-shadow: 0 4px 12px rgba(47,111,214,.35); }
 .viewer .tip { position: absolute; display: none; max-width: 250px; background: rgba(20,28,45,.92); color: #fff; font-size: 13px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; pointer-events: none; z-index: 3; }
 .viewer .status { font-size: 12.5px; color: var(--ink3); padding: 6px 12px; border-top: 1px solid var(--line); }

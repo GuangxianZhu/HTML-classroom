@@ -4,9 +4,11 @@
   const src = n => IMG[n] || `img/${n}.png`;
   const names = { absorb: '① 吸光光度式', refract: '② 折射率式', toroid: '③ 电磁感应电导率', ultra: '④ 超声波声速式', density: '⑤ 密度式', titration: '⑥ 自动滴定', ozone: '⑦ 紫外臭氧计', membrane: '⑧ 隔膜电极', resist: '⑨ 电极式比电阻' };
 
+  document.documentElement.classList.add('js');
+  document.getElementById('nojs')?.remove(); // 脚本能跑，就去掉“没运行脚本”的提示
   document.querySelectorAll('.viewer[data-model]').forEach(v => {
     const m = v.dataset.model;
-    v.innerHTML = `<div class="stage"><img src="${src(m)}" alt="${names[m]} 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div>`;
+    if (!v.querySelector('.stage')) v.innerHTML = `<div class="stage"><img src="${src(m)}" alt="${names[m]} 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div>`;
     v.querySelector('.play').onclick = () => {
       if (!window.open3D) { v.querySelector('.status').textContent = '3D 引擎没加载成功：请用「启动源码版.bat」或单文件版 index.html 打开'; return; }
       document.querySelectorAll('.viewer.live').forEach(o => { o.classList.remove('live'); o.querySelector('.chips').innerHTML = ''; o.querySelector('.status').textContent = 'Blender 渲染图 · 点按钮可 3D 交互'; });
@@ -27,7 +29,7 @@
   });
 
   const cards = document.getElementById('cards');
-  if (cards) cards.innerHTML = Object.entries(names).map(([k, n]) => `<a class="card" href="#${k}"><img src="${src(k)}" alt=""><span>${n}</span></a>`).join('');
+  if (cards && !cards.children.length) cards.innerHTML = Object.entries(names).map(([k, n]) => `<a class="card" href="#${k}"><img src="${src(k)}" alt=""><span>${n}</span></a>`).join('');
 
   const links = [...document.querySelectorAll('#nav a')];
   const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);

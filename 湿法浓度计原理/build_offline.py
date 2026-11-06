@@ -36,8 +36,11 @@ css = read("style.css")
 html = re.sub(r"<!--STYLE-->.*?<!--/STYLE-->", lambda m: f"<style>\n{css}\n</style>", html, flags=re.S)
 
 imgs = {n: img_uri(n) for n in MODELS}
+# 静态 <img>（不靠脚本也能显示，比如 iPhone「文件」App 的预览）也换成内嵌图片
+for n in MODELS:
+    html = html.replace(f'src="img/{n}.png"', f'src="{imgs[n]}"')
 glbs = {n: base64.b64encode(read(f"models/{n}.glb", "rb")).decode() for n in MODELS}
-data = f"window.__OFFLINE=true;\nwindow.__IMG={json.dumps(imgs)};\nwindow.__GLB={json.dumps(glbs)};"
+data = f"window.__OFFLINE=true;\nwindow.__GLB={json.dumps(glbs)};"
 scripts = "\n".join(f"<script>\n{safe(s)}\n</script>" for s in [
     data, read("patents.js"), read("exp.js"), read("app.js"), read("lib/viewer.bundle.js")])
 html = re.sub(r"<!--SCRIPTS-->.*?<!--/SCRIPTS-->", lambda m: scripts, html, flags=re.S)

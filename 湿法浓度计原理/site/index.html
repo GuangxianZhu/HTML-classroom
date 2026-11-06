@@ -31,6 +31,7 @@
 </nav>
 
 <main>
+<div class="banner" id="nojs"><b>⚠ 这个预览没有运行网页脚本</b>（例如 iPhone「文件」App 里直接点开的预览），所以只能看到文字和渲染图，<b>3D 模型和动手实验都不会出现</b>。请用 Safari / Chrome 打开网页链接，或在电脑上双击 index.html。</div>
 <header class="hero">
   <p class="kicker">面向一般读者 · Blender 建模 · 公开专利解读</p>
   <h1>药液有多浓？<br><small>半导体湿法设备里的「浓度计」是怎么测出来的</small></h1>
@@ -41,7 +42,7 @@
     <span class="ev c">示意</span> 为了讲清楚而简化的图/数，或我的推测
   </div>
   <p class="note">说明：所有模型都是<b>原理示意</b>，不对应任何厂商的具体产品；专利要点是用自己的话概括的，细节请以专利原文为准。</p>
-  <div class="cards" id="cards"></div>
+  <div class="cards" id="cards"><a class="card" href="#absorb"><img src="img/absorb.png" alt=""><span>① 吸光光度式</span></a><a class="card" href="#refract"><img src="img/refract.png" alt=""><span>② 折射率式</span></a><a class="card" href="#toroid"><img src="img/toroid.png" alt=""><span>③ 电磁感应电导率</span></a><a class="card" href="#ultra"><img src="img/ultra.png" alt=""><span>④ 超声波声速式</span></a><a class="card" href="#density"><img src="img/density.png" alt=""><span>⑤ 密度式</span></a><a class="card" href="#titration"><img src="img/titration.png" alt=""><span>⑥ 自动滴定</span></a><a class="card" href="#ozone"><img src="img/ozone.png" alt=""><span>⑦ 紫外臭氧计</span></a><a class="card" href="#membrane"><img src="img/membrane.png" alt=""><span>⑧ 隔膜电极</span></a><a class="card" href="#resist"><img src="img/resist.png" alt=""><span>⑨ 电极式比电阻</span></a></div>
 </header>
 
 <section id="intro">
@@ -104,7 +105,7 @@
   <h2><span class="num">1</span>吸光光度式（近红外 / 紫外多波长）</h2>
   <p class="lead">让一束光穿过药液，看<b>哪些颜色（波长）被“吃掉”了多少</b>。不同分子吃掉的波长不同，所以能<b>一次分出好几个成分</b>。</p>
   <div class="cols2">
-    <div class="viewer" data-model="absorb"></div>
+    <div class="viewer" data-model="absorb"><div class="stage"><img src="img/absorb.png" alt="① 吸光光度式 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -129,7 +130,7 @@
   <h2><span class="num">2</span>折射率式（临界角折射计）</h2>
   <p class="lead">光从棱镜射向药液，<b>斜到一定角度就“弹回来”（全反射）</b>。这个临界角取决于药液的折射率，而折射率随浓度变。</p>
   <div class="cols2">
-    <div class="viewer" data-model="refract"></div>
+    <div class="viewer" data-model="refract"><div class="stage"><img src="img/refract.png" alt="② 折射率式 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -154,7 +155,7 @@
   <h2><span class="num">3</span>电磁感应式（无电极）电导率</h2>
   <p class="lead">把药液当成<b>变压器里的一匝导线</b>：药液越导电，传过去的信号越强。线圈全包在氟树脂里，<b>不碰药液</b>。</p>
   <div class="cols2">
-    <div class="viewer" data-model="toroid"></div>
+    <div class="viewer" data-model="toroid"><div class="stage"><img src="img/toroid.png" alt="③ 电磁感应电导率 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -179,7 +180,7 @@
   <h2><span class="num">4</span>超声波声速式</h2>
   <p class="lead">对着药液“喊一声”（超声脉冲），掐表看<b>多久传到对面</b>。声音在不同浓度的液体里跑得快慢不同。</p>
   <div class="cols2">
-    <div class="viewer" data-model="ultra"></div>
+    <div class="viewer" data-model="ultra"><div class="stage"><img src="img/ultra.png" alt="④ 超声波声速式 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -204,7 +205,7 @@
   <h2><span class="num">5</span>密度式（振动管 / 鼓泡压力）</h2>
   <p class="lead">把药液装进一根会振动的 U 形管：<b>液体越重，管子振得越慢</b>，像吉他弦上挂了重物。</p>
   <div class="cols2">
-    <div class="viewer" data-model="density"></div>
+    <div class="viewer" data-model="density"><div class="stage"><img src="img/density.png" alt="⑤ 密度式 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -229,7 +230,7 @@
   <h2><span class="num">6</span>自动滴定 / 自动化学分析</h2>
   <p class="lead">化学课上的滴定，交给机器人做：<b>取一小份药液，一滴一滴加已知浓度的试剂，直到反应刚好完成</b>。</p>
   <div class="cols2">
-    <div class="viewer" data-model="titration"></div>
+    <div class="viewer" data-model="titration"><div class="stage"><img src="img/titration.png" alt="⑥ 自动滴定 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -254,7 +255,7 @@
   <h2><span class="num">7</span>紫外吸收式溶存臭氧计</h2>
   <p class="lead">臭氧对 <b>254 nm 紫外光</b>的吸收特别强，而汞灯恰好主要发这一条光。看紫外光被吃掉多少就知道臭氧有多少。</p>
   <div class="cols2">
-    <div class="viewer" data-model="ozone"></div>
+    <div class="viewer" data-model="ozone"><div class="stage"><img src="img/ozone.png" alt="⑦ 紫外臭氧计 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -279,7 +280,7 @@
   <h2><span class="num">8</span>隔膜电极式溶存气体（氢 / 氧）</h2>
   <p class="lead">用一层<b>只让气体通过的薄膜</b>把电极和样水隔开，钻过来的气体在电极上反应产生电流——<b>电流大小 ∝ 气体浓度</b>。</p>
   <div class="cols2">
-    <div class="viewer" data-model="membrane"></div>
+    <div class="viewer" data-model="membrane"><div class="stage"><img src="img/membrane.png" alt="⑧ 隔膜电极 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
@@ -304,7 +305,7 @@
   <h2><span class="num">9</span>电极式电导率 / 比电阻（纯水）</h2>
   <p class="lead">严格说它测的是“<b>水有多纯</b>”，而不是药液有多浓：两根电极之间加电压，看能流过多少电流。离子越少，越难导电。</p>
   <div class="cols2">
-    <div class="viewer" data-model="resist"></div>
+    <div class="viewer" data-model="resist"><div class="stage"><img src="img/resist.png" alt="⑨ 电极式比电阻 的 Blender 模型渲染图"><button class="play">▶ 3D 旋转查看（可悬停看零件）</button><div class="tip"></div></div><div class="status">Blender 渲染图 · 点按钮可 3D 交互</div><div class="chips"></div></div>
     <div>
       <h3>原理三步</h3>
       <ol>
