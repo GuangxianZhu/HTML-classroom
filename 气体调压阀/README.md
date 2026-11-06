@@ -23,7 +23,7 @@
 
 - **Windows**：双击 `启动演示.bat`。它先检查 `main` 分支有没有更新，有就 `git pull --ff-only`，然后用默认浏览器打开 `index.html`。
 - **其他系统**：直接打开 `index.html`。单文件，three.js、模型、仿真全在里面，不联网也能用。
-- 地址后面加 `#m=epclose` 这类参数，可以直接打开某一种结构（`spring` `twostg` `dome` `ptfe` `bpr` `epopen` `epclose` `piezo`）。
+- 地址后面加 `#epclose` 这类锚点，可以直接打开某一种结构（`spring` `twostg` `dome` `ptfe` `bpr` `epopen` `epclose` `piezo`）。
 
 ## 文件夹里有什么
 

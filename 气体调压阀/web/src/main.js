@@ -10,7 +10,8 @@ const stage = createStage({ canvas: $('gl'), glb, spec, pinsEl: $('pins'), onPin
 bench = setupBench(stage, spec);
 stage.ready.then(() => {
   $('loading').hidden = true;
-  const want = (location.hash.match(/m=(\w+)/) || [])[1];
+  // 支持 #epclose 这种纯名字（平台只透传纯 #name），也兼容旧的 #m=epclose
+  const want = (location.hash.match(/^#(?:m=)?(\w+)/) || [])[1];
   bench.select(spec.models[want] ? want : 'spring');
 }).catch((e) => { $('loading').textContent = '模型载入失败：' + e.message; });
 
