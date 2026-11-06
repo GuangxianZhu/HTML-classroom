@@ -3,7 +3,7 @@
   const IMG = window.__IMG || {}; // 离线版：图片以 data URI 内嵌
   const src = n => IMG[n] || `img/${n}.png`;
   const names = { immersion: '① 槽内浸入式', wall: '② 槽外贴壁式', lamp: '③ 红外灯管式', sheath: '④ 氟树脂包覆电阻式',
-    induction: '⑤ 感应加热式', hx: '⑥ 换热器式', peltier: '⑦ 珀耳帖式', system: '整体：循环槽 + 控温' };
+    induction: '⑤ 感应加热式', hx: '⑥ 换热器式', peltier: '⑦ 珀耳帖式（電子冷熱）', system: '整体：循环槽 + 控温' };
   const IDLE = 'Blender 渲染图 · 点按钮可 3D 交互';
 
   document.querySelectorAll('.viewer[data-model]').forEach(v => {

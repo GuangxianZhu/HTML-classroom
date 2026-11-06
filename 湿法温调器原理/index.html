@@ -128,7 +128,7 @@ details.terms table { margin-top: 8px; }
   <a href="#sheath">④ 氟树脂包覆电阻式</a>
   <a href="#induction">⑤ 感应加热式</a>
   <a href="#hx">⑥ 换热器式</a>
-  <a href="#peltier">⑦ 珀耳帖式</a>
+  <a href="#peltier">⑦ 珀耳帖式（電子冷熱）</a>
   <div class="navsec">怎么控温</div>
   <a href="#control">PID 控温</a>
   <a href="#ssr">SSR 怎么调功率</a>
@@ -214,6 +214,7 @@ details.terms table { margin-top: 8px; }
         <tr><td>在线（管道式）加热器</td><td>インラインヒーター</td><td>inline heater</td></tr>
         <tr><td>换热器</td><td>熱交換器</td><td>heat exchanger</td></tr>
         <tr><td>珀耳帖元件 / 热电模块</td><td>ペルチェ素子、熱電モジュール</td><td>thermoelectric (Peltier) module</td></tr>
+        <tr><td>珀耳帖式（热电式）温调</td><td>電子冷熱、電子冷却、電子冷凍、ペルチェ式</td><td>thermoelectric cooling / heating</td></tr>
         <tr><td>空烧</td><td>空焚き</td><td>dry firing</td></tr>
         <tr><td>过升温保护</td><td>過昇温防止</td><td>over-temperature protection</td></tr>
         <tr><td>固态继电器 / 电磁接触器</td><td>SSR / 電磁接触器</td><td>solid-state relay / magnetic contactor</td></tr>
@@ -396,8 +397,9 @@ details.terms table { margin-top: 8px; }
 
 <!-- ========================================================== 7 -->
 <section id="peltier" class="type">
-  <h2><span class="num">7</span>热电（珀耳帖）温调器</h2>
+  <h2><span class="num">7</span>热电（珀耳帖）温调器 · 電子冷熱</h2>
   <p class="lead">一种半导体元件：通上直流电，它就把热从一面<b>“搬”</b>到另一面。<b>电流反过来，搬运方向也反过来</b>——同一块元件既能冷却又能加热，而且没有任何运动部件。</p>
+  <p class="note">名字对照：日文现场说的<b>「電子冷熱」</b>，以及「電子冷却」「電子冷凍」，指的都是这种方式——用半导体元件“电子地”制冷、制热，能冷又能热，所以叫“冷熱” <span class="ev b">资料</span>。英文叫 thermoelectric（Peltier）。</p>
   <div class="cols2">
     <div class="viewer" data-model="peltier"></div>
     <div>
@@ -409,6 +411,11 @@ details.terms table { margin-top: 8px; }
       </ol>
       <p>在湿法设备里，药液走在一块耐药品的换热板上，元件贴在板的另一面，元件背后再用冷却水带走热量 <span class="ev b">资料</span>。因为它能<b>连续地在加热和冷却之间切换</b>，在设定值附近可以控得很细 <span class="ev b">资料</span>。</p>
     </div>
+  </div>
+  <h3>電子冷熱在湿法设备里的两种用法</h3>
+  <div class="cols2">
+    <div class="box"><h4>A. 直接温调：药液就在元件旁边流过</h4><p>药液走氟树脂换热器，或者把 PTFE 流路管直接压进导热板的槽里，元件隔着一块板加热 / 冷却它。热量只穿过“板 + 氟树脂”一道，响应快、控得细：厂商资料里有 ±0.1 °C 的药液直接温调产品，也有标 ±0.05 °C、直接夹住流路管、不用中间槽体的做法 <span class="ev b">资料</span>。代价：氟树脂的渗透和热胀冷缩要专门处理（见本节专利）。</p></div>
+    <div class="box"><h4>B. 间接温调：先做恒温水，再走换热器</h4><p>珀耳帖式冷水机（チラー）先把一路循环水控到恒温（厂商资料里室温附近也标 ±0.05 °C <span class="ev b">资料</span>），再经 ⑥ 那样的换热器去调药液。元件不碰药液，一台可以服务几处；但多了一道换热，响应慢一些，末端精度还受换热器和配管影响 <span class="ev c">推测</span>。</p></div>
   </div>
   <div class="exp" data-exp="peltier"><h3>🔬 动手试试：电流方向、温差</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">热电方程<span class="ev a">公认</span>；单个模块参数（塞贝克系数 0.05 V/K、电阻 2 Ω、热导 0.5 W/K）取的是常见 127 对模块的量级 <span class="ev c">示意</span>。</p></div>
   <div class="cols3">
@@ -477,7 +484,7 @@ details.terms table { margin-top: 8px; }
       <tr><td>④ 氟树脂包覆</td><td>穿过氟树脂层</td><td>氟树脂</td><td>中</td><td>否</td><td>腐蚀性药液在线加热</td><td>功率密度受限、渗透、针孔</td></tr>
       <tr><td>⑤ 感应</td><td>封装发热体自己发热</td><td>氟树脂 / 石英</td><td>快</td><td>否</td><td>药液 / 纯水在线加热</td><td>电源复杂、电磁干扰</td></tr>
       <tr><td>⑥ 换热器</td><td>隔管壁和热媒换热</td><td>氟树脂管</td><td>慢–中</td><td><b>能</b></td><td>供液温调、冷却</td><td>需热媒设备、管破混液</td></tr>
-      <tr><td>⑦ 珀耳帖</td><td>电流把热搬过去</td><td>耐药品换热板</td><td>快</td><td><b>能</b></td><td>室温附近精密控温</td><td>功率小、温差大时效率低</td></tr>
+      <tr><td>⑦ 珀耳帖（電子冷熱）</td><td>电流把热搬过去</td><td>耐药品换热板</td><td>快</td><td><b>能</b></td><td>室温附近精密控温</td><td>功率小、温差大时效率低</td></tr>
     </tbody>
   </table></div>
   <p class="cap">表中是一般性质的归纳 <span class="ev c">示意</span>，具体性能看厂商规格。</p>
@@ -491,7 +498,7 @@ details.terms table { margin-top: 8px; }
       <p><b>取</b>：功率大、升温快、设备简单。<b>舍</b>：只能加热不能冷却；必须把空烧、断流、过升温保护做扎实。</p>
       <p class="cap">“主流”的依据：高温药液 / 热纯水的公开专利与厂商资料多以电加热为主 <span class="ev b">资料</span>；各工厂实际占比我无法核实 <span class="ev c">推测</span>。</p></div>
     <div class="box"><h4>思路 B：间接的冷热双向</h4>
-      <p>温水 / 冷却水 + 换热器，或珀耳帖，用在室温附近、要求很稳、还可能需要降温的药液。</p>
+      <p>温水 / 冷却水 + 换热器，或珀耳帖（電子冷熱），用在室温附近、要求很稳、还可能需要降温的药液。</p>
       <p><b>取</b>：不会过热、能冷却、药液侧没有发热体。<b>舍</b>：功率小、响应受热媒限制，要额外的热媒或冷却水设备。</p></div>
     <div class="box"><h4>思路 C：粗调 + 精调组合</h4>
       <p>大功率加热器负责把温度“拉上来”，换热器 / 珀耳帖 / 串级控制负责最后零点几度的“稳住”；或者工厂集中供热水，设备端只做微调。</p>
@@ -508,7 +515,7 @@ details.terms table { margin-top: 8px; }
 <section id="refs">
   <h2>资料来源</h2>
   <ul class="refs" id="reflist">
-    <li>专利：见各节卡片（均链接到 Google Patents，共 29 件）</li>
+    <li>专利：见各节卡片（均链接到 Google Patents，共 30 件）</li>
     <li>PFA 连续使用温度 260 °C、导热约 0.195 W/m·K：DuPont Teflon PFA 物性资料 <a href="https://monnier.astro.lsa.umich.edu/research/images/9/92/DuPontPFAInfoSheet.pdf" target="_blank" rel="noopener">PDF</a></li>
     <li>熔融石英导热 1.38 W/m·K、比热约 750 J/kg·K、透明区约 0.2–4 µm：<a href="https://www.advanced-ceramic-composites.saint-gobain.com/materials/silica" target="_blank" rel="noopener">Saint-Gobain 材料页</a></li>
     <li>水的红外吸收：Hale &amp; Querry, “Optical Constants of Water in the 200-nm to 200-µm Wavelength Region”, Applied Optics 12, 555 (1973) <a href="https://doi.org/10.1364/AO.12.000555" target="_blank" rel="noopener">doi</a></li>
@@ -516,6 +523,7 @@ details.terms table { margin-top: 8px; }
     <li>氟树脂浸入式加热器的最高使用温度（约 90–95 °C）：<a href="https://mono.ipros.com/product/detail/2000335448" target="_blank" rel="noopener">谷口ヒーターズ 产品页</a>；PTFE 护套加热器（最高约 130 °C、表面负荷约 10 W/in²）：<a href="https://datasheets.globalspec.com/ds/process-technology/tf-series/19dcf1e0-7de0-447f-97b7-2c218db85ee8" target="_blank" rel="noopener">Process Technology TF 系列</a></li>
     <li>PTFE 管换热器（30–2000 根管、2 L/min 从 20 °C 到 90 °C 的例子）：<a href="https://mono.ipros.com/product/detail/2000139427" target="_blank" rel="noopener">インテリンク 产品页</a></li>
     <li>珀耳帖式药液温调器（10–60 °C、±0.1 °C、300–900 W）：<a href="https://www.smcworld.com/products/pickup/ja-jp/temperature_controller/liquid.html" target="_blank" rel="noopener">SMC 产品页</a></li>
+    <li>電子冷熱 / 電子冷凍（珀耳帖式）药液温调：<a href="https://mono.ipros.com/product/detail/40374057" target="_blank" rel="noopener">オリオン機械 产品页</a>（药液直接温调 ±0.1 °C、电子冷冻方式 ±0.05 °C 型）；<a href="https://mono.ipros.com/product/detail/2000230136" target="_blank" rel="noopener">エムエス機器 产品页</a>（珀耳帖直接温调流路管 ±0.05 °C）；珀耳帖式冷水机 <a href="https://mono.ipros.com/product/detail/2000321081" target="_blank" rel="noopener">ThermoCube</a>（±0.05 °C）</li>
     <li>纯水加热系统（冗余安全 PLC、漏电保护、高限热电偶等）：<a href="https://wkfluidhandling.com/zh-hans/products/heaters/aquarius-deionized-di-water-heater-systems/" target="_blank" rel="noopener">Heateflex Aquarius 产品页</a></li>
     <li>阿伦尼乌斯公式、傅里叶导热、普朗克 / 维恩定律、趋肤深度、ε-NTU、热电方程、PID：传热学 / 电工学 / 控制工程教科书内容</li>
   </ul>
@@ -661,6 +669,11 @@ window.PATENTS = {
       pts: ['多根细 PFA 管并排夹在一对带槽的铝传热板之间，用珀耳帖元件加热或冷却，水冷散热',
             '药液蒸气会慢慢透过氟树脂管壁去腐蚀铝块：在管旁设通气通道、壳体通风，把渗出来的蒸气排走',
             '“氟树脂会被渗透”是所有氟树脂接液结构的共同问题，对照 ① 的吹扫思路'] },
+    { no: 'US5899077A', t: '用于高纯 / 腐蚀性液体的热电冷却 / 加热系统', who: 'Solid State Cooling Systems', y: '1997 申请 / 1999 授权', v: 'ok',
+      url: 'https://patents.google.com/patent/US5899077',
+      pts: ['一组热电模块夹在两块换热板之间：一边是开槽的导热金属板，PTFE 管压进槽里、上面再用盖板压紧；另一边走厂务冷却水或空气',
+            '药液只在 PTFE 管里流（权利要求里管壁 ≤0.015 英寸，约 0.38 mm）；拆下盖板就能换管，不用动模块',
+            '实施例：48 个模块，用 20 °C 冷却水时冷却能力约 1500 W，处理臭氧纯水；文中称总金属含量低于 1 ppb（单次实验数据）'] },
   ],
   control: [
     { no: 'US11887871B2', t: '基板处理装置及基板处理方法', who: 'Tokyo Electron', y: '2019 优先权 / 2024 授权', v: 'ok',
@@ -1404,7 +1417,7 @@ window.PATENTS = {
   const IMG = window.__IMG || {}; // 离线版：图片以 data URI 内嵌
   const src = n => IMG[n] || `img/${n}.png`;
   const names = { immersion: '① 槽内浸入式', wall: '② 槽外贴壁式', lamp: '③ 红外灯管式', sheath: '④ 氟树脂包覆电阻式',
-    induction: '⑤ 感应加热式', hx: '⑥ 换热器式', peltier: '⑦ 珀耳帖式', system: '整体：循环槽 + 控温' };
+    induction: '⑤ 感应加热式', hx: '⑥ 换热器式', peltier: '⑦ 珀耳帖式（電子冷熱）', system: '整体：循环槽 + 控温' };
   const IDLE = 'Blender 渲染图 · 点按钮可 3D 交互';
 
   document.querySelectorAll('.viewer[data-model]').forEach(v => {
