@@ -1,0 +1,274 @@
+<title>湿法设备里的流量计</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 布局：上面是一台检修台（左三维剖面，右说明书），下面依次是概念、实验台、选型、专利、结论。 */
+:root{
+  --bg:#EEF1F0; --panel:#F9FAF8; --ink:#141A1E; --ink2:#3E4A51; --ink3:#5F6C74; --line:#CDD5D8;
+  --accent:#0B6E80; --accent-bg:#DAECEF; --amber:#9A5B00; --amber-bg:#F7E9CF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD; --dark:#10171B;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1417; --panel:#161D21; --ink:#E7ECEE; --ink2:#B4BFC6; --ink3:#8D99A2; --line:#2C363C;
+  --accent:#58C2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1417; --panel:#161D21; --ink:#E7ECEE; --ink2:#B4BFC6; --ink3:#8D99A2; --line:#2C363C;
+  --accent:#58C2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.8 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+button,select{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{padding-block:30px 18px}
+.top .kick{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.04em}
+.top h1{font-size:clamp(30px,5.2vw,52px);font-weight:900;letter-spacing:-.02em;margin-top:4px}
+.top .lead{color:var(--ink2);max-width:46em;margin-top:8px;font-size:16.5px}
+/* 管道的法兰：分隔线 */
+.flange{display:block;width:100%;height:14px;color:var(--line)}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 390px;background:var(--dark);border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:600px;height:min(78vh,780px);min-width:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:#A9BBC4;font:500 14px var(--mono);padding:24px;text-align:center}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;display:flex;align-items:center;gap:6px;color:#E8F0F3;font:500 12.5px/1.2 var(--sans);margin:-11px 0 0 -11px;white-space:nowrap}
+.pin b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 3px;border-radius:11px;background:#11202A;border:1.5px solid #7FC8DE;color:#CFEFF7;font:700 11.5px var(--mono)}
+.pin b:empty{min-width:12px;width:12px;height:12px;margin:5px;padding:0;background:#FFC24A;border-color:#FFC24A}
+.pin span{background:rgba(13,22,27,.8);padding:2px 7px;border-radius:3px}
+.pin:hover span,.pin:focus-visible span{background:#FFC24A;color:#241600}
+.bar{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:2;padding-top:env(safe-area-inset-top,0px)}
+.bar button{background:rgba(16,26,32,.88);border:1px solid #3B4B55;color:#DCE7EB;border-radius:4px;padding:4px 10px;font-size:13.5px}
+.bar button:hover{border-color:#7FC8DE}
+.bar button[aria-pressed="true"]{background:#CFEFF7;color:#0B1E25;border-color:#CFEFF7;font-weight:700}
+.hud{position:absolute;right:12px;top:88px;background:rgba(13,22,27,.86);color:#DCE7EB;border-radius:4px;padding:6px 10px;font-size:12.5px;line-height:1.6;min-width:180px;pointer-events:none}
+.hud div{display:flex;justify-content:space-between;gap:14px}
+.hud b{font:600 12px var(--mono);color:#FFD45C}
+.flowhud{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center;color:#D5E0E5;font-size:13px;background:rgba(13,22,27,.86);padding:6px 12px;border-radius:4px}
+.flowhud .fl{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+.flowhud input[type=range]{flex:1;accent-color:#58C2D6}
+.flowhud output{font:600 12.5px var(--mono);color:#FFD45C;min-width:96px;text-align:right}
+.flowhud label{cursor:pointer;white-space:nowrap}
+.flowhud input[type=checkbox]{margin:0 4px 0 0;vertical-align:-1px}
+.legend{display:flex;gap:4px 12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+
+.manual{background:var(--panel);border-left:1px solid var(--line);min-width:0;height:min(78vh,780px);min-height:600px;overflow-y:auto}
+#detail{padding:18px 18px 22px;display:flex;flex-direction:column;gap:10px}
+#detail h2{font-size:21px;font-weight:700}
+#detail h3{font-size:14.5px;font-weight:700;margin-top:4px}
+#detail p{color:var(--ink2);font-size:14.5px;line-height:1.75}
+#detail p.leadline{color:var(--ink);font-weight:500;font-size:15.5px}
+.kicker{font:500 12px var(--mono)!important;color:var(--accent)!important}
+.facts{margin:0;display:grid}
+.facts div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:5px 0;font-size:13.5px}
+.facts dt{color:var(--ink3);flex:none}
+.facts dd{margin:0;font-weight:500;text-align:right;font-size:13px}
+.src{font-size:12.5px!important;color:var(--ink3)!important}
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pc ul{margin:4px 0 0;padding-left:16px;font-size:13.5px;color:var(--ink2);line-height:1.6}
+.pc li{margin:2px 0}
+.pc .g h3{color:var(--ok)}.pc .b h3{color:var(--no)}
+.numlist{margin:0;padding-left:0;list-style:none;font-size:13.5px;color:var(--ink2);display:grid;gap:2px}
+.numlist b{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:10px;background:var(--ink);color:var(--panel);font:700 11px var(--mono);margin-right:7px}
+.jump{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:14px}
+.meterlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.meterlist button{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 9px;font-size:13.5px;line-height:1.45}
+.meterlist button small{display:block;color:var(--ink3);font-size:12px}
+.meterlist button:hover{border-color:var(--accent)}
+
+.ev{font-style:normal;font:500 11px/1 var(--sans);padding:2px 5px;border-radius:3px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.ev.a{background:var(--ok-bg);color:var(--ok)}
+.ev.b{background:var(--accent-bg);color:var(--accent)}
+.ev.c{background:var(--amber-bg);color:var(--amber)}
+
+section.sec{padding-block:32px 36px;border-top:1px solid var(--line)}
+.scale{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.02em}
+section.sec>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em;margin-top:2px}
+.intro{max-width:46em;color:var(--ink2);margin-top:8px}
+.intro+.intro{margin-top:8px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:2px solid var(--ink);margin-top:20px}
+.three div{padding:10px 16px 2px 0;min-width:0}
+.three div+div{border-left:1px solid var(--line);padding-left:16px}
+.three h3{font-size:16px;font-weight:700}
+.three b{display:block;font:700 13px var(--mono);color:var(--accent);margin-top:2px}
+.three p{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:4px}
+.lab{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px;margin-top:18px;align-items:start}
+.lab>*{min-width:0}
+canvas.plot{display:block;width:100%;background:var(--dark);border-radius:4px;touch-action:pan-y}
+.cap{font-size:13px;color:var(--ink3);margin-top:6px;line-height:1.6}
+.labtabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.labtabs button,.btns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 11px;font-size:14px}
+.labtabs button:hover,.btns button:hover{border-color:var(--accent)}
+.labtabs button[aria-pressed="true"],.btns button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700}
+.btns{display:flex;gap:5px;flex-wrap:wrap}
+.btns button{font-size:13px;padding:3px 9px}
+.labtitle{font-size:19px;font-weight:700;margin-bottom:4px}
+.ctl{display:grid;gap:11px}
+.cf label{display:flex;justify-content:space-between;gap:10px;font-size:14px;align-items:baseline}
+.cf label.chk{justify-content:flex-start;gap:6px;cursor:pointer}
+.cf output{font:500 13px var(--mono);color:var(--ink)}
+.cf input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 0}
+.cf select{width:100%;margin-top:4px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:14px}
+.cf .cl{display:block;font-size:14px;margin-bottom:4px}
+.read{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:14px}
+.read div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding:5px 0;font-size:13.5px;color:var(--ink3);min-width:0}
+.read b{font:700 13px var(--mono);color:var(--ink);text-align:right}
+.read .hl b{color:var(--accent)}
+.read .bad b{color:var(--no)}.read .good b{color:var(--ok)}
+.note{font-size:14px;color:var(--ink2);margin-top:12px;line-height:1.75;background:var(--panel);border-left:3px solid var(--accent);padding:8px 12px}
+.tw{overflow-x:auto;margin-top:16px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:760px}
+th,td{padding:7px 10px 7px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{font-size:13px;color:var(--ink3);font-weight:500;border-bottom:2px solid var(--ink)}
+td{color:var(--ink2)}
+tbody th{font-weight:700;white-space:nowrap}
+td.no{color:var(--no);font-weight:700}td.yes{color:var(--ok)}
+.quiz{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.qc{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.qc p.q{font-weight:500;font-size:14.5px}
+.qc .opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.qc .opts button{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:5px 8px;font-size:14px;text-align:left}
+.qc .opts button:hover:not(:disabled){border-color:var(--accent)}
+.qc .opts button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:700}
+.qc .opts button.wrong{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.qc .opts button:disabled{cursor:default}
+.qc .why{font-size:13.5px;color:var(--ink2);margin-top:8px;line-height:1.7}
+.score{margin-top:12px;font-size:14.5px;color:var(--ink2)}
+.pats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.pat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.pat .no{font:700 13px var(--mono);color:var(--accent)}
+.pat .who{font-size:12.5px;color:var(--ink3)}
+.pat h3{font-size:16px;font-weight:700;margin-top:3px}
+.pat .pb{font-size:13.5px;color:var(--ink2);margin-top:6px}
+.pat .pb b{color:var(--no);font-weight:700}
+.pat ul{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2);line-height:1.65}
+.pat li{margin:3px 0}
+.pat a{font-size:13px}
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 32px;margin-top:12px}
+.limits>div{min-width:0;border-top:1px solid var(--line);padding-block:7px}
+.limits h3{font-size:15px;font-weight:700}
+.limits p{font-size:14px;color:var(--ink2);line-height:1.7}
+.sources{columns:2;column-gap:32px;margin:12px 0 0;padding-left:18px;font-size:13.5px}
+.sources li{margin:3px 0;break-inside:avoid}
+.evkey{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:14px;color:var(--ink2);margin-top:10px}
+footer{padding-block:22px 34px;font-size:13px;color:var(--ink3);border-top:1px solid var(--line)}
+
+@media (max-width:980px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:66vh;min-height:440px}
+  .manual{height:auto;min-height:0;border-left:0;border-top:1px solid var(--line)}
+  .lab{grid-template-columns:minmax(0,1fr)}
+  .sources{columns:1}.limits,.pats,.quiz{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:600px){
+  .three{grid-template-columns:minmax(0,1fr)}
+  .three div+div{border-left:0;padding-left:0;border-top:1px solid var(--line)}
+  .read{grid-template-columns:minmax(0,1fr)}
+  .pin span{display:none}
+  .bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;right:0;padding-right:12px}
+  .bar button{flex:none}
+  .hud{top:auto;bottom:88px;right:8px;font-size:11.5px;min-width:0}
+  .pc,.meterlist,.qc .opts{grid-template-columns:minmax(0,1fr)}
+  .flowhud .fl{flex:1 1 100%;min-width:0}
+  .flowhud .fl span{white-space:nowrap}
+  .flowhud output{min-width:84px}
+}
+</style>
+
+<header class="top"><div class="wrap">
+  <p class="kick">半导体湿法设备 · 原理拆解</p>
+  <h1>湿法设备里的流量计</h1>
+  <p class="lead">清洗晶圆的机台里，超纯水和药液要按准确的流量走。可这些液体又纯又腐蚀，流量计不能碰金属、不能掉颗粒。工程师于是把几乎每一种测流量的原理都用 PFA 塑料重新做了一遍。下面先看它们装在机台的哪里，再把九种一个个剖开、动手试，最后看公开专利里是怎么做的。</p>
+</div></header>
+
+<svg class="flange" aria-hidden="true" preserveAspectRatio="none"><defs><pattern id="fl" width="28" height="14" patternUnits="userSpaceOnUse"><rect x="0" y="5" width="22" height="4" fill="currentColor"/><circle cx="25" cy="7" r="2" fill="currentColor"/></pattern></defs><rect width="100%" height="14" fill="url(#fl)"/></svg>
+
+<div class="bench">
+  <div class="viewport" id="vp">
+    <canvas id="gl" aria-label="流量计三维剖面模型，可拖动旋转"></canvas>
+    <div id="pins"></div>
+    <div id="loading">正在载入模型</div>
+    <div class="bar" id="views" role="group" aria-label="选择模型"></div>
+    <div class="hud" id="hud" hidden></div>
+    <div class="flowhud">
+      <div class="fl" id="flowbox"><span>流量</span><input type="range" id="flow" min="0" max="1" step="0.01" value="0.5" aria-label="流量"><output id="flowout"></output></div>
+      <div class="legend" id="legend" hidden></div>
+      <label><input type="checkbox" id="tgP" checked>液体</label>
+      <label><input type="checkbox" id="tgL" checked>标注</label>
+    </div>
+  </div>
+  <aside class="manual"><div id="detail"></div></aside>
+</div>
+
+<section class="sec" id="s-what"><div class="wrap">
+  <p class="scale">第一步 · 概念</p>
+  <h2>测流量，其实是在测什么</h2>
+  <p class="intro">流量是"每分钟流过多少"。大多数流量计其实测的是<b>流速</b>，再乘上管子截面积；也有直接测<b>质量</b>的。麻烦在于管子里各处流速不一样：贴着管壁几乎不动，中间最快。流速怎么分布，取决于雷诺数 Re。</p>
+  <div class="lab">
+    <div><canvas class="plot" id="pipecv" style="height:340px"></canvas><p class="cap">拖动流量、换管径和液体，看流速分布怎么变。箭头长短代表那一层的流速。</p></div>
+    <div><div class="ctl" id="pipectl"></div><div class="read" id="piperead"></div><p class="note" id="pipenote"></p></div>
+  </div>
+  <div class="three">
+    <div><h3>不能脏</h3><b>PFA / PTFE / 蓝宝石</b><p>接液部分不能有金属，不能析出东西，不能掉颗粒。O 形圈、胶水、轴承都是专利里反复要解决的麻烦。</p></div>
+    <div><h3>不能有死角</h3><b>没有积液、不存气泡</b><p>死角里会积药液、长细菌，换药液也冲不干净。气泡会让超声波、差压、科里奥利读数乱跳。</p></div>
+    <div><h3>要耐得住</h3><b>强酸、强碱、热纯水</b><p>氢氟酸会渗透塑料、攻击粘接缝，热纯水到 80 °C 上下。材料和传感器都要在这些条件下稳定。</p></div>
+  </div>
+</div></section>
+
+<section class="sec" id="s-labs"><div class="wrap">
+  <p class="scale">第二步 · 动手</p>
+  <h2>九种流量计，一个一个拆开试</h2>
+  <p class="intro">每个实验台都用同一套简化物理在算。旋钮可以改流量、换液体、加气泡、加振动，看仪表读数什么时候开始说谎。</p>
+  <div class="labtabs" id="labtabs" role="group" aria-label="选择实验"></div>
+  <div class="lab">
+    <div><canvas class="plot" id="labcv"></canvas><p class="cap" id="labcap"></p></div>
+    <div><p class="labtitle" id="labtitle"></p><div class="ctl" id="labctl"></div><div class="read" id="labread"></div><p class="note" id="labnote"></p></div>
+  </div>
+</div></section>
+
+<section class="sec" id="s-pick"><div class="wrap">
+  <p class="scale">第三步 · 选型</p>
+  <h2>放在一起比，再做几道选择题</h2>
+  <p class="intro">没有哪一种流量计在所有地方都最好。选型其实是在挑"它的弱点在这里碰不到"的那一种。表里的精度是本页引用的那款产品的规格，换一家可能不同。</p>
+  <div class="tw"><table id="cmp"></table></div>
+  <div class="quiz" id="quiz"></div>
+  <p class="score" id="score"></p>
+</div></section>
+
+<section class="sec" id="s-pat"><div class="wrap">
+  <p class="scale">第四步 · 公开专利</p>
+  <h2>专利里是怎么做的</h2>
+  <p class="intro">这些都是能在 Google Patents 上查到原文的公开专利。看下来会发现，原理本身早就成熟了，专利里的功夫大多花在"怎么在超纯、强腐蚀的条件下把它做干净、做稳定"。</p>
+  <div class="labtabs" id="pattabs" role="group" aria-label="选择流量计类型"></div>
+  <div class="pats" id="pats"></div>
+</div></section>
+
+<section class="sec" id="s-end"><div class="wrap">
+  <p class="scale">最后</p>
+  <h2>结论和它的边界</h2>
+  <div class="limits">
+    <div><h3>流量计先要"干净"</h3><p>在湿法设备里，测得准是基本要求，更难的是接液部分全是 PFA、PTFE 或蓝宝石，不析出、不掉颗粒、没有死角。本页列的专利，大多数在解决密封、熔接、隔膜、内壁粗糙度这类问题。</p></div>
+    <div><h3>测的东西不一样</h3><p>超声波、涡街、叶轮、电磁、差压、浮子得到的是体积流量（差压和浮子还跟密度有关）。热式和科里奥利直接测质量，科里奥利还能顺便测出密度。</p></div>
+    <div><h3>各有各的盲区</h3><p>气泡：超声波、科里奥利最怕。小流量：差压、涡街、叶轮最弱。液体性质：浮子、差压、热式要按液体标定。电导率：电磁式测不了纯水。</p></div>
+    <div><h3>三维模型是示意</h3><p>外形按专利和产品资料里的通用结构画，不对应任何一家的产品；毛细管、换能器、电极这些小零件为了看得见做了放大。机台也是虚构的。</p></div>
+    <div><h3>实验里的物理是简化的</h3><p>超声波没算管壁里的声路和计时误差；夹装式的流速分布用幂律模型，过渡区只是线性混合。涡街的升力系数和门限、叶轮的起转门槛、科里奥利的管子参数、电磁式的噪声随电导率变化，都是为了说明趋势选的示意值。</p></div>
+    <div><h3>物性和系数</h3><p>纯水的密度、黏度、声速按温度计算（声速用 Marczak 1997 的多项式）。稀氢氟酸、浓硫酸、IPA 固定在 25 °C，部分数值是估算。孔板系数取 0.607；热式的气体转换系数只按摩尔热容估，真实转换表还有结构修正。</p></div>
+  </div>
+  <div class="evkey"><span><i class="ev a">公认</i>教科书级的原理</span><span><i class="ev b">资料</i>专利原文或厂商资料</span><span><i class="ev c">估算</i>本页估算或示意</span></div>
+  <h3 style="font-size:17px;margin-top:22px">来源</h3>
+  <ul class="sources" id="sources"></ul>
+</div></section>
+
+<footer><div class="wrap">一个离线单文件页面：模型、数据、代码都在这一个 HTML 里。三维模型用 Blender 脚本生成。</div></footer>
