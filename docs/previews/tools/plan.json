@@ -1,0 +1,378 @@
+{
+ "pump": {
+  "page": "半导体湿法设备的泵/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "click",
+    "02甩：离心"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "click",
+    "03磁力联轴器"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "drag"
+   ]
+  ]
+ },
+ "flowmeter": {
+  "page": "湿法设备流量计/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "卡门涡街"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "click",
+    "科里奥利"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
+ },
+ "liquid-reg": {
+  "page": "液体调压阀/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "scroll",
+    330
+   ],
+   [
+    "wait",
+    600
+   ],
+   [
+    "mark"
+   ],
+   [
+    "click",
+    "气控式"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "drag"
+   ],
+   [
+    "click",
+    "闭环供液线"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
+ },
+ "gas-reg": {
+  "page": "气体调压阀/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "scroll",
+    520
+   ],
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "两级"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "drag"
+   ],
+   [
+    "click",
+    "圆顶"
+   ],
+   [
+    "wait",
+    3000
+   ]
+  ]
+ },
+ "concentration": {
+  "page": "湿法浓度计原理/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "② 折射率式"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "drag"
+   ],
+   [
+    "scroll",
+    400
+   ],
+   [
+    "wait",
+    2500
+   ]
+  ]
+ },
+ "temperature": {
+  "page": "湿法温调器原理/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "⑤ 感应加热式"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "drag"
+   ],
+   [
+    "scroll",
+    400
+   ],
+   [
+    "wait",
+    2500
+   ]
+  ]
+ },
+ "cleanroom": {
+  "page": "无尘室空气过滤/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "scroll",
+    230
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "mark"
+   ],
+   [
+    "click",
+    "分层爆炸"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "click",
+    "FFU 爆炸图"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
+ },
+ "current-field": {
+  "page": "电流怎么转动磁场/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "6三相电"
+   ],
+   [
+    "wait",
+    5000
+   ],
+   [
+    "click",
+    "7扭矩和转速"
+   ],
+   [
+    "wait",
+    4000
+   ]
+  ]
+ },
+ "ev-motor": {
+  "page": "电动车电机调速/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "wait",
+    500
+   ],
+   [
+    "click",
+    "02旋转磁场"
+   ],
+   [
+    "wait",
+    4500
+   ],
+   [
+    "click",
+    "05逆变器"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
+ },
+ "sdv": {
+  "page": "软件定义汽车/index.html",
+  "colors": 48,
+  "steps": [
+   [
+    "wait",
+    1500
+   ],
+   [
+    "click",
+    "拆开"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "click",
+    "软件定义中央 + 区域"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
+ },
+ "microwave": {
+  "page": "无转盘微波炉/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "scroll",
+    330
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "mark"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "drag"
+   ],
+   [
+    "wait",
+    2500
+   ]
+  ]
+ },
+ "flash": {
+  "page": "按D到闪现/index.html",
+  "colors": 80,
+  "steps": [
+   [
+    "sel",
+    "#q1skip"
+   ],
+   [
+    "wait",
+    300
+   ],
+   [
+    "into",
+    "#auto"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "#auto"
+   ],
+   [
+    "wait",
+    8000
+   ]
+  ]
+ },
+ "etcher": {
+  "page": "干法刻蚀机/output/干法刻蚀机_离线版.html",
+  "colors": 80,
+  "steps": [
+   [
+    "selopt",
+    [
+     "#speed",
+     "10×"
+    ]
+   ],
+   [
+    "sel",
+    "#auto"
+   ],
+   [
+    "sel",
+    "#go"
+   ],
+   [
+    "wait",
+    30000
+   ]
+  ],
+  "loadWait": 12000
+ }
+}
