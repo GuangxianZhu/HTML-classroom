@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>药液有多浓？—— 半导体湿法设备里的浓度计原理</title>
+<!--STYLE-->
+<link rel="stylesheet" href="style.css">
+<!--/STYLE-->
+</head>
+<body>
+<nav id="nav">
+  <div class="brand">浓度计原理</div>
+  <a href="#intro">为什么要测浓度</a>
+  <a href="#how">装置里怎么用</a>
+  <div class="navsec">九种测法</div>
+  <a href="#absorb">① 吸光光度式</a>
+  <a href="#refract">② 折射率式</a>
+  <a href="#toroid">③ 电磁感应电导率</a>
+  <a href="#ultra">④ 超声波声速式</a>
+  <a href="#density">⑤ 密度式</a>
+  <a href="#titration">⑥ 自动滴定</a>
+  <a href="#ozone">⑦ 紫外吸收臭氧计</a>
+  <a href="#membrane">⑧ 隔膜电极（溶存H₂/O₂）</a>
+  <a href="#resist">⑨ 电极式比电阻</a>
+  <div class="navsec">总结</div>
+  <a href="#compare">对比表</a>
+  <a href="#choose">选型思路</a>
+  <a href="#control">专利里的补液控制</a>
+  <a href="#refs">资料来源</a>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="kicker">面向一般读者 · Blender 建模 · 公开专利解读</p>
+  <h1>药液有多浓？<br><small>半导体湿法设备里的「浓度计」是怎么测出来的</small></h1>
+  <p>清洗、刻蚀晶圆用的药液（氨水+双氧水、氢氟酸、热磷酸……），浓度差一点，刻掉的厚度就差一截。可药液是透明的、有的还剧毒强腐蚀，人不能拿勺子去尝。设备是靠什么「看出」浓度的？这页把常见的九种测法拆开讲：每种都有<b>可以旋转的 3D 模型</b>、<b>能动手拖滑块的小实验</b>，以及<b>公开专利里是怎么做的</b>。</p>
+  <div class="legend">
+    <span class="ev a">公认</span> 教科书/物理定律级别的结论
+    <span class="ev b">资料</span> 专利、厂商技术资料里写的，可信但是特定条件下
+    <span class="ev c">示意</span> 为了讲清楚而简化的图/数，或我的推测
+  </div>
+  <p class="note">说明：所有模型都是<b>原理示意</b>，不对应任何厂商的具体产品；专利要点是用自己的话概括的，细节请以专利原文为准。</p>
+  <div class="cards" id="cards"></div>
+</header>
+
+<section id="intro">
+  <h2>为什么要测浓度？</h2>
+  <div class="cols2">
+    <div>
+      <p>药液的“劲头”几乎都跟浓度挂钩：刻蚀速率、清洗能力都随浓度变化 <span class="ev a">公认</span>。而槽里的浓度<b>不会自己保持不变</b>：</p>
+      <ul>
+        <li><b>分解</b>：双氧水会慢慢分解成水和氧气，温度越高越快 <span class="ev a">公认</span></li>
+        <li><b>挥发</b>：氨、HCl 会从液面跑掉；高温槽里水也在蒸发 <span class="ev a">公认</span></li>
+        <li><b>消耗</b>：药液和晶圆表面反应，被用掉一部分 <span class="ev a">公认</span></li>
+        <li><b>带入 / 带出</b>：晶圆带进来的纯水会把药液冲稀 <span class="ev b">资料</span></li>
+      </ul>
+    </div>
+    <div class="callout">
+      <b>一句话概括所有浓度计的套路：</b><br>
+      找一个<b>随浓度变化、又能用电信号读出来</b>的物理量（吸光、折射率、电导率、声速、密度……）→ 事先用已知浓度的标准液做一条“换算曲线”（标定）→ 实测时查曲线得到浓度。<br><br>
+      所以每种方法都要问三个问题：<br>
+      ① 这个物理量<b>还受什么别的影响</b>？（几乎都受温度影响）<br>
+      ② 一个读数会不会对应<b>两个浓度</b>？<br>
+      ③ 药液里有<b>好几个成分</b>时，能不能分开？
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <h2>浓度计装在设备的哪里？</h2>
+  <svg viewBox="0 0 760 300" class="diagram" role="img" aria-label="循环槽与浓度计、补液的示意图">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#4a78c2"/></marker></defs>
+    <rect x="40" y="70" width="170" height="130" rx="6" fill="#dbe8fb" stroke="#6d8fc7"/>
+    <rect x="40" y="110" width="170" height="90" fill="#9ec3f2" opacity=".6"/>
+    <text x="125" y="95" text-anchor="middle" class="t">处理槽（晶圆在这里）</text>
+    <path d="M210,180 H300" stroke="#4a78c2" stroke-width="5" fill="none" marker-end="url(#ar)"/>
+    <circle cx="320" cy="180" r="20" fill="#fff" stroke="#555"/><text x="320" y="185" text-anchor="middle" class="t">泵</text>
+    <path d="M340,180 H390" stroke="#4a78c2" stroke-width="5" fill="none" marker-end="url(#ar)"/>
+    <rect x="392" y="165" width="50" height="30" fill="#fff" stroke="#555"/><text x="417" y="185" text-anchor="middle" class="t">加热</text>
+    <path d="M442,180 H480" stroke="#4a78c2" stroke-width="5" fill="none" marker-end="url(#ar)"/>
+    <rect x="482" y="165" width="50" height="30" fill="#fff" stroke="#555"/><text x="507" y="185" text-anchor="middle" class="t">过滤</text>
+    <path d="M532,180 H580 V250 H125 V200" stroke="#4a78c2" stroke-width="5" fill="none" marker-end="url(#ar)"/>
+    <text x="350" y="268" text-anchor="middle" class="t">循环管路（药液回到槽）</text>
+    <path d="M560,180 V120 H620" stroke="#4a78c2" stroke-width="3" fill="none" stroke-dasharray="6 3" marker-end="url(#ar)"/>
+    <rect x="620" y="100" width="110" height="40" rx="6" fill="#ffe9c7" stroke="#d08a1c"/>
+    <text x="675" y="125" text-anchor="middle" class="t b">浓度计</text>
+    <text x="610" y="160" text-anchor="end" class="s">旁路取样（或直接装在主管上）</text>
+    <path d="M675,100 V40 H430" stroke="#d08a1c" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+    <text x="560" y="34" text-anchor="middle" class="s">浓度信号（如 4–20 mA）</text>
+    <rect x="320" y="20" width="110" height="40" rx="6" fill="#fff" stroke="#555"/><text x="375" y="45" text-anchor="middle" class="t b">控制器</text>
+    <path d="M320,40 H180 V68" stroke="#c43" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+    <text x="240" y="32" text-anchor="middle" class="s">开补液阀/泵</text>
+    <rect x="130" y="10" width="40" height="22" fill="#fff" stroke="#c43"/><text x="150" y="26" text-anchor="middle" class="s">原液</text>
+    <rect x="80" y="10" width="40" height="22" fill="#fff" stroke="#c43"/><text x="100" y="26" text-anchor="middle" class="s">纯水</text>
+    <path d="M100,32 V68" stroke="#c43" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+  </svg>
+  <p>最常见的做法是：药液一直在 <b>槽 → 泵 → 加热 → 过滤 → 槽</b> 里循环；浓度计装在循环管路上（或从主管分一小股出来的旁路上），把浓度变成电信号送给控制器；浓度低了就补原液，高了就补纯水 <span class="ev b">资料</span>（见文末“专利里的补液控制”）。</p>
+  <p>为什么常装在泵和过滤器后面？因为那里流量稳、气泡少——<b>气泡几乎是所有光学和超声浓度计的头号敌人</b>（会散射光、吸收声波）<span class="ev b">资料</span>。具体装在哪，每台设备不同 <span class="ev c">示意</span>。</p>
+</section>
+
+<!-- ========================================================== 1 -->
+<section id="absorb" class="type">
+  <h2><span class="num">1</span>吸光光度式（近红外 / 紫外多波长）</h2>
+  <p class="lead">让一束光穿过药液，看<b>哪些颜色（波长）被“吃掉”了多少</b>。不同分子吃掉的波长不同，所以能<b>一次分出好几个成分</b>。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="absorb"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>朗伯–比尔定律</b>：吸光度 A = ε·c·L（ε 是这种分子对这个波长的“吸收能力”，c 浓度，L 光穿过液体的厚度）。浓度翻倍，吸光度翻倍 <span class="ev a">公认</span></li>
+        <li><b>分光</b>：透过来的光进分光器，用衍射光栅把波长展开，打到一排检测器上，同时测上百个波长 <span class="ev a">公认</span></li>
+        <li><b>多成分联立</b>：几个成分的吸收叠加在一起；用很多已知配比的标准液事先“教会”仪器（化学计量学，如 PCA/PLS），实测时就能把叠加的光谱拆回各成分浓度 <span class="ev b">资料</span></li>
+      </ol>
+      <p>近红外区里水本身有很强的吸收带（约 1450、1950 nm，来自 O–H 振动的倍频/合频）<span class="ev a">公认</span>。所以在稀药液里，“水”本身也是个成分，而且它的光谱会随温度移动——这就是温度补偿的来源 <span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="absorb"><h3>🔬 动手试试：两个成分 + 温度</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">曲线形状是<span class="ev c">示意</span>，不是任何真实药液的光谱。试试：关掉温度补偿，把温度拉到 60 °C。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>一台仪器同时测多个成分（如 SC1 里的 NH₃ 和 H₂O₂）；不接触药液；响应快 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设光谱只由“已标定过的成分”造成。混进没标定过的东西（溶解的硅、金属、分解产物）、气泡、窗口被腐蚀或结垢 → 读数偏 <span class="ev b">资料</span>。石英窗不耐 HF <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>SC1、SC2、SPM、DHF 等混酸/混碱 <span class="ev b">资料</span>；紫外区常用于单一吸收强的成分（如臭氧，见 ⑦）</p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="absorb"></div>
+</section>
+
+<!-- ========================================================== 2 -->
+<section id="refract" class="type">
+  <h2><span class="num">2</span>折射率式（临界角折射计）</h2>
+  <p class="lead">光从棱镜射向药液，<b>斜到一定角度就“弹回来”（全反射）</b>。这个临界角取决于药液的折射率，而折射率随浓度变。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="refract"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>棱镜（常用蓝宝石）的一面直接贴着药液。LED 发出的光以各种角度打到这个面上</li>
+        <li>入射角大于临界角 θc 的光全部反射回来，小于的大部分折射进药液：sin θc = n<sub>药液</sub> / n<sub>棱镜</sub> <span class="ev a">公认</span></li>
+        <li>反射光打到一排图像传感器上，形成<b>一亮一暗的分界线</b>；分界线的位置 → θc → 折射率 → 浓度 <span class="ev b">资料</span></li>
+      </ol>
+      <p>妙处：光只在棱镜表面“擦一下”，几乎不穿过药液，所以<b>颜色、浑浊、气泡对分界线位置影响很小</b>（厂商这样宣称）<span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="refract"><h3>🔬 动手试试：拖浓度，看分界线移动</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">折射率–浓度关系用直线近似 <span class="ev c">示意</span>；温度系数取 −1×10⁻⁴/°C（水的量级）。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>二元溶液（一种溶质 + 水）；抗颜色/颗粒；无可动部件 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>只输出<b>一个数</b>（折射率），只能解一个未知量。多成分药液、或刻蚀中溶进的硅酸盐等也会改变折射率 → 需要另外补偿 <span class="ev b">资料</span>。折射率对温度很敏感，必须精确测温 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>KOH、单一酸/碱稀释液、H₂O₂ 等 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="refract"></div>
+</section>
+
+<!-- ========================================================== 3 -->
+<section id="toroid" class="type">
+  <h2><span class="num">3</span>电磁感应式（无电极）电导率</h2>
+  <p class="lead">把药液当成<b>变压器里的一匝导线</b>：药液越导电，传过去的信号越强。线圈全包在氟树脂里，<b>不碰药液</b>。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="toroid"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>两个环形线圈套在药液流路上。药液在流路里形成一个<b>闭合的液体环</b>，同时穿过两个线圈 <span class="ev b">资料</span></li>
+        <li>给第一个线圈通交流电 → 在液体环里感应出电流（像变压器初级→次级）</li>
+        <li>液体环的电流又在第二个线圈里感应出电压。药液电导率越高，电流越大，电压越大 → 电导率 → 浓度 <span class="ev a">公认</span></li>
+      </ol>
+      <p>没有电极接触药液，所以<b>不怕腐蚀（HF 也行）、不会极化、不会污染药液</b>，适合高浓度强电解质 <span class="ev b">资料</span>。反过来，导电性极低的超纯水信号太弱，用它不合适——那是 ⑨ 电极式的地盘 <span class="ev a">公认</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="toroid"><h3>🔬 动手试试：电导率的“驼峰”陷阱</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">曲线形状参考硫酸（约 30 wt% 处电导率最大，这一点是教科书结论 <span class="ev a">公认</span>），具体数值为近似 <span class="ev c">示意</span>。试试把浓度拉到 50 %。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>高浓度、强腐蚀的单一电解质；结构简单、耐用、便宜 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设导电的只有目标成分。很多酸碱的电导率在中等浓度有最大值，峰两侧同一读数对应两个浓度 <span class="ev a">公认</span>。温度每变 1 °C，电导率约变百分之几 → 必须温度补偿 <span class="ev a">公认</span>。H₂O₂ 这类不电离的成分几乎“看不见” <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>HF/DHF、HCl、NH₄OH、显影液（TMAH）稀释控制 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="toroid"></div>
+</section>
+
+<!-- ========================================================== 4 -->
+<section id="ultra" class="type">
+  <h2><span class="num">4</span>超声波声速式</h2>
+  <p class="lead">对着药液“喊一声”（超声脉冲），掐表看<b>多久传到对面</b>。声音在不同浓度的液体里跑得快慢不同。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="ultra"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>压电元件被电脉冲激励，发出超声波；对面（或经反射板回来）的压电元件接收 <span class="ev a">公认</span></li>
+        <li>声速 c = 距离 / 飞行时间。液体里 c = 1/√(ρ·β)（ρ 密度，β 压缩率），两者都随浓度变 <span class="ev a">公认</span></li>
+        <li>同时测温度，查“声速–温度–浓度”表得到浓度 <span class="ev b">资料</span></li>
+      </ol>
+      <p>纯水 25 °C 时声速约 1497 m/s，每升 1 °C 增加约 2.4 m/s <span class="ev a">公认</span>——这个温度效应常常比浓度效应还大，所以测温是必须的。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="ultra"><h3>🔬 动手试试：飞行时间</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">纯水声速用经验多项式计算；“浓度每 1 % 声速 +6 m/s”是<span class="ev c">示意</span>假设。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>不受颜色/透明度影响；可以和电导率组合，用两个读数解两个成分 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>气泡会强烈散射/衰减超声，是主要误差源 <span class="ev b">资料</span>。声速–浓度曲线也可能有极值 → 多值问题 <span class="ev c">推测</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>酸、碱、混酸的在线监测（常与电导率组合）<span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="ultra"></div>
+</section>
+
+<!-- ========================================================== 5 -->
+<section id="density" class="type">
+  <h2><span class="num">5</span>密度式（振动管 / 鼓泡压力）</h2>
+  <p class="lead">把药液装进一根会振动的 U 形管：<b>液体越重，管子振得越慢</b>，像吉他弦上挂了重物。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="density"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>U 形管根部固定，用电磁力让它在固有频率振动 <span class="ev a">公认</span></li>
+        <li>管子体积不变，装进的液体越密，振动部分总质量越大，频率越低：f = (1/2π)·√(k/(m₀+ρV)) <span class="ev a">公认</span></li>
+        <li>标定后 ρ = A/f² − B；再用“密度–浓度”表换算 <span class="ev b">资料</span></li>
+      </ol>
+      <p>另一种更“土”但耐高温的办法是<b>鼓泡法</b>：从固定深度吹出恒定流量的 N₂，背压 = 液柱重量，跟密度成正比。热磷酸槽有用这种思路的公开专利 <span class="ev b">资料</span>。科里奥利质量流量计也能同时给出密度 <span class="ev a">公认</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="density"><h3>🔬 动手试试：密度与振动频率</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">硫酸密度用近似表；“装纯水时 500 Hz”是<span class="ev c">示意</span>。拉到 95 % 以上看看。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>原理清楚、精度高；任何溶液都有密度，不挑成分 <span class="ev a">公认</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>同样只给一个数 → 只能解二元溶液。管内气泡、结垢改变振动质量 <span class="ev a">公认</span>。浓硫酸在约 97–98 % 附近密度有最大值 → 多值 <span class="ev b">资料</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>药液调配稀释、热磷酸（鼓泡法）等 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="density"></div>
+</section>
+
+<!-- ========================================================== 6 -->
+<section id="titration" class="type">
+  <h2><span class="num">6</span>自动滴定 / 自动化学分析</h2>
+  <p class="lead">化学课上的滴定，交给机器人做：<b>取一小份药液，一滴一滴加已知浓度的试剂，直到反应刚好完成</b>。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="titration"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>计量阀精确取一小份样品（常加纯水稀释）放进滴定杯 <span class="ev b">资料</span></li>
+        <li>活塞泵一点点加入已知浓度的试剂（如 NaOH），同时用电极监测 pH 或电位 <span class="ev a">公认</span></li>
+        <li>曲线出现突跃处 = 终点。由加入体积和反应计量关系算出原浓度 <span class="ev a">公认</span></li>
+      </ol>
+      <p>它测的是<b>真正参与化学反应的量</b>，不需要“物理量↔浓度”的换算曲线，因此常被当作其他在线浓度计的<b>校准基准</b> <span class="ev c">推测</span>（在专利里也能看到“快传感器 + 慢滴定校正”的组合 <span class="ev b">资料</span>）。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="titration"><h3>🔬 动手试试：强酸被强碱滴定</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">取样 10 mL，NaOH 0.1 mol/L；pH 由电荷平衡直接计算（强酸强碱，忽略活度）。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>化学上最“直接”；可选择性地测特定成分 <span class="ev a">公认</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>一次要几分钟到几十分钟，跟不上快速变化 <span class="ev b">资料</span>；消耗药液和试剂、产生废液；取样管路、试剂老化都会带来误差 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>定期检查、校准；成分复杂、其他方法分不开时 <span class="ev c">推测</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="titration"></div>
+</section>
+
+<!-- ========================================================== 7 -->
+<section id="ozone" class="type">
+  <h2><span class="num">7</span>紫外吸收式溶存臭氧计</h2>
+  <p class="lead">臭氧对 <b>254 nm 紫外光</b>的吸收特别强，而汞灯恰好主要发这一条光。看紫外光被吃掉多少就知道臭氧有多少。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="ozone"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>低压汞灯发出 253.7 nm 强谱线，落在臭氧吸收最强的 Hartley 带里 <span class="ev a">公认</span></li>
+        <li>光穿过石英测量池里的臭氧水，测量检测器读透过光 I；参比检测器盯着灯本身的 I₀，抵消灯的老化漂移 <span class="ev b">资料</span></li>
+        <li>A = log(I₀/I) = ε·c·L。水中臭氧的摩尔吸光系数约 3000 L·mol⁻¹·cm⁻¹（≈258–260 nm 峰附近）<span class="ev a">公认</span></li>
+      </ol>
+      <p>这其实就是 ① 吸光法的“单波长特化版”：成分单一、吸收又强，所以用一个波长就够了。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="ozone"><h3>🔬 动手试试：浓度 × 光程</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">用 ε = 3000 计算，单位 mg/L ≈ ppm。体会“量程”和“测量池长度”的取舍。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>选择性好、响应快、无试剂 <span class="ev a">公认</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设 254 nm 只被臭氧吸收：水里其他吸紫外的物质会干扰；气泡散射光 → 要先气液分离 <span class="ev b">资料</span>；汞灯会老化 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>臭氧水（有机物去除、氧化处理）<span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="ozone"></div>
+</section>
+
+<!-- ========================================================== 8 -->
+<section id="membrane" class="type">
+  <h2><span class="num">8</span>隔膜电极式溶存气体（氢 / 氧）</h2>
+  <p class="lead">用一层<b>只让气体通过的薄膜</b>把电极和样水隔开，钻过来的气体在电极上反应产生电流——<b>电流大小 ∝ 气体浓度</b>。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="membrane"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>溶在水里的 H₂（或 O₂）分子扩散穿过透气隔膜，进入内部电解液 <span class="ev a">公认</span></li>
+        <li>在加了恒定电压的铂电极上被氧化（H₂）或还原（O₂），产生电流 <span class="ev a">公认</span></li>
+        <li>设计成“穿过隔膜”是最慢的一步 → 电流与水中气体分压成正比 <span class="ev b">资料</span></li>
+      </ol>
+      <p>这种结构常被称为 Clark 型电极（最早用于溶解氧）<span class="ev a">公认</span>。用于氢水、脱气纯水的监测。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="membrane"><h3>🔬 动手试试：隔膜脏了会怎样</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">“透气性约 3 %/°C”是<span class="ev c">示意</span>量级。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>低浓度溶存气体；结构简单 <span class="ev a">公认</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设隔膜透气性不变：膜脏、破损、内液消耗都会让读数漂移 → 需定期维护校正 <span class="ev a">公认</span>；温度影响膜的透气性 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>氢水（功能水）、纯水的溶存氧 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="membrane"></div>
+</section>
+
+<!-- ========================================================== 9 -->
+<section id="resist" class="type">
+  <h2><span class="num">9</span>电极式电导率 / 比电阻（纯水）</h2>
+  <p class="lead">严格说它测的是“<b>水有多纯</b>”，而不是药液有多浓：两根电极之间加电压，看能流过多少电流。离子越少，越难导电。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="resist"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li>同心的内外电极泡在水里，加交流电压（用交流是为了避免电极极化）<span class="ev a">公认</span></li>
+        <li>电导 G = I/V；乘上由电极几何决定的“电池常数” K → 电导率 κ；比电阻 = 1/κ <span class="ev a">公认</span></li>
+        <li>换算到 25 °C 显示。理论纯水 25 °C 时是 <b>18.2 MΩ·cm</b>，这是水自己电离决定的上限 <span class="ev a">公认</span></li>
+      </ol>
+      <p>在湿法设备里常见于纯水供给和<b>冲洗槽</b>：冲洗时药液被逐渐冲掉，比电阻回升到设定值即可判断“冲干净了” <span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="resist"><h3>🔬 动手试试：一点点盐就能“看见”</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">纯水自电离的温度关系用指数近似，NaCl 按 1 ppb ≈ 0.00216 µS/cm（由摩尔电导率估算）<span class="ev c">示意</span>。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>极低离子浓度（ppb 级）灵敏 <span class="ev a">公认</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>浓药液里电极会被腐蚀、极化 → 高电导率要用 ③ 无电极式 <span class="ev a">公认</span>；温度补偿模型不准时，读数会差很多 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>超纯水、冲洗终点判断 <span class="ev b">资料</span></p></div>
+  </div>
+  <p class="cap">这一类是非常成熟的通用技术，这里不单列专利。</p>
+</section>
+
+<section id="compare">
+  <h2>九种方法对比</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>方法</th><th>测的物理量</th><th>能分几个成分</th><th>主要干扰</th><th>速度</th><th>接液</th></tr></thead>
+    <tbody>
+      <tr><td>① 吸光（多波长）</td><td>各波长的吸光度</td><td><b>多个</b></td><td>气泡、未标定成分、温度</td><td>快</td><td>窗口</td></tr>
+      <tr><td>② 折射率</td><td>临界角</td><td>1</td><td>温度、溶解杂质</td><td>快</td><td>棱镜</td></tr>
+      <tr><td>③ 电磁感应电导</td><td>电导率</td><td>1（有峰）</td><td>温度、其他离子</td><td>快</td><td>树脂包覆</td></tr>
+      <tr><td>④ 超声声速</td><td>声速</td><td>1（组合后 2）</td><td>气泡、温度</td><td>快</td><td>探头</td></tr>
+      <tr><td>⑤ 密度</td><td>振动频率 / 液柱压力</td><td>1</td><td>气泡、结垢、温度</td><td>快</td><td>管内</td></tr>
+      <tr><td>⑥ 自动滴定</td><td>反应消耗的试剂量</td><td>可选择</td><td>取样、试剂老化</td><td><b>慢</b></td><td>取样</td></tr>
+      <tr><td>⑦ 紫外臭氧</td><td>254 nm 吸光度</td><td>1</td><td>气泡、其他吸紫外物</td><td>快</td><td>石英池</td></tr>
+      <tr><td>⑧ 隔膜电极</td><td>扩散电流</td><td>1（气体）</td><td>膜污染、温度</td><td>中</td><td>隔膜</td></tr>
+      <tr><td>⑨ 电极比电阻</td><td>电导</td><td>总离子量</td><td>温度</td><td>快</td><td>电极</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">表中是一般性质的归纳 <span class="ev c">示意</span>，具体仪器性能看厂商规格。</p>
+</section>
+
+<section id="choose">
+  <h2>该选哪种？三种思路</h2>
+  <div class="cols3">
+    <div class="box"><h4>思路 A：光学多组分 <span class="tag">较主流</span></h4>
+      <p>近红外多波长 + 化学计量学，一台测混合液里的多个成分。</p>
+      <p><b>取</b>：信息量大、不接触、快。<b>舍</b>：贵；标定工作量大（要做很多标准液、覆盖温度）；对没教过的杂质敏感。</p>
+      <p class="cap">“主流”的判断依据：厂商产品线和多件专利都以它为混合药液的监测手段 <span class="ev b">资料</span>；各工厂实际占比我无法核实 <span class="ev c">推测</span>。</p></div>
+    <div class="box"><h4>思路 B：单一物性 + 温度</h4>
+      <p>电导率、折射率、声速或密度，选一个最灵敏的，配精确测温。必要时两种组合解两成分。</p>
+      <p><b>取</b>：便宜、皮实、好维护。<b>舍</b>：只适合二元溶液或已知配比的体系；要留意曲线峰值造成的多值。</p></div>
+    <div class="box"><h4>思路 C：慢而准的化学分析做基准</h4>
+      <p>在线快速仪表负责实时控制，定期用自动滴定/离线分析去校正它。</p>
+      <p><b>取</b>：长期不漂、可追溯。<b>舍</b>：多一套设备与试剂、维护和废液成本。</p></div>
+  </div>
+</section>
+
+<section id="control">
+  <h2>专利里：读到浓度之后怎么“补液”</h2>
+  <p>测出浓度只是一半，另一半是<b>根据读数决定补什么、补多少</b>。下面是公开专利里几种有代表性的思路（要点为本页概括）。</p>
+  <div class="patents" data-k="control"></div>
+</section>
+
+<section id="refs">
+  <h2>资料来源</h2>
+  <ul class="refs">
+    <li>专利：见各节卡片（均链接到 Google Patents）</li>
+    <li>Vaisala K-PATENTS 过程折射计原理说明：<a href="https://docs.vaisala.com/r/M212411EN-B/en-US/GUID-B9A73FB1-C001-4354-864C-4A78CCEF3B04" target="_blank" rel="noopener">docs.vaisala.com</a>；半导体湿化学应用笔记：<a href="https://www.vaisala.com/en/application-note/semiconductor-wet-chemicals" target="_blank" rel="noopener">vaisala.com</a></li>
+    <li>Emerson 应用笔记：电导率法控制化学品浓度：<a href="https://d1-live.emerson.com/documents/automation/application-note-conductivity-measurement-in-chemical-concentration-control-en-68372.pdf" target="_blank" rel="noopener">PDF</a></li>
+    <li>横河：显影液与氢氟酸浓度测量：<a href="https://yokogawa.com/us/library/resources/application-notes/measuring-concentrations-of-developing-solutions-and-fluoric-acid" target="_blank" rel="noopener">yokogawa.com</a></li>
+    <li>硫酸密度极大值与折射率组合：<a href="https://rudolphresearch.com/de/accurate-determination-of-sulfuric-acid-concentration/?amp=1" target="_blank" rel="noopener">Rudolph Research</a></li>
+    <li>水中臭氧摩尔吸光系数（约 3000 M⁻¹cm⁻¹）：Levanov et al., J. Anal. Chem. 71, 549 (2016) <a href="https://doi.org/10.1134/S1061934816060083" target="_blank" rel="noopener">doi</a></li>
+    <li>硫酸约 30 wt% 时电导率最大：US5273841 背景技术及电化学教科书</li>
+    <li>水的近红外吸收带：<a href="https://en.wikipedia.org/wiki/Electromagnetic_absorption_by_water" target="_blank" rel="noopener">Wikipedia</a>；水中声速与温度：Bilaniuk & Wong (1993)</li>
+  </ul>
+  <p class="cap">本页模型由 Blender 脚本生成（原理示意）。3D 显示使用 three.js（MIT License）。</p>
+</section>
+</main>
+
+<!--SCRIPTS-->
+<script src="patents.js"></script>
+<script src="exp.js"></script>
+<script src="app.js"></script>
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<script type="module">
+  import { open3D } from './viewer.js';
+  window.open3D = open3D;
+</script>
+<!--/SCRIPTS-->
+</body>
+</html>
