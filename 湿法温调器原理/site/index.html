@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>药液怎么保持恒温？—— 半导体湿法设备里的加热器与温调器</title>
+<!--STYLE-->
+<link rel="stylesheet" href="style.css">
+<!--/STYLE-->
+</head>
+<body>
+<nav id="nav">
+  <div class="brand">加热器与温调器</div>
+  <a href="#intro">为什么要控温</a>
+  <a href="#what">「温調器」是什么</a>
+  <a href="#where">加热器装在哪</a>
+  <div class="navsec">七种加热方式</div>
+  <a href="#immersion">① 槽内浸入式</a>
+  <a href="#wall">② 槽外贴壁式</a>
+  <a href="#lamp">③ 红外灯管式</a>
+  <a href="#sheath">④ 氟树脂包覆电阻式</a>
+  <a href="#induction">⑤ 感应加热式</a>
+  <a href="#hx">⑥ 换热器式</a>
+  <a href="#peltier">⑦ 珀耳帖式</a>
+  <div class="navsec">怎么控温</div>
+  <a href="#control">PID 控温</a>
+  <a href="#ssr">SSR 怎么调功率</a>
+  <a href="#safety">安全互锁</a>
+  <div class="navsec">总结</div>
+  <a href="#compare">对比表</a>
+  <a href="#choose">选型思路</a>
+  <a href="#patctl">专利里的控温与保护</a>
+  <a href="#refs">资料来源</a>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="kicker">面向一般读者 · Blender 建模 · 公开专利解读</p>
+  <h1>药液怎么保持恒温？<br><small>半导体湿法设备里的「加热器」和「温调器」</small></h1>
+  <p>清洗、刻蚀晶圆用的药液，很多要热着用：热磷酸要一百五六十度，热纯水七八十度，有的药液反而要比室温还凉一点、而且一度都不能差。可这些药液又酸又碱、有的会腐蚀金属，普通的“电热水壶”办法根本不能用。设备到底是怎么把它们加热、又稳稳地保持在设定温度的？这页把<b>七种加热方式</b>和<b>温调器的控温方法</b>拆开讲：每种都有<b>可以旋转的 3D 模型</b>、<b>能拖滑块的小实验</b>，以及<b>公开专利里是怎么做的</b>。</p>
+  <div class="legend">
+    <span class="ev a">公认</span> 教科书 / 物理定律级别的结论
+    <span class="ev b">资料</span> 专利、厂商技术资料里写的，可信但限于特定条件
+    <span class="ev c">示意</span> 为讲清楚而简化的图和数，或我的推测
+  </div>
+  <p class="note">说明：所有模型都是<b>原理示意</b>，不对应任何厂商的具体产品；专利要点是用自己的话概括的，细节请以专利原文为准。</p>
+  <div class="cards" id="cards"></div>
+</header>
+
+<section id="intro">
+  <h2>为什么温度这么要紧？</h2>
+  <div class="cols2">
+    <div>
+      <p>药液和晶圆表面的化学反应，速度几乎都随温度<b>指数式</b>变化（阿伦尼乌斯公式：速率 ∝ e<sup>−Ea/RT</sup>）<span class="ev a">公认</span>。温度高一点，刻得就快一点；温度不稳，同一批晶圆刻掉的厚度就不一样。</p>
+      <p>另外几个跟温度挂钩的东西 <span class="ev a">公认</span>：</p>
+      <ul>
+        <li><b>分解和挥发</b>：双氧水、氨水越热分解 / 跑掉得越快，浓度也跟着变（所以温度和浓度往往要一起管）</li>
+        <li><b>沸腾和飞溅</b>：接近沸点时，局部过热就会冒泡</li>
+        <li><b>材料的耐温上限</b>：氟树脂、石英、密封件都有温度上限</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <b>一句话概括所有加热器的难处：</b><br>
+      要把<b>电变成热</b>，再把热<b>交给一种会腐蚀金属的液体</b>，同时<b>不能往液体里掺进任何杂质</b>（哪怕是 ppb 级的金属离子）。<br><br>
+      所以每种方式都要回答三个问题：<br>
+      ① <b>接触药液的是什么材料</b>？（石英、氟树脂……金属基本不行）<br>
+      ② 热量要<b>穿过什么</b>才能到药液？穿过的东西越不导热，加热体就得越烫。<br>
+      ③ <b>出事时</b>（没液体了、不流了、传感器坏了）会怎样？
+    </div>
+  </div>
+  <div class="exp" data-exp="arrhenius"><h3>🔬 动手试试：温度差 1 °C，反应速度差多少？</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">公式是<span class="ev a">公认</span>的；活化能 Ea 因药液和被刻材料而异，滑块范围只是常见的数量级 <span class="ev c">示意</span>。</p></div>
+</section>
+
+<section id="what">
+  <h2>「温調器」到底指什么？</h2>
+  <p>在日本的工厂里口头说「温調器（おんちょうき）」，根据语境通常是下面两种之一 <span class="ev c">示意</span>：</p>
+  <div class="cols2">
+    <div class="box"><h4>① 温度调节器（温度調節器）</h4><p>控制箱 / 仪表上那个显示 <b>PV（测量值）</b>和 <b>SV（设定值）</b>的小盒子。它读温度传感器，算出“现在该给多大功率”（0–100 %），输出给 SSR 去开关加热器。<b>它自己不发热</b>，是“大脑”。<span class="ev b">资料</span></p></div>
+    <div class="box"><h4>② 温调单元 / 温调装置（温調ユニット）</h4><p>能把一路液体<b>加热或冷却到恒温</b>再送出去的一整台设备：里面有加热器、换热器或珀耳帖、泵、传感器，再加上①那样的控制器。它是“大脑 + 手脚”。<span class="ev b">资料</span></p></div>
+  </div>
+  <p>不管哪种，原理都是同一个<b>反馈回路</b> <span class="ev a">公认</span>：</p>
+  <svg viewBox="0 0 760 250" class="diagram" role="img" aria-label="温度控制反馈回路示意图">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#4a78c2"/></marker>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#c9562e"/></marker></defs>
+    <rect x="20" y="30" width="150" height="56" rx="8" fill="#fff" stroke="#555"/><text x="95" y="54" text-anchor="middle" class="t b">温度调节器</text><text x="95" y="74" text-anchor="middle" class="s">比较 PV 和 SV，算 PID</text>
+    <path d="M170,58 H230" stroke="#4a78c2" stroke-width="3" fill="none" marker-end="url(#ar)"/><text x="200" y="50" text-anchor="middle" class="s">输出 %</text>
+    <rect x="232" y="34" width="90" height="48" rx="8" fill="#fff" stroke="#555"/><text x="277" y="63" text-anchor="middle" class="t b">SSR</text>
+    <path d="M322,58 H380" stroke="#4a78c2" stroke-width="3" fill="none" marker-end="url(#ar)"/><text x="351" y="50" text-anchor="middle" class="s">通 / 断</text>
+    <rect x="382" y="34" width="100" height="48" rx="8" fill="#ffe2cf" stroke="#d08a1c"/><text x="432" y="63" text-anchor="middle" class="t b">加热器</text>
+    <path d="M482,58 H540" stroke="#4a78c2" stroke-width="3" fill="none" marker-end="url(#ar)"/><text x="511" y="50" text-anchor="middle" class="s">热</text>
+    <rect x="542" y="30" width="190" height="56" rx="8" fill="#dbe8fb" stroke="#6d8fc7"/><text x="637" y="54" text-anchor="middle" class="t b">药液</text><text x="637" y="74" text-anchor="middle" class="s">还有散热、补液、放入晶圆等干扰</text>
+    <path d="M637,86 V130 H95 V88" stroke="#4a78c2" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+    <text x="370" y="124" text-anchor="middle" class="s">温度传感器（热电偶 / 铂电阻）→ PV</text>
+    <rect x="20" y="160" width="150" height="50" rx="8" fill="#fff" stroke="#c9562e"/><text x="95" y="182" text-anchor="middle" class="t b">独立的过升温保护器</text><text x="95" y="200" text-anchor="middle" class="s">另一个传感器、另一套线路</text>
+    <path d="M170,185 H330 V82" stroke="#c9562e" stroke-width="2" fill="none" stroke-dasharray="6 3" marker-end="url(#ar2)"/>
+    <text x="250" y="230" text-anchor="middle" class="s">超温 → 断开电磁接触器（不经过温度调节器）</text>
+    <path d="M432,82 V185 H172" stroke="#c9562e" stroke-width="2" fill="none" stroke-dasharray="6 3"/>
+    <text x="520" y="200" text-anchor="middle" class="s">贴在加热器上的过升温传感器</text>
+  </svg>
+  <details class="terms"><summary>中文 / 日文现场叫法 / 英文 对照</summary>
+    <div class="tablewrap"><table>
+      <thead><tr><th>本页说法</th><th>日文（现场常见）</th><th>英文</th></tr></thead>
+      <tbody>
+        <tr><td>温度调节器</td><td>温度調節器、温調器</td><td>temperature controller</td></tr>
+        <tr><td>测量值 / 设定值 / 操作量</td><td>PV / SV / MV</td><td>process value / set value / manipulated value</td></tr>
+        <tr><td>浸入式加热器</td><td>投げ込みヒーター、浸漬ヒーター</td><td>immersion heater</td></tr>
+        <tr><td>在线（管道式）加热器</td><td>インラインヒーター</td><td>inline heater</td></tr>
+        <tr><td>换热器</td><td>熱交換器</td><td>heat exchanger</td></tr>
+        <tr><td>珀耳帖元件 / 热电模块</td><td>ペルチェ素子、熱電モジュール</td><td>thermoelectric (Peltier) module</td></tr>
+        <tr><td>空烧</td><td>空焚き</td><td>dry firing</td></tr>
+        <tr><td>过升温保护</td><td>過昇温防止</td><td>over-temperature protection</td></tr>
+        <tr><td>固态继电器 / 电磁接触器</td><td>SSR / 電磁接触器</td><td>solid-state relay / magnetic contactor</td></tr>
+      </tbody>
+    </table></div>
+  </details>
+</section>
+
+<section id="where">
+  <h2>加热器装在设备的哪里？</h2>
+  <div class="cols2">
+    <div class="viewer" data-model="system"></div>
+    <div>
+      <p>药液通常在 <b>槽 → 泵 → 加热器 → 过滤器 → 槽</b> 之间一直循环。加热的位置大致有四种 <span class="ev b">资料</span>：</p>
+      <ol>
+        <li><b>槽里面</b>：加热器直接泡在药液里（① 浸入式）</li>
+        <li><b>槽外壁</b>：隔着槽壁加热（② 贴壁式）</li>
+        <li><b>循环管路上</b>：药液流过一个“加热段”（③④⑤ 管道式，或 ⑥ 换热器）</li>
+        <li><b>供液的源头</b>：工厂或设备的供液单元先把纯水 / 药液调好温度再送过来（③ 热纯水、⑥⑦ 温调单元）</li>
+      </ol>
+      <p>同一台设备常常<b>几种组合</b>：管路上的加热器负责大功率升温，槽里的传感器负责最终控温 <span class="ev c">示意</span>。模型里还画了接液盘、漏液传感器和电气件——热药液出事的代价很大，<b>安全设计占了很大比重</b>（见文末“安全互锁”）。</p>
+    </div>
+  </div>
+  <h3>还有一种“不用加热器”的热：混合放热</h3>
+  <p>硫酸和双氧水（SPM）一混合就会放出大量的热 <span class="ev a">公认</span>。有的专利干脆利用这一点：分别送较低温的硫酸和双氧水，让它们<b>在晶圆表面才混合</b>，表面温度就上到 100 °C 以上，管路不必耐高温 <span class="ev b">资料</span>。代价是温度不由加热器直接决定，要靠配比、流量和供液温度间接控制 <span class="ev c">推测</span>。</p>
+  <div class="patents" data-k="mix"></div>
+</section>
+
+<!-- ========================================================== 1 -->
+<section id="immersion" class="type">
+  <h2><span class="num">1</span>槽内浸入式（石英 / 氟树脂护套）</h2>
+  <p class="lead">把发热丝<b>封进石英管或氟树脂管</b>，整根泡进药液里。最直接：热量只穿过一层护套就到了药液。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="immersion"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>电阻发热</b>：电流流过镍铬 / 铁铬铝等合金丝，P = I²R <span class="ev a">公认</span></li>
+        <li><b>穿过护套</b>：热量穿过石英（或氟树脂）管壁。石英耐热、几乎不溶出金属，但怕氢氟酸和热浓碱；氟树脂耐药品范围广，但耐温和导热都差 <span class="ev a">公认</span></li>
+        <li><b>交给药液</b>：表面的热靠对流带走——热的药液上浮、凉的沉下，再加上循环泵搅动 <span class="ev a">公认</span></li>
+      </ol>
+      <p>关键设计：<b>只有泡在液面以下的那一段发热</b>，穿过液面的部分故意做成不发热的“冷端”<span class="ev b">资料</span>。因为加热器表面的温度 = 药液温度 + 热流密度 ÷ 传热系数——一旦露出液面，周围变成空气，传热系数掉到几十分之一，表面温度立刻冲上去（下面的实验）<span class="ev a">公认</span>。</p>
+      <p>同样的道理也发生在护套<b>里面</b>：发热丝不能贴着管壁。公开专利里，旧结构的丝直接碰到石英管，接触点局部热到约 700 °C、被酸蚀出针孔，一周到一个月就得换；改成串石英珠把丝撑开后，寿命约半年 <span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="immersion"><h3>🔬 动手试试：功率密度、局部沸腾、空烧</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">传热系数取的是数量级：液体自然对流约 800、强制对流约 3000、空气约 15 W/m²·K <span class="ev c">示意</span>。试试：切到“露出液面”。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>热量直接进药液，效率高；能做到大功率。一百五六十度以上的热磷酸用石英护套 <span class="ev b">资料</span>；氟树脂护套的产品，厂商资料里最高液温多在 90–130 °C 之间 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设发热段<b>永远泡在液里</b>、护套<b>完好</b>。液位低 → 空烧；护套裂 → 药液碰到金属，污染 + 漏电；表面太热 → 局部沸腾冒泡 <span class="ev a">公认</span>。所以必须配液位联锁、过升温保护、漏电保护 <span class="ev b">资料</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>批式（整批晶圆泡在槽里）的高温药液槽；也用在药液罐里预热 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="immersion"></div>
+</section>
+
+<!-- ========================================================== 2 -->
+<section id="wall" class="type">
+  <h2><span class="num">2</span>槽外贴壁式（面状加热器）</h2>
+  <p class="lead">把薄片状的加热器<b>贴在槽的外壁和底面</b>，热量先穿过槽壁再进药液。槽里没有任何多余的东西。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="wall"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>面状发热</b>：电阻箔 / 电阻丝排成蛇形，夹在硅橡胶、云母、聚酰亚胺等绝缘片里，均匀铺满一个面 <span class="ev b">资料</span></li>
+        <li><b>穿过槽壁</b>：热流 = 温差 × 导热系数 × 面积 ÷ 壁厚（傅里叶定律）<span class="ev a">公认</span>。石英导热只有约 1.4 W/m·K <span class="ev a">公认</span>，所以壁越厚，加热片得比药液热得越多</li>
+        <li><b>保温层兜住</b>：外面包保温材，让热只往槽里走 <span class="ev c">示意</span></li>
+      </ol>
+      <p>它的“性格”是<b>慢</b>：槽壁本身存了不少热，断电以后这些热还会继续往药液里走，所以容易<b>过冲</b>；而加热片表面温度也比药液高出一截，需要单独保护 <span class="ev a">公认</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="wall"><h3>🔬 动手试试：壁厚、功率、药液量</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">两节点模型（加热片 + 槽壁 / 药液），设定 80 °C 位式控制。受热面积、对流系数、散热、加热片上限 200 °C 都是 <span class="ev c">示意</span> 值；石英导热和比热是<span class="ev a">公认</span>的物性。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>药液里<b>什么都不放</b>，没有护套破裂的风险，也不占槽内空间；加热均匀、表面温度低，不容易局部沸腾 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设加热片和槽壁<b>贴得紧</b>。一旦脱开、中间有空气层，加热片就会局部过热烧坏。石英槽受热不均会产生热应力，严重时开裂 <span class="ev a">公认</span>。单位面积功率不能太高，升温慢。</p></div>
+    <div class="box"><h4>常见对象</h4><p>加热石英槽：厂商资料里有把箔式加热器粘在槽壁上、最高约 190 °C 的产品，配两支热电偶 + 一只机械温控开关做两级过温保护 <span class="ev b">资料</span>。也用在配管、阀门保温 <span class="ev c">示意</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="wall"></div>
+</section>
+
+<!-- ========================================================== 3 -->
+<section id="lamp" class="type">
+  <h2><span class="num">3</span>管道式 · 红外灯管加热</h2>
+  <p class="lead">让纯水在两层石英管之间流过，中间点一根<b>卤素灯</b>。灯发出的红外线<b>穿过石英、被水吸收</b>——灯和水根本不接触。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="lamp"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>灯丝发光</b>：钨丝通电热到约 2500–3000 K，按黑体辐射规律发光，峰值波长 ≈ 2898 ÷ T（µm），大约在 1 µm 附近的近红外 <span class="ev a">公认</span></li>
+        <li><b>穿过石英</b>：石英从紫外到约 3.5 µm 都很透明，这段光几乎无损地穿过去 <span class="ev a">公认</span></li>
+        <li><b>水吸收</b>：水对红外的吸收随波长急剧变化——1 µm 附近还比较透明，过了 1.4 µm 就很强，3 µm 附近几毫米都穿不透 <span class="ev a">公认</span>。被吸收的光直接变成水的热</li>
+      </ol>
+      <p>最大的优点是<b>快</b>：灯丝的热容量极小，开关几乎瞬时，而且加热体不接触水，<b>非常干净</b> <span class="ev b">资料</span>。代价是：灯有寿命、两端封接部怕热要冷却、冷灯丝电阻小，一开机有很大的冲击电流 <span class="ev a">公认</span>。</p>
+      <p>公开专利里的工程细节：灯与灯之间的水层定在约 15–30 mm（太薄光会穿过去）、灯端子保持在 350 °C 以下、腔体内壁镀金把光反射回来、每支灯单独监测，坏了自动换备用灯 <span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="lamp"><h3>🔬 动手试试：灯丝温度、水层厚度、反射罩</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">普朗克定律、维恩定律是<span class="ev a">公认</span>的；水的吸收系数是按文献数量级插值的近似曲线 <span class="ev b">资料</span>；石英透过率、忽略钨的发射率和反射罩损失 <span class="ev c">示意</span>。试试：把水层调到专利里的 15–30 mm。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>响应快、加热体不接液、几乎不产生颗粒和溶出，适合对洁净度要求最高的<b>热纯水</b>（几十到八十多度）<span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设<b>一直有水在流</b>。断水时没有东西吸收红外线，石英管和端部迅速过热 → 必须流量联锁。石英内壁结垢或起雾会挡光、局部过热 <span class="ev b">资料</span>。灯会老化断丝，属于消耗品。</p></div>
+    <div class="box"><h4>常见对象</h4><p>热纯水（HDIW）供给、热纯水冲洗；专利里也有把硫酸系去胶液在几秒内加热到 120–190 °C 的例子。遇到会溶解石英的稀氢氟酸，则改成“灯照黑色金属管、管内衬 PTFE”的间接方式 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="lamp"></div>
+</section>
+
+<!-- ========================================================== 4 -->
+<section id="sheath" class="type">
+  <h2><span class="num">4</span>管道式 · 氟树脂包覆电阻加热</h2>
+  <p class="lead">普通的金属护套加热棒，外面<b>再穿一层氟树脂（PFA / PTFE）外衣</b>，插进一个氟树脂容器里，药液从旁边流过。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="sheath"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>护套加热棒</b>：发热丝埋在氧化镁绝缘粉里，外面是金属护套——这是工业上最普通的加热棒结构 <span class="ev a">公认</span></li>
+        <li><b>氟树脂外衣</b>：金属不能碰药液，所以外面包一层 PFA。氟树脂几乎什么酸碱都不怕，但导热只有约 0.2 W/m·K，耐温上限约 260 °C <span class="ev b">资料</span></li>
+        <li><b>流过换热</b>：容器里加折流挡板，让药液左右来回贴着加热棒走，流速越快，液膜热阻越小 <span class="ev a">公认</span></li>
+      </ol>
+      <p>核心矛盾：氟树脂这层“外衣”又<b>隔热</b>又<b>怕热</b>。功率密度一大，热就堵在外衣里面，PFA 内侧先超温 → 所以这类加热器都是<b>低功率密度、大面积</b>的设计（下面的实验）<span class="ev a">公认</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="sheath"><h3>🔬 动手试试：一层一层的温度落差</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">平板一维导热近似（忽略圆柱曲率）。导热系数：PFA 0.2、不锈钢 16、压实氧化镁 2.5 W/m·K，取常见数量级 <span class="ev b">资料</span>；各层厚度 <span class="ev c">示意</span>。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>结构成熟、便宜、功率范围大；接液面全是氟树脂，能用于很多腐蚀性药液（包括石英不耐的含氟药液）<span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设氟树脂层<b>没有针孔、没被渗透</b>。氟树脂会让少量气体和小分子慢慢渗透，时间长了可能腐蚀里面的金属——专利里有在两层之间通吹扫气、在管旁开通气道来对付它的 <span class="ev b">资料</span>。断流时同样会局部过热。厂商资料里这类加热器的表面负荷约 1.5 W/cm² 量级 <span class="ev b">资料</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>药液循环管路上的在线加热、药液罐加热 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="sheath"></div>
+</section>
+
+<!-- ========================================================== 5 -->
+<section id="induction" class="type">
+  <h2><span class="num">5</span>管道式 · 感应加热（IH）</h2>
+  <p class="lead">和电磁炉一样：管外的线圈通高频交流，在管内的<b>导电发热体</b>里感应出涡电流，让它自己发热。线圈和电源都在管外，<b>没有任何电线穿进流体里</b>。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="induction"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>交变磁场</b>：逆变电源把交流变成几十 kHz 量级的高频交流，送进铜线圈，线圈里产生方向不停翻转的磁场 <span class="ev a">公认</span></li>
+        <li><b>感应涡电流</b>：磁场穿过导电的发热体，按法拉第定律在里面感应出绕圈的电流；电流 × 电阻 = 热 <span class="ev a">公认</span></li>
+        <li><b>趋肤效应</b>：频率越高，电流越集中在表层，深度 δ = √(ρ / (π·f·μ)) <span class="ev a">公认</span>。纯水电阻率太大，δ 有几公里长，几乎不会被直接加热——所以要专门放一个导电发热体</li>
+      </ol>
+      <p>好处：外管自己不发热。专利里的例子：把 IPA 蒸气加热到 160 °C 时，传统电阻加热的外壁近 250 °C，感应式的容器外表面不超过流体温度 <span class="ev b">资料</span>。发热体怎么处理有两条路：让流体<b>直接流过</b>电解抛光的不锈钢薄板或导电弯管（公开专利里液体 / 蒸气用的做法），或者把碳之类的发热体<b>包上绝缘层</b>再装进石英管（专利里用于气体）<span class="ev b">资料</span>。代价：要高频电源、要管电磁干扰 <span class="ev a">公认</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="induction"><h3>🔬 动手试试：频率、材料、厚度</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">趋肤深度公式<span class="ev a">公认</span>；电阻率取常见手册值 <span class="ev b">资料</span>；“接住磁场的程度”用 1 − e<sup>−2d/δ</sup> 粗略表示 <span class="ev c">示意</span>。试试：选“超纯水”。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>容器和线圈不发热、外表面温度低；电线不进流体；发热体可以做成很多薄板，面积大、加热体只需比流体稍热一点 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设发热体材料<b>扛得住</b>这种流体：直接接液的不锈钢碰到强酸会溶出金属，所以要挑流体或改包覆方式 <span class="ev c">推测</span>。线圈和发热体的距离要稳定（离远了耦合变差）；逆变器要冷却；高频磁场可能干扰附近的传感器和通信 <span class="ev a">公认</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>专利里列举的是 IPA 蒸气、温纯水、循环药液 <span class="ev b">资料</span>。这次没有找到半导体药液用感应加热器的公开产品规格，实际普及程度我无法判断 <span class="ev c">推测</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="induction"></div>
+</section>
+
+<!-- ========================================================== 6 -->
+<section id="hx" class="type">
+  <h2><span class="num">6</span>换热器式（氟树脂细管 + 温水 / 冷却水）</h2>
+  <p class="lead">不在药液旁边放任何发热的东西：药液在<b>很多根 PFA 细管里</b>流，管外流过<b>温水或冷却水</b>，热量隔着管壁慢慢交换。<b>同一台既能加热，也能冷却。</b></p>
+  <div class="cols2">
+    <div class="viewer" data-model="hx"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>热媒</b>：另一套系统先把水调到合适温度（加热用温水、冷却用冷却水或冷冻机的冷水）<span class="ev b">资料</span></li>
+        <li><b>隔着管壁换热</b>：换热量 = U × A × 温差。U 由“管内液膜 + 管壁 + 管外液膜”三段热阻串联决定；PFA 管壁热阻往往是大头 → 用薄壁、很多根细管，把面积 A 做大 <span class="ev a">公认</span></li>
+        <li><b>逆流</b>：药液和热媒反方向流，药液出口可以更接近热媒入口的温度 <span class="ev a">公认</span></li>
+      </ol>
+      <p>最可贵的一点：药液出口<b>永远超不过热媒的温度</b>——热媒是 85 °C，药液就不可能被烧到 90 °C <span class="ev a">公认</span>。这种“天生不会过头”的特性，加上能冷却，让它很适合<b>温度接近室温、要求很稳</b>的场合。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="hx"><h3>🔬 动手试试：逆流、流量、面积</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">ε-NTU 法 <span class="ev a">公认</span>；两侧液膜传热系数、管径（6 mm）、物性按水 <span class="ev c">示意</span>。试试：把热媒入口温度拉到比药液低——就变成冷却。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>能加热也能冷却；不会过热；药液侧没有电，安全性高；配合温调单元可以很稳 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设热媒侧温度和流量稳定——热媒波动会直接传到药液。PFA 管导热差，体积大、响应慢；管子破损时药液和热媒会混在一起（要有检测）<span class="ev b">资料</span>。高温药液（一百多度）很难只靠它。</p></div>
+    <div class="box"><h4>常见对象</h4><p>药液供给的温度调节、药液冷却、循环液的精调。厂商资料里有把 30–2000 根 PTFE 管焊进壳体的产品，举例是单片清洗机里 2 L/min 的药液从 20 °C 加热到 90 °C <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="hx"></div>
+</section>
+
+<!-- ========================================================== 7 -->
+<section id="peltier" class="type">
+  <h2><span class="num">7</span>热电（珀耳帖）温调器</h2>
+  <p class="lead">一种半导体元件：通上直流电，它就把热从一面<b>“搬”</b>到另一面。<b>电流反过来，搬运方向也反过来</b>——同一块元件既能冷却又能加热，而且没有任何运动部件。</p>
+  <div class="cols2">
+    <div class="viewer" data-model="peltier"></div>
+    <div>
+      <h3>原理三步</h3>
+      <ol>
+        <li><b>P / N 元件</b>：碲化铋做的 P 型、N 型小块交替排列，用铜片串成几十到上百对，夹在两块陶瓷板之间 <span class="ev a">公认</span></li>
+        <li><b>珀耳帖效应</b>：电流从 N 流向 P 的那一侧吸热（变冷），另一侧放热。载流子顺手把热带走了 <span class="ev a">公认</span></li>
+        <li><b>三笔账</b>：抽走的热 = 珀耳帖热（∝ 电流）− ½ 焦耳热（∝ 电流²）− 从热面漏回来的热（∝ 温差）<span class="ev a">公认</span>。所以电流不是越大越好</li>
+      </ol>
+      <p>在湿法设备里，药液走在一块耐药品的换热板上，元件贴在板的另一面，元件背后再用冷却水带走热量 <span class="ev b">资料</span>。因为它能<b>连续地在加热和冷却之间切换</b>，在设定值附近可以控得很细 <span class="ev b">资料</span>。</p>
+    </div>
+  </div>
+  <div class="exp" data-exp="peltier"><h3>🔬 动手试试：电流方向、温差</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">热电方程<span class="ev a">公认</span>；单个模块参数（塞贝克系数 0.05 V/K、电阻 2 Ω、热导 0.5 W/K）取的是常见 127 对模块的量级 <span class="ev c">示意</span>。</p></div>
+  <div class="cols3">
+    <div class="box ok"><h4>擅长</h4><p>加热 / 冷却一个元件搞定、切换无缝；没有压缩机和运动部件；温度在室温附近时可以控得很稳 <span class="ev b">资料</span></p></div>
+    <div class="box warn"><h4>依赖的假设 / 何时失效</h4><p>假设<b>温差不大、功率不大</b>。温差一大效率迅速变差；冷却水一停，元件自己的焦耳热无处可去，很快过热 → 必须冷却水联锁。元件对热循环和受潮敏感 <span class="ev b">资料</span>。</p></div>
+    <div class="box"><h4>常见对象</h4><p>室温附近需要精密控温的药液供给。厂商资料里，珀耳帖式药液温调器设定范围约 10–60 °C、稳定度 ±0.1 °C、功率几百瓦，可直接调纯水和氨水 / 双氧水混合液 <span class="ev b">资料</span></p></div>
+  </div>
+  <h3>📜 公开专利怎么做的</h3><div class="patents" data-k="peltier"></div>
+</section>
+
+<!-- ========================================================== 控温 -->
+<section id="control">
+  <h2>温调器怎么“稳住”温度：PID</h2>
+  <p>温度调节器每隔很短的时间做一件事：看偏差 e = SV − PV，算出输出 <span class="ev a">公认</span>：</p>
+  <div class="cols3">
+    <div class="box"><h4>P 比例</h4><p>偏差越大，给得越多。反应直接，但<b>只靠它会停在设定值下面一点</b>（要维持温度本来就需要一点输出，而 P 只有在有偏差时才输出）。</p></div>
+    <div class="box"><h4>I 积分</h4><p>把过去的偏差累加起来。只要还有一点点偏差，输出就会继续慢慢变，直到偏差为零。代价是容易过冲。</p></div>
+    <div class="box"><h4>D 微分</h4><p>看温度变化的<b>速度</b>：升得太快就提前收油门，压住过冲。但测温信号一抖，它也跟着抖。</p></div>
+  </div>
+  <div class="exp" data-exp="control"><h3>🔬 动手试试：同一个槽，四种控制方式</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">被控对象是一个 10 L、3 kW 的示意槽（带加热器热容和测温死区时间）<span class="ev c">示意</span>；PID 算法和抗积分饱和是通用做法 <span class="ev a">公认</span>。试试：先选“P”，再选“PI”；把测温滞后拉到 60 秒。</p></div>
+  <p>实际的温度调节器大多有<b>自整定（AT）</b>：自己让温度上下振荡几次，测出对象的响应，再算出一组 PID 参数 <span class="ev b">资料</span>。另外两个常见的“加强版”：</p>
+  <ul>
+    <li><b>串级控制</b>：内环快速控“加热器出口温度”，外环慢慢控“槽温”，外环的输出当作内环的设定值。适合加热器离测温点远、滞后大的循环系统；公开专利里有热磷酸槽每路循环一个在线加热器、按槽内温度分布做串级控制的例子 <span class="ev b">资料</span></li>
+    <li><b>前馈</b>：事先知道“要放冷晶圆了 / 要补冷药液了”，不等温度掉下来就提前加功率。前馈本身是教科书方法 <span class="ev a">公认</span>，具体怎么用在设备上各家不同 <span class="ev c">示意</span></li>
+    <li><b>温度和浓度一起管</b>：沸腾的热磷酸一直在蒸发，专利里用槽温和沸点的关系决定补多少纯水 <span class="ev b">资料</span></li>
+  </ul>
+</section>
+
+<section id="ssr">
+  <h2>输出 40 %，加热器怎么“开 40 %”？</h2>
+  <p>加热器只有通电和断电两种状态，“40 % 功率”其实是<b>用时间或波形切出来的平均值</b> <span class="ev a">公认</span>。三种常见切法：</p>
+  <div class="exp" data-exp="ssr"><h3>🔬 动手试试：三种调功方式</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">波形按 50 Hz 画 <span class="ev c">示意</span>；相位控制的功率与导通角关系 1 − α/π + sin2α/(2π) 是纯电阻负载的公式 <span class="ev a">公认</span>。</p></div>
+</section>
+
+<section id="safety">
+  <h2>安全互锁：任何一条不满足就断电</h2>
+  <div class="cols2">
+    <div>
+      <p>加热器出事的后果很重（药液沸腾飞溅、氟树脂熔化、火灾），所以保护是<b>一层套一层</b>的 <span class="ev b">资料</span>：</p>
+      <ol>
+        <li><b>控温</b>：温度调节器 + SSR，正常工作时的调节</li>
+        <li><b>报警</b>：温度偏离设定值太多（上下限偏差）就报警，设备停止投入晶圆</li>
+        <li><b>独立的过升温保护</b>：<b>另一个</b>传感器、<b>另一台</b>保护器，超温直接断开电磁接触器——不经过控温那一套 <span class="ev b">资料</span></li>
+        <li><b>最后一道</b>：温度保险丝等，熔断后不会自己恢复 <span class="ev b">资料</span></li>
+      </ol>
+      <p>再加上“前提条件”联锁：液位（防空烧）、流量（在线加热器、红外灯）、漏液、冷却水（珀耳帖、感应线圈）、急停 <span class="ev b">资料</span>。</p>
+      <p>公开专利里还能看到：在主控制器之外另设一套硬件保护回路，主控死机也能断电；用实测加热电流核对控制信号，发现异常就切断；甚至在槽体开裂时故意关排液阀，让加热器始终泡在液里，防止点燃可燃药液（见文末）<span class="ev b">资料</span>。</p>
+    </div>
+    <div class="callout">
+      <b>为什么要“独立”？</b><br>
+      因为最常见的危险故障恰恰发生在控温那一套里：传感器掉出药液、断线读成低温、SSR 内部击穿变成<b>常通</b>。这时温度调节器以为“还不够热”，会一直加热。只有和它<b>不共用任何零件</b>的保护回路，才能在这种时候断电 <span class="ev a">公认</span>。<br><br>
+      <b>“故障安全”</b>：联锁触点平时是闭合的，线断了 = 条件不满足 = 停止。宁可误停，不可误加热 <span class="ev a">公认</span>。
+    </div>
+  </div>
+  <div class="exp" data-exp="interlock"><h3>🔬 动手试试：拔掉一个条件看看</h3><div class="ctls"></div><canvas></canvas><div class="readout"></div><p class="cap">这是通用的原理图 <span class="ev c">示意</span>，具体设备的联锁项目和接法按各自的设计和安全规范。</p></div>
+</section>
+
+<section id="compare">
+  <h2>七种方式对比</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>方式</th><th>热量怎么进药液</th><th>接液材料</th><th>响应</th><th>能冷却</th><th>典型用途</th><th>主要风险</th></tr></thead>
+    <tbody>
+      <tr><td>① 浸入式</td><td>护套直接泡在药液里</td><td>石英 / 氟树脂</td><td>中</td><td>否</td><td>高温批式药液槽</td><td>空烧、局部沸腾、护套破损</td></tr>
+      <tr><td>② 贴壁式</td><td>穿过槽壁</td><td>只有槽壁接液</td><td><b>慢</b></td><td>否</td><td>升温 / 保温辅助</td><td>过冲、加热片过热、槽壁热应力</td></tr>
+      <tr><td>③ 红外灯</td><td>辐射穿过石英被吸收</td><td>石英</td><td><b>很快</b></td><td>否</td><td>热纯水</td><td>断水过热、灯寿命、冲击电流</td></tr>
+      <tr><td>④ 氟树脂包覆</td><td>穿过氟树脂层</td><td>氟树脂</td><td>中</td><td>否</td><td>腐蚀性药液在线加热</td><td>功率密度受限、渗透、针孔</td></tr>
+      <tr><td>⑤ 感应</td><td>封装发热体自己发热</td><td>氟树脂 / 石英</td><td>快</td><td>否</td><td>药液 / 纯水在线加热</td><td>电源复杂、电磁干扰</td></tr>
+      <tr><td>⑥ 换热器</td><td>隔管壁和热媒换热</td><td>氟树脂管</td><td>慢–中</td><td><b>能</b></td><td>供液温调、冷却</td><td>需热媒设备、管破混液</td></tr>
+      <tr><td>⑦ 珀耳帖</td><td>电流把热搬过去</td><td>耐药品换热板</td><td>快</td><td><b>能</b></td><td>室温附近精密控温</td><td>功率小、温差大时效率低</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">表中是一般性质的归纳 <span class="ev c">示意</span>，具体性能看厂商规格。</p>
+</section>
+
+<section id="choose">
+  <h2>该用哪种？三种思路</h2>
+  <div class="cols3">
+    <div class="box"><h4>思路 A：直接电加热 <span class="tag">较主流</span></h4>
+      <p>浸入式或管道式电加热器 + PID + 多重保护，用在要一百多度的高温药液和热纯水上。</p>
+      <p><b>取</b>：功率大、升温快、设备简单。<b>舍</b>：只能加热不能冷却；必须把空烧、断流、过升温保护做扎实。</p>
+      <p class="cap">“主流”的依据：高温药液 / 热纯水的公开专利与厂商资料多以电加热为主 <span class="ev b">资料</span>；各工厂实际占比我无法核实 <span class="ev c">推测</span>。</p></div>
+    <div class="box"><h4>思路 B：间接的冷热双向</h4>
+      <p>温水 / 冷却水 + 换热器，或珀耳帖，用在室温附近、要求很稳、还可能需要降温的药液。</p>
+      <p><b>取</b>：不会过热、能冷却、药液侧没有发热体。<b>舍</b>：功率小、响应受热媒限制，要额外的热媒或冷却水设备。</p></div>
+    <div class="box"><h4>思路 C：粗调 + 精调组合</h4>
+      <p>大功率加热器负责把温度“拉上来”，换热器 / 珀耳帖 / 串级控制负责最后零点几度的“稳住”；或者工厂集中供热水，设备端只做微调。</p>
+      <p><b>取</b>：快又稳。<b>舍</b>：系统复杂、成本高、调参和故障排查都更难。</p></div>
+  </div>
+</section>
+
+<section id="patctl">
+  <h2>专利里：怎么控温、怎么保护</h2>
+  <p>加热器本身之外，公开专利里还有不少“控制和安全”的思路（要点为本页概括）。</p>
+  <div class="patents" data-k="control"></div>
+</section>
+
+<section id="refs">
+  <h2>资料来源</h2>
+  <ul class="refs" id="reflist">
+    <li>专利：见各节卡片（均链接到 Google Patents，共 29 件）</li>
+    <li>PFA 连续使用温度 260 °C、导热约 0.195 W/m·K：DuPont Teflon PFA 物性资料 <a href="https://monnier.astro.lsa.umich.edu/research/images/9/92/DuPontPFAInfoSheet.pdf" target="_blank" rel="noopener">PDF</a></li>
+    <li>熔融石英导热 1.38 W/m·K、比热约 750 J/kg·K、透明区约 0.2–4 µm：<a href="https://www.advanced-ceramic-composites.saint-gobain.com/materials/silica" target="_blank" rel="noopener">Saint-Gobain 材料页</a></li>
+    <li>水的红外吸收：Hale &amp; Querry, “Optical Constants of Water in the 200-nm to 200-µm Wavelength Region”, Applied Optics 12, 555 (1973) <a href="https://doi.org/10.1364/AO.12.000555" target="_blank" rel="noopener">doi</a></li>
+    <li>加热石英槽（箔式加热器粘在槽壁、最高约 190 °C、两级过温保护）：<a href="https://wkfluidhandling.com/zh-hans/products/wet-process-tanks/accubath-heated-quartz-process-tanks/" target="_blank" rel="noopener">W-K Accubath 产品页</a></li>
+    <li>氟树脂浸入式加热器的最高使用温度（约 90–95 °C）：<a href="https://mono.ipros.com/product/detail/2000335448" target="_blank" rel="noopener">谷口ヒーターズ 产品页</a>；PTFE 护套加热器（最高约 130 °C、表面负荷约 10 W/in²）：<a href="https://datasheets.globalspec.com/ds/process-technology/tf-series/19dcf1e0-7de0-447f-97b7-2c218db85ee8" target="_blank" rel="noopener">Process Technology TF 系列</a></li>
+    <li>PTFE 管换热器（30–2000 根管、2 L/min 从 20 °C 到 90 °C 的例子）：<a href="https://mono.ipros.com/product/detail/2000139427" target="_blank" rel="noopener">インテリンク 产品页</a></li>
+    <li>珀耳帖式药液温调器（10–60 °C、±0.1 °C、300–900 W）：<a href="https://www.smcworld.com/products/pickup/ja-jp/temperature_controller/liquid.html" target="_blank" rel="noopener">SMC 产品页</a></li>
+    <li>纯水加热系统（冗余安全 PLC、漏电保护、高限热电偶等）：<a href="https://wkfluidhandling.com/zh-hans/products/heaters/aquarius-deionized-di-water-heater-systems/" target="_blank" rel="noopener">Heateflex Aquarius 产品页</a></li>
+    <li>阿伦尼乌斯公式、傅里叶导热、普朗克 / 维恩定律、趋肤深度、ε-NTU、热电方程、PID：传热学 / 电工学 / 控制工程教科书内容</li>
+  </ul>
+  <p class="cap">本页模型由 Blender 脚本生成（原理示意）。3D 显示使用 three.js（MIT License）。</p>
+</section>
+</main>
+
+<!--SCRIPTS-->
+<script src="patents.js"></script>
+<script src="exp.js"></script>
+<script src="app.js"></script>
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<script type="module">
+  import { open3D } from './viewer.js';
+  window.open3D = open3D;
+</script>
+<!--/SCRIPTS-->
+</body>
+</html>
