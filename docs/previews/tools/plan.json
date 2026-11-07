@@ -1,4 +1,29 @@
 {
+ "scooter": {
+  "page": "踏板摩托车动力系统/index.html",
+  "colors": 64,
+  "steps": [
+   [
+    "wait",
+    500
+   ],
+   [
+    "click",
+    "03四冲程"
+   ],
+   [
+    "wait",
+    14000
+   ],
+   [
+    "mark"
+   ],
+   [
+    "wait",
+    9000
+   ]
+  ]
+ },
  "pump": {
   "page": "半导体湿法设备的泵/index.html",
   "colors": 48,
