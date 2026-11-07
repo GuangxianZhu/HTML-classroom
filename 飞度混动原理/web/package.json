@@ -1,0 +1,7 @@
+{
+  "name": "fit-ehev-hybrid-demo",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs", "test": "node test_sim.mjs" },
+  "dependencies": { "esbuild": "^0.24.0", "three": "0.170.0" }
+}

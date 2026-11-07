@@ -374,5 +374,49 @@
    ]
   ],
   "loadWait": 12000
+ },
+ "ehev": {
+  "page": "飞度混动原理/index.html",
+  "colors": 40,
+  "steps": [
+   [
+    "sel",
+    "#nav .nv:nth-child(2)"
+   ],
+   [
+    "wait",
+    2500
+   ],
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "#m-HYB"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "sel",
+    "#m-ENG"
+   ],
+   [
+    "wait",
+    3500
+   ],
+   [
+    "drag"
+   ],
+   [
+    "sel",
+    "#m-REGEN"
+   ],
+   [
+    "wait",
+    3000
+   ]
+  ]
  }
 }
