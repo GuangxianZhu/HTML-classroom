@@ -205,6 +205,31 @@ export function calibrate() {
   CVT.K1 = f2 / F1(want, x, 15);
 }
 
+/**
+ * 给定车速和油门（离合器已咬住），皮带停在哪：速比、发动机转速。
+ * 车速定了，速比 x 一变，发动机转速 n(x) 就跟着变；找滚子推力 = 弹簧 + 凸轮力的那个 x。
+ */
+export function steadyAt(v, q, mRoll = 15, p = {}) {
+  const nOf = (x) => cvtGeom(x).i * (v / 3.6) / G.wheelR * G.iF / RPM;
+  const f = (x) => F1(nOf(x), x, mRoll) - F2(x, Math.max(0, engTorque(Math.min(nOf(x), 9700), q)) * cvtGeom(x).i * CVT.etaB, p);
+  let x;
+  if (f(0) <= 0) x = 0;
+  else if (f(1) >= 0) x = 1;
+  else { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (f(mid) > 0) lo = mid; else hi = mid; } x = (lo + hi) / 2; }
+  return { x, n: nOf(x), i: cvtGeom(x).i, nOf, f };
+}
+/** 匀速巡航：找刚好够克服阻力的油门，返回油门、速比、发动机转速 */
+export function cruiseAt(v, slope = 0, mRoll = 15, M = CAR.M + 65) {
+  const ms = v / 3.6, a = Math.atan(slope);
+  const need = M * CAR.g * (CAR.Crr * Math.cos(a) + Math.sin(a)) + 0.5 * CAR.rho * CAR.CdA * ms * ms;
+  const force = (q) => { const s = steadyAt(v, q, mRoll); return Math.max(0, engTorque(Math.min(s.n, 9700), q)) * s.i * CVT.etaB * G.iF * CVT.etaG / G.wheelR; };
+  let lo = 0, hi = 1;
+  if (force(1) < need) lo = 1;
+  else for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (force(m) < need) lo = m; else hi = m; }
+  const q = (lo + hi) / 2, s = steadyAt(v, q, mRoll);
+  return { q, x: s.x, n: s.n, i: s.i };
+}
+
 // ================================================================ 离心离合器
 export const CLUTCH = { nEng: 3200, K: 0.0028 };        // nEng = 在最低档时、发动机多少转开始咬合
 export function clutchCap(w2, nEng = CLUTCH.nEng) {

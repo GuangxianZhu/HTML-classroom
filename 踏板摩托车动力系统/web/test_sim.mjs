@@ -55,6 +55,12 @@ ok(E.every((e, k) => k === 0 || e.i <= E[k - 1].i + 1e-9), '车速越高速比�
 const rise = E[6].n / E[0].n - 1;
 ok(rise > 0.15 && rise < 0.35, '30 → 90 km/h 转速只涨两三成', `${E[0].n.toFixed(0)} → ${E[6].n.toFixed(0)} rpm`);
 
+// 第 1、2 章舞台：匀速巡航时速比随车速变高档，发动机转速只是慢慢涨（S.steadyAt 和上面手写的 eq 应一致）
+ok(Math.abs(S.steadyAt(60, 1).n - eq(60).n) < 1, 'steadyAt 和第 5 章的解一致');
+const CR = [20, 40, 60, 80].map((v) => S.cruiseAt(v));
+ok(CR.every((c, k) => k === 0 || (c.i < CR[k - 1].i && c.n > CR[k - 1].n)), '巡航：车速越高速比越低、转速慢慢涨', CR.map((c) => `${c.i.toFixed(2)}/${c.n.toFixed(0)}`).join(' '));
+ok(CR[3].n / CR[0].n < 2.2, '巡航 20 → 80 km/h（后轮转速 ×4）发动机转速涨不到 2.2 倍', `${CR[0].n.toFixed(0)} → ${CR[3].n.toFixed(0)}`);
+
 // ---- 整车：第 7 章
 const r12 = S.launch({ roll: 12 }, 1, 30), r15 = S.launch({ roll: 15 }, 1, 30), r18 = S.launch({ roll: 18 }, 1, 30);
 const at = (r, t) => r.tr.find((q) => q[0] >= t);

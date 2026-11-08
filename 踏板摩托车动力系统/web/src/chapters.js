@@ -104,6 +104,11 @@ function spinU4(A, dt, { n = 0, x = 0, wb = null, lock = true, clutch = 1 }, slo
   st.belt.scroll(w * g.r1);
   return g;
 }
+/** 舞台角落：慢放比例 + 发动机、后轮的真实转速（动画是慢放的，数字是真实的） */
+function rpmNote(A, n, v) {
+  const wheel = (v / 3.6) / S.G.wheelR / S.RPM;
+  A.setSlow(`转动慢放 1/40 · 发动机 ${f0(n)} rpm · 后轮 ${f0(wheel)} rpm`);
+}
 /** 四冲程缸内气体的颜色 */
 function gas4(thD, thr = 1) {
   const d = ((thD % 720) + 720) % 720;
@@ -152,7 +157,7 @@ const ch1 = {
     const pl = new Plot($('p1'), { l: 40, b: 24 });
     const need = (v, M) => { const ms = v / 3.6; return (M * 9.81 * 0.015 * ms + 0.5 * 1.2 * 0.56 * ms ** 3) / 1000; };
     const Pice = 9.0 * S.CVT.etaB * S.CVT.etaG, Pev = 6 * .95, P2 = 3.3 * S.CVT.etaB * S.CVT.etaG;
-    let V = 60, M = 195;
+    let V = 60, M = 195, cr = S.cruiseAt(60);
     const draw = () => {
       const xs = Array.from({ length: 111 }, (_, i) => i);
       pl.clear().scale(0, 110, 0, 10).axes({ xt: niceTicks(0, 110, 5), yt: niceTicks(0, 10, 5), xl: 'km/h', yl: 'kW' });
@@ -166,16 +171,17 @@ const ch1 = {
       setText('k1c', pn < Pice ? `${f1(Pice - pn)}<small>kW</small>` : '<small>不够</small>');
       setText('k1d', `${f1(pn / ms * 1e5 / 3600)}<small>kWh</small>`);
     };
-    range('v1', (v) => `${v} km/h`, (v) => { V = v; draw(); }).upd();
+    range('v1', (v) => `${v} km/h`, (v) => { V = v; cr = S.cruiseAt(v); rpmNote(A, cr.n, v); draw(); }).upd();
     range('m1', (v) => `${v} kg`, (v) => { M = v; draw(); }).upd();
     return {
       tick(dt) {
         const st = A.stage;
-        spinU4(A, dt, { n: 3000, x: .3 });
-        st.U4.gas = gas4(st.U4.th * 180 / Math.PI);
-        st.T2.th += 1500 * S.RPM * SLOW * dt;
-        st.EH.phi += 2 * dt * .3; st.EH.amp = .5; st.EH.phase = Math.PI / 2;
-        st.EM.phi += 2 * dt; st.EM.amp = .5; st.EM.phase = Math.PI / 2;
+        const sp = st.paused ? 0 : st.speed, ms = V / 3.6;
+        spinU4(A, dt, { n: cr.n, x: cr.x });
+        st.U4.gas = gas4(st.U4.th * 180 / Math.PI, cr.q);
+        st.T2.th += 1500 * S.RPM * SLOW * dt * sp;
+        st.EH.phi += ms / 0.232 * SLOW * dt * sp; st.EH.amp = .5; st.EH.phase = Math.PI / 2;
+        st.EM.phi += ms / S.G.wheelR * S.G.emI * SLOW * dt * sp; st.EM.amp = .5; st.EM.phase = Math.PI / 2;
       },
       leave() { A.stage.EH.amp = 0; A.stage.EM.amp = 0; },
     };
@@ -218,7 +224,7 @@ const ch2 = {
     const pl = new Plot($('p2'), { l: 40, b: 22 });
     const ax = k.axl, pv = k.pivot;
     const armL = Math.hypot(ax[0] - pv[0], ax[2] - pv[2]);
-    let H = 50, V = 30, t = -1, trace = [];
+    let H = 50, V = 30, t = -1, trace = [], cr = S.cruiseAt(30);
     const T_EV = 1.2;
     const bump = (tt) => {               // 后轮中心的上下（mm）：上坎 → 下坎
       const L = 0.8 / (V / 3.6);        // 上坡、坎顶、下坡各 0.8 m（像一条减速带）
@@ -248,15 +254,15 @@ const ch2 = {
       }
     };
     range('b2', (v) => `${v} mm`, (v) => { H = v; }).upd();
-    range('s2', (v) => `${v} km/h`, (v) => { V = v; }).upd();
+    range('s2', (v) => `${v} km/h`, (v) => { V = v; cr = S.cruiseAt(v); }).upd();
     $('go2').onclick = () => { t = 0; trace = []; };
     draw();
-    A.setSlow('动画慢放：转动 1/40，摆动 1/6');
+    A.setSlow('动画慢放：转动 1/40（按匀速巡航算），摆动 1/6');
     return {
       tick(dt) {
         const sp = st.paused ? 0 : st.speed;
-        spinU4(A, dt, { n: 2600, x: 0.25 });
-        st.U4.gas = gas4(st.U4.th * 180 / Math.PI);
+        spinU4(A, dt, { n: cr.n, x: cr.x });
+        st.U4.gas = gas4(st.U4.th * 180 / Math.PI, cr.q);
         let z = 0;
         if (t >= 0) {
           t += dt / 6 * sp;
@@ -505,14 +511,7 @@ const ch5 = {
     const nOf = (x) => S.cvtGeom(x).i * (v / 3.6) / S.G.wheelR * S.G.iF / S.RPM;
     const f1 = (x) => S.F1(nOf(x), x, m);
     const f2 = (x) => S.F2(x, Math.max(0, S.engTorque(Math.min(nOf(x), 9700), q)) * S.cvtGeom(x).i * S.CVT.etaB);   // 只看扭矩，不看断油限转
-    const solve = () => {
-      const f = (x) => f1(x) - f2(x);
-      if (f(0) <= 0) return 0;
-      if (f(1) >= 0) return 1;
-      let lo = 0, hi = 1;
-      for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (f(mid) > 0) lo = mid; else hi = mid; }
-      return (lo + hi) / 2;
-    };
+    const solve = () => S.steadyAt(v, q, m).x;
     const draw = () => {
       xs = solve();
       const X = Array.from({ length: 51 }, (_, i) => i / 50);
@@ -534,6 +533,7 @@ const ch5 = {
       else if (xs === 1) msg = '已经到<b>最高档</b>：再快，发动机转速只能跟着车速涨，直到功率不够或者限转。';
       else msg = '<b>正在变速</b>：两边的力在交点平衡。拖动车速，看交点往哪边走、发动机转速变了多少。';
       setText('n5', msg);
+      rpmNote(A, n, v);
     };
     const f2v = (x) => x.toFixed(2);
     range('v5', (val) => `${val} km/h`, (val) => { v = val; draw(); }).upd();
@@ -550,7 +550,6 @@ const ch5 = {
       st.setHidden([...st.hidden]);
       $('rl5').setAttribute('aria-pressed', on);
     };
-    A.setSlow('转动慢放 1/40');
     return {
       tick(dt) {
         xNow += (xs - xNow) * (1 - Math.exp(-3 * dt));
