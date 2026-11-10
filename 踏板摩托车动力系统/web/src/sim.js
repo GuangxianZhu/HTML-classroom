@@ -334,7 +334,7 @@ export class Ride {
       this.f1 = this.f2 = 0;
     }
     this.t += h; this.dist += this.v * h;
-    if (this.on) this.fuel += Math.max(0.08, powerKW(this.n, Math.max(0, Te - Ta)) / 0.27 / 43000) * h;   // g/s 近似：油耗率 ≈ 功率 / (效率 · 热值)
+    if (this.on) { if ((this._fk = (this._fk | 0) + 1) % 10 === 1) this.fr = engineFlows(this.n, Te - Ta).fuel; this.fuel += this.fr * h; } else this.fr = 0;   // 累计油耗（g），每 10 ms 重新算一次每秒油耗
   }
   _res() {
     const v = this.v, M = this.M, a = Math.atan(this.o.slope);
@@ -377,7 +377,7 @@ export function topSpeed(o = {}) {
 
 // ================================================================ 怠速停止
 // 每等一次红灯，怠速每秒烧掉 qIdle 克油；重新起动多烧一点（ACG 直接带曲轴，起动很快）
-export function idleStop({ stops = 12, wait = 30, qIdle = 0.075, restart = 0.25, minWait = 3 }) {
+export function idleStop({ stops = 12, wait = 30, qIdle = idleFuel(), restart = 0.25, minWait = 3 }) {
   const burned = stops * wait * qIdle;
   const saved = wait > minWait ? stops * (wait - minWait) * qIdle - stops * restart : 0;
   return { burned, saved: Math.max(0, saved), mlBurned: burned / 0.745, mlSaved: Math.max(0, saved) / 0.745 };
@@ -393,4 +393,102 @@ export function evCurve(i, Tmax, PkW, nMax) {
     out.push(T * i * 0.95 / G.wheelR);
   }
   return out;
+}
+
+// ================================================================ 空气、燃油和能量（油门那一章、“算一算”两章用）
+// 思路：扭矩曲线（上面那套）不动，反过来问“要出这么大的扭矩，得吸多少空气、喷多少油”。
+//   每循环燃烧推活塞的功  Wg = ηi · 热值 · 燃油量（按空气量 ÷ 14.7 算，加浓的那部分油烧不掉）
+//   吸气费的功（泵气）    Wp = (大气压 − 进气管压力) · 排量
+//   曲轴净功              4π·Te = Wg − Wp − 4π·摩擦扭矩
+// 充气效率（每转速吸得进多少空气）由满油门扭矩曲线反推，所以两套数是自洽的。
+export const FUEL = {
+  LHV: 43.0,        // 汽油低热值，MJ/kg = kJ/g（常见 42.7 ~ 44）
+  rho: 0.745,       // 汽油密度，kg/L
+  AFR: 14.7,        // 理论空燃比：14.7 g 空气配 1 g 汽油
+  rhoAir: 1.184,    // 空气密度，kg/m³（25 °C、1 个大气压）
+  p0: 101.3,        // 大气压，kPa
+  etaI: 0.39,       // 大负荷时，烧出来的热有多少推到了活塞上（教学值）
+  xWot: 0.97,       // 满油门时进气管压力 ÷ 大气压
+  co2: 2.35,        // 每升汽油烧出多少 kg 二氧化碳
+  inj: 1.6,         // 喷油嘴开着时每毫秒喷多少 mg（教学值）
+};
+/** 大油门加浓：进气管压力接近大气压时，空燃比从 14.7 加浓到约 13.2（λ 1 → 0.9） */
+const enrich = (x) => smooth((x - 0.82) / 0.13);
+export const lambdaOf = (x) => 1 - 0.1 * enrich(x);
+/** 小负荷时燃烧慢、散热占的比例大，推到活塞上的比例变低 */
+const etaInd = (x) => FUEL.etaI * (1 - 0.5 * (1 - x) ** 2);
+const p0Vs = () => FUEL.p0 * 1000 * G.Vs * 1e-6;                    // 大气压 × 排量（J）
+/** 进气管压力比 x 时，每循环燃烧推活塞的功（J）÷ 充气效率 */
+const wgUnit = (x) => etaInd(x) * FUEL.LHV * 1000 * (FUEL.rhoAir * G.Vs * 1e-3 * x / FUEL.AFR) * (1 + 0.04 * enrich(x));
+/** 充气效率：由满油门扭矩反推 */
+export function etaVol(n) {
+  const need = 4 * Math.PI * (tqWot(n) + tFric(n)) + p0Vs() * (1 - FUEL.xWot);
+  return need / wgUnit(FUEL.xWot);
+}
+/**
+ * 发动机在转速 n（rpm）、曲轴净扭矩 Te（N·m）时的“进出账”。
+ * 返回：进气管压力、每循环空气 / 燃油（mg）、每秒空气 / 燃油（g/s）、各路功率（kW）。
+ */
+export function engineFlows(n, Te) {
+  const Tf = tFric(n), Ti = Te + Tf, cps = Math.max(0, n) / 120, w = Math.max(0, n) * RPM;
+  const ev = etaVol(n), pv = p0Vs();
+  const out = { n, Te, Tf, cps, etaV: ev };
+  if (Ti <= 0.03 || n < 300) {
+    // 松油门、车拖着发动机转：断油，一滴不喷
+    return Object.assign(out, { cut: true, x: 0.28, pMan: 0.28 * FUEL.p0, lambda: 1, mAir: ev * FUEL.rhoAir * G.Vs * 0.28, mFuel: 0, pulse: 0,
+      air: 0, fuel: 0, mlMin: 0, Q: 0, Pg: 0, Ppump: 0, Pfric: Tf * w / 1000, Pe: Te * w / 1000, Pcool: 0, Pexh: 0, eff: 0, bsfc: 0 });
+  }
+  const f = (x) => ev * wgUnit(x) - pv * (1 - x) - 4 * Math.PI * Ti;
+  let lo = 0.05, hi = 1.0;
+  for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (f(m) < 0) lo = m; else hi = m; }
+  const x = (lo + hi) / 2, lam = lambdaOf(x);
+  const mAir = ev * FUEL.rhoAir * G.Vs * x;                  // mg / 循环（kg/m³ × cc = mg）
+  const mFuel = mAir / (FUEL.AFR * lam);
+  const fuel = mFuel * cps / 1000, air = mAir * cps / 1000;  // g/s
+  const Q = fuel * FUEL.LHV;                                 // kW（g/s × kJ/g）
+  const Pg = ev * wgUnit(x) * cps / 1000;
+  const Ppump = pv * (1 - x) * cps / 1000;
+  const Pfric = Tf * w / 1000, Pe = Te * w / 1000;
+  // 没变成功的热：加浓多喷的油没烧掉，跟废气走；其余的在缸壁（冷却）和排气之间分，负荷越小缸壁占得越多
+  const unburnt = Q * (1 - lam);
+  const heat = Math.max(0, Q - unburnt - Pg);
+  const Pcool = heat * (0.52 - 0.14 * x);
+  const Pexh = heat - Pcool + unburnt;
+  return Object.assign(out, { cut: false, x, pMan: x * FUEL.p0, lambda: lam, mAir, mFuel, pulse: mFuel / FUEL.inj, air, fuel,
+    mlMin: fuel / FUEL.rho * 60, Q, Pg, Ppump, Pfric, Pe, Pcool, Pexh, eff: Q > 0 ? Pe / Q : 0, bsfc: Pe > 0.05 ? fuel * 3600 / Pe : 0 });
+}
+/** 怠速（离合器分开、曲轴不出力）每秒烧多少克油 */
+export function idleFuel() { return engineFlows(ENG.idle, 0).fuel; }
+/** 节气门那片圆盘：全关时和“垂直于管子”差 6°，全开转到 86°；开口面积按投影算 */
+export function throttlePlate(thr) {
+  const a0 = 6, a = a0 + 80 * clamp(thr, 0, 1);
+  return { deg: a, open: 1 - Math.cos(a * Math.PI / 180) / Math.cos(a0 * Math.PI / 180) };
+}
+/** 平路 / 坡上的行驶阻力（N）：滚动 + 坡 + 风 */
+export function roadLoad(v, slope = 0, M = CAR.M + CAR.rider) {
+  const ms = v / 3.6, a = Math.atan(slope);
+  const roll = M * CAR.g * CAR.Crr * Math.cos(a), grade = M * CAR.g * Math.sin(a), aero = 0.5 * CAR.rho * CAR.CdA * ms * ms;
+  return { roll, grade, aero, F: roll + grade + aero };
+}
+/** 离合器咬住、车速 v、油门 q 时的一整条“数字链”：转速 → 扭矩 → 功率 → 后轮推力 → 加速度 */
+export function driveChain(v, q, slope = 0, mRoll = 15, M = CAR.M + CAR.rider) {
+  const s = steadyAt(Math.max(v, 1), q, mRoll);
+  const n = Math.min(s.n, 9900), Te = engTorque(n, q);
+  const wheelRpm = (v / 3.6) / G.wheelR / RPM;
+  const F = Te * s.i * CVT.etaB * G.iF * CVT.etaG / G.wheelR;
+  const R = roadLoad(v, slope, M);
+  return { v, q, x: s.x, i: s.i, n, Te, P: powerKW(n, Te), drivenRpm: n / s.i, wheelRpm, F, res: R, acc: (F - R.F) / M,
+    Pwheel: F * v / 3.6 / 1000, M };
+}
+/** 匀速巡航时一滴油的去向（kW）和油耗 */
+export function cruiseEnergy(v, slope = 0, M = CAR.M + CAR.rider, mRoll = 15) {
+  const c = cruiseAt(v, slope, mRoll, M);
+  const n = Math.min(c.n, 9700), Te = engTorque(n, c.q);
+  const e = engineFlows(n, Te);
+  const R = roadLoad(v, slope, M);
+  const Pbelt = e.Pe * (1 - CVT.etaB), Pgear = e.Pe * CVT.etaB * (1 - CVT.etaG), Pwheel = e.Pe * CVT.etaB * CVT.etaG;
+  const lPer100 = e.fuel / FUEL.rho / (v / 3.6) * 100;      // (L/s) ÷ (km/s) × 100
+  return { v, q: c.q, x: c.x, i: c.i, n, Te, e, R, Pbelt, Pgear, Pwheel, Pneed: R.F * v / 3.6 / 1000,
+    enough: Pwheel >= R.F * v / 3.6 / 1000 * 0.985, lPer100, kmL: lPer100 > 0 ? 100 / lPer100 : 0,
+    co2: lPer100 * FUEL.co2 * 10, kWhFuel: lPer100 * FUEL.rho * FUEL.LHV / 3.6, kWhWheel: R.F / 36 };
 }

@@ -1562,6 +1562,7 @@ def write_spec():
         'acg': dict(pos=V((180, -560, 140)), tgt=V((0, -80, 0))),
         'swing': dict(pos=V((-40, 1700, 260)), tgt=V((-100, 30, 0))),
         'hyb': dict(pos=V((420, -1100, 620)), tgt=V((-80, -20, 80))),
+        'thr': dict(pos=V((460, 980, 560)), tgt=V((30, 30, 90))),
     }
     nrm = Vector((DRV.z, 0, -DRV.x)).normalized()       # 同时含两根皮带轮轴的平面的法线（朝上）
     cuts = {'eng': dict(cn='沿气缸中心剖开', p=V((0, 0, 0)), n=[0, 1, 0]),
