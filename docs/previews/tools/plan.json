@@ -1,4 +1,89 @@
 {
+ "gpio": {
+  "page": "GPIO引脚实验台/index.html",
+  "colors": 64,
+  "loadWait": 3000,
+  "steps": [
+   [
+    "sel",
+    "#nav button:nth-child(3)"
+   ],
+   [
+    "wait",
+    600
+   ],
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "#inc3"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "sel",
+    "#inc3"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "sel",
+    "#inc3"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "sel",
+    "#set3"
+   ],
+   [
+    "wait",
+    700
+   ],
+   [
+    "drag"
+   ],
+   [
+    "sel",
+    "#clr3"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "sel",
+    "#reg3 .col:nth-child(8) .bit"
+   ],
+   [
+    "wait",
+    400
+   ],
+   [
+    "sel",
+    "#reg3 .col:nth-child(6) .bit"
+   ],
+   [
+    "wait",
+    400
+   ],
+   [
+    "sel",
+    "#reg3 .col:nth-child(4) .bit"
+   ],
+   [
+    "wait",
+    900
+   ]
+  ]
+ },
  "scooter": {
   "page": "踏板摩托车动力系统/index.html",
   "colors": 64,

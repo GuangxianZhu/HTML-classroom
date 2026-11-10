@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPIO 引脚实验台</title>
+<style>
+/* 布局：上面一块可以转的开发板（始终可见），下面是当前关卡的实验；宽屏时板子在左、实验在右 */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18222d; --muted:#5b6876; --line:#c5cdd6; --stage:#d9e0e6;
+  --hi:#d9480f; --lo:#2b6cb0; --danger:#c81e1e; --accent:#0f766e; --accent-ink:#ffffff;
+  --font-body:system-ui,-apple-system,"PingFang SC","Hiragino Sans","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101a22; --panel:#18252f; --ink:#e6edf3; --muted:#93a1ae; --line:#34444f; --stage:#0a1218;
+    --hi:#ff9a4d; --lo:#6aa9e9; --danger:#ff6b6b; --accent:#3fc1b0; --accent-ink:#06211d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101a22; --panel:#18252f; --ink:#e6edf3; --muted:#93a1ae; --line:#34444f; --stage:#0a1218;
+  --hi:#ff9a4d; --lo:#6aa9e9; --danger:#ff6b6b; --accent:#3fc1b0; --accent-ink:#06211d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.65}
+h1{font-size:22px;margin:0;text-wrap:balance}
+h2{font-size:19px;margin:0;text-wrap:balance}
+h3{font-size:17px;margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+code,pre,.mono{font-family:var(--font-mono)}
+.sub{color:var(--muted);font-size:14px}
+.note{font-size:14px;color:var(--muted)}
+.cm{color:var(--muted)}
+
+.app{max-width:1120px;margin:0 auto;padding:16px 16px 48px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.top{display:flex;flex-direction:column;gap:2px}
+.stagewrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0;display:flex;flex-direction:column;gap:6px}
+.stagewrap canvas{display:block;width:100%;height:190px;border-radius:12px;background:var(--stage);border:1px solid var(--line);touch-action:none;cursor:grab}
+.stagewrap.nogl canvas{display:none}
+.stagebar{display:flex;gap:8px 16px;flex-wrap:wrap;justify-content:space-between;font-size:13px;color:var(--muted)}
+#pinInfo{color:var(--ink);font-weight:600}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.legend .h{background:var(--hi)} .legend .l{background:var(--lo)} .legend .z{background:var(--muted)}
+.chapnav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+.chapnav button{flex:0 0 auto;padding:8px 12px;border:1px solid var(--line);background:var(--panel);border-radius:999px;cursor:pointer;font-size:14px;white-space:nowrap}
+.chapnav .n{font-family:var(--font-mono);color:var(--muted);margin-right:6px}
+.chapnav button[aria-current="step"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.chapnav button[aria-current="step"] .n{color:inherit}
+@media (min-width:900px){
+  .app{grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:24px;align-items:start}
+  .top,.chapnav{grid-column:1 / -1}
+  .stagewrap{top:12px}
+  .stagewrap canvas{height:420px}
+}
+
+.level{display:flex;flex-direction:column;gap:14px}
+.level[hidden]{display:none}
+.body{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.take{border-left:4px solid var(--accent);padding-left:12px}
+.take b{display:block;font-size:13px;color:var(--accent);letter-spacing:.08em}
+.pager{display:flex;justify-content:space-between;gap:8px}
+.pager button,.ops button{padding:11px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+.ops{display:flex;gap:8px;flex-wrap:wrap}
+.ops button{flex:1 1 90px}
+pre{margin:0;padding:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);font-size:14px;overflow-x:auto}
+.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+/* 读数 */
+.readout{display:flex;flex-direction:column;gap:4px;border-left:4px solid var(--line);padding-left:12px}
+.readout .big{font-family:var(--font-mono);font-size:19px;font-weight:700}
+.readout.high{border-color:var(--hi)} .readout.high .big{color:var(--hi)}
+.readout.low{border-color:var(--lo)} .readout.low .big{color:var(--lo)}
+.readout.short{border-color:var(--danger)} .readout.short .big{color:var(--danger)}
+
+/* 第 1 关 */
+.vbar{position:relative;display:grid;grid-template-columns:30% 40% 30%;height:44px;border-radius:8px;overflow:visible;font-size:13px;font-weight:600}
+.vbar .zone{display:flex;align-items:center;justify-content:center;color:#fff}
+.vbar .z0{background:var(--lo);border-radius:8px 0 0 8px} .vbar .zx{background:var(--muted)} .vbar .z1{background:var(--hi);border-radius:0 8px 8px 0}
+.vbar .thumb{position:absolute;top:-6px;bottom:-6px;width:4px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--panel)}
+.scale{display:grid;grid-template-columns:30% 40% 30%;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.scale span:nth-child(2){transform:translateX(-50%);white-space:nowrap}
+.scale span:nth-child(3){transform:translateX(-50%);white-space:nowrap}
+.scale{position:relative}.scale span:last-child{position:absolute;right:0}
+.slider{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.slider input{width:100%;accent-color:var(--accent);height:32px}
+
+/* 电路图 */
+.circuit svg{display:block;width:100%;max-width:400px;margin:0 auto;height:auto}
+.circuit text{font-family:var(--font-body);font-size:12px;fill:var(--muted)}
+.circuit .chipbox{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:5 4}
+.circuit .wire{stroke:var(--muted);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.circuit .term{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+.circuit .lever{stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}
+.circuit .pad{fill:var(--ink)}
+.circuit .led{fill:var(--panel);stroke:var(--muted);stroke-width:2.5}
+.circuit .glow{fill:var(--hi);opacity:0}
+.circuit .hit{fill:transparent;cursor:pointer}
+.circuit .flow{fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:1 13;opacity:0}
+.circuit .flow.main{stroke:var(--hi)} .circuit .flow.short{stroke:var(--danger)}
+.s-high .w-top,.s-high .w-upmid,.s-high .w-pin,.s-high .w-load{stroke:var(--hi)}
+.s-high .led{stroke:var(--hi);fill:var(--hi)} .s-high .glow{opacity:.28}
+.s-high .flow.main{opacity:1;animation:run .6s linear infinite}
+.s-low .w-pin,.s-low .w-downmid,.s-low .w-bot{stroke:var(--lo)}
+.s-float .w-pin{stroke-dasharray:3 6}
+.s-short .w-top,.s-short .w-upmid,.s-short .w-downmid,.s-short .w-bot{stroke:var(--danger)}
+.s-short .flow.short{opacity:1;animation:run .25s linear infinite}
+.noload .led,.noload .glow,.noload .w-load,.noload .ld,.noload .flow.main{display:none}
+@keyframes run{to{stroke-dashoffset:-14}}
+/* 输入电路 */
+.circuit .buf{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+.circuit .inbit{font-family:var(--font-mono);font-size:15px;font-weight:700;fill:var(--ink)}
+.circuit .w-pull{opacity:.35}
+.pull-on .w-pull{opacity:1}
+.s-H .w-pin,.s-H.pull-on .w-pull,.s-H .w-vdd{stroke:var(--hi)}
+.s-L .w-pin{stroke:var(--lo)}
+.s-Z .w-pin{stroke-dasharray:3 6}
+
+.switches{display:flex;gap:8px;flex-wrap:wrap}
+.switches button{flex:1 1 140px;padding:12px 10px;border-radius:8px;border:2px solid var(--line);background:var(--panel);cursor:pointer;text-align:left}
+.switches button b{display:block;font-family:var(--font-mono);font-size:15px}
+.switches button[aria-pressed="true"]{border-color:var(--accent)}
+.switches button[aria-pressed="true"] b{color:var(--accent)}
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tasks li{display:flex;gap:8px;align-items:baseline;color:var(--muted)}
+.tasks li::before{content:"○";font-family:var(--font-mono)}
+.tasks li.done{color:var(--ink)}
+.tasks li.done::before{content:"✓";color:var(--accent);font-weight:700}
+
+/* 寄存器的 8 个位 */
+.reg{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;text-align:center}
+.reg .col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.reg .idx{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.reg .bit{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1;max-width:46px;border:2px solid var(--line);border-radius:6px;background:var(--panel);color:var(--lo);font-family:var(--font-mono);font-size:19px;font-weight:700;padding:0}
+.reg button.bit{cursor:pointer}
+.reg .bit.on{color:var(--hi);border-color:var(--hi)}
+.reg .col.sel .bit{box-shadow:0 0 0 3px var(--accent)}
+.reg .stem{width:2px;height:14px;background:var(--line)}
+.reg .col.on .stem{background:var(--hi)}
+.reg .lamp{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);background:var(--panel)}
+.reg .lamp.none{border-style:dashed;border-radius:3px;opacity:.6}
+.reg .col.on .lamp:not(.none){background:var(--hi);border-color:var(--hi);box-shadow:0 0 10px var(--hi)}
+.values{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.values dt{color:var(--muted);font-family:var(--font-body);font-size:14px}
+.values dd{margin:0;font-weight:700}
+
+/* 代码、总线、地址表 */
+.code{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+.code li{display:flex;gap:10px;flex-wrap:wrap;padding:6px 10px;border-left:4px solid transparent}
+.code li + li{border-top:1px solid var(--line)}
+.code li.cur{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);font-weight:600}
+.code li.past{color:var(--muted)}
+.bus{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr) minmax(0,3fr);gap:8px}
+.bus div{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;min-width:0}
+.bus b{font-family:var(--font-mono);font-size:13px;white-space:nowrap}
+.cpu{font-family:var(--font-mono);font-size:14px;min-height:1.65em}
+.map{width:100%;border-collapse:collapse;font-size:14px}
+.map th{text-align:left;font-weight:400;color:var(--muted);font-size:13px;padding:4px 6px}
+.map td{padding:6px;border-top:1px solid var(--line);vertical-align:baseline}
+.map td:first-child{font-family:var(--font-mono);font-size:13px;white-space:nowrap}
+.map tr.hit td{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.map tr.bad .val{color:var(--danger);font-weight:700}
+.map .flash{color:var(--hi);font-weight:700}
+.msg{min-height:4.9em;padding:10px 12px;border-radius:8px;background:var(--bg)}
+.msg.bad{outline:2px solid var(--danger)}
+.dock{position:sticky;bottom:8px;z-index:4;display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 -6px 16px rgb(0 0 0 / .12)}
+.dock .msg{min-height:6.6em;font-size:15px}
+
+.strip{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;font-family:var(--font-mono);font-size:12px}
+.strip i{font-style:normal;text-align:center;border-radius:3px;padding:2px 0;color:#fff}
+.strip .one{background:var(--hi)} .strip .zero{background:var(--lo)}
+.lines{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;font-size:14px;cursor:pointer}
+.line + .line{border-top:1px solid var(--line)}
+.line input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.line:has(input:not(:checked)) code{text-decoration:line-through;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;padding:10px;border:0;background:var(--panel);cursor:pointer}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.line2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px;border-radius:8px;border:2px solid var(--line)}
+.line2 b{font-family:var(--font-mono)}
+.line2.high{border-color:var(--hi)} .line2.high b{color:var(--hi)}
+.line2.low{border-color:var(--lo)} .line2.low b{color:var(--lo)}
+.line2.short{border-color:var(--danger)} .line2.short b{color:var(--danger)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.two > div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.big2{font-size:19px;font-weight:700}
+footer{grid-column:1 / -1;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.circuit .flow{animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>GPIO 引脚实验台</h1>
+    <p class="sub">从电压到代码，七关弄懂芯片怎么控制一根引脚。用的是一颗虚构的简化芯片：1 个端口、8 个引脚。</p>
+  </header>
+  <nav id="nav" class="chapnav" aria-label="关卡"></nav>
+  <div class="stagewrap" id="stageWrap">
+    <canvas id="stage" aria-label="可以拖动旋转的开发板三维模型"></canvas>
+    <div class="stagebar"><span id="pinInfo"></span>
+      <span class="legend">走线颜色<i class="h"></i>高电平<i class="l"></i>低电平<i class="z"></i>悬空</span></div>
+  </div>
+  <main id="chapter"></main>
+  <footer>板子上的走线颜色和灯由每一关的实验实时驱动。拖动可以旋转，双指可以缩放。</footer>
+</div>
+<!--SCRIPT-->
+</body>
+</html>
