@@ -1,4 +1,4 @@
-// 页面逻辑：七关，每关一个小实验；所有关卡共用上方的三维开发板
+// 页面逻辑：十关，每关一个小实验；所有关卡共用上方的三维开发板
 import * as C from './core.js';
 import { createStage } from './stage.js';
 
@@ -146,6 +146,7 @@ function ch3(root, api) {
   root.append(el(`<div class="panel"><h3 id="t3"></h3><div class="circuit" id="c3"></div><p id="w3"></p>
     <p class="note">一个位同时管两个开关，而且让它们永远一开一关。所以上一关的悬空和短路，在输出模式下不会出现。</p></div>`));
   root.append(el(`<div class="panel"><h3>换成代码就是这一行</h3><pre id="code3"></pre>
+    <p class="note">0x 开头的写法看不懂没关系，下一关专门讲。</p>
     ${takeaway('“控制引脚”就是“改寄存器里的数”。位 n 对应引脚 Pn，这就是你问的“有几个引脚，就有几个位”。')}</div>`));
   const drawBits = makeBits($('#reg3', root), { lamps: true, onFlip: (n) => { value ^= 1 << n; sel = n; render(); } });
   const draw = makeCircuit($('#c3', root));
@@ -172,98 +173,208 @@ function ch3(root, api) {
   };
 }
 
-// ---------- 第 4 关：代码单步执行 ----------
-function ch4(root, api) {
+// ---------- 数的写法：0x21 是什么 ----------
+function chHex(root, api) {
+  let value = 0x00; const seen = {};
+  root.append(el(`<div class="panel">
+    <p>上一关的 8 个格子，写成 00100001 太长了。程序员的办法是：从右往左每 4 个格子分一组，每组换成一个字符。<code>0x21</code> 就是这样来的，开头的 <code>0x</code> 只是个记号，意思是“后面这个数是按 4 位一组写的”（十六进制）。</p>
+    <div class="nibs" id="nibs"></div>
+    <div class="readout high"><span class="sub">合起来写成</span><span class="big" id="hxBig"></span><p id="hxWhy"></p></div>
+  </div>`));
+  root.append(el(`<div class="panel"><h3>每组怎么换成一个字符</h3>
+    <p>一组里 4 个格子从左到右分别值 8、4、2、1。把是 1 的格子加起来就行。一组最大是 8+4+2+1 = 15，可是数字只有 0 到 9，所以 10 到 15 借用字母：</p>
+    <div class="hexmap"><span>10 = A</span><span>11 = B</span><span>12 = C</span><span>13 = D</span><span>14 = E</span><span>15 = F</span></div>
+  </div>`));
+  root.append(el(`<div class="panel"><h3>试一试</h3><ul class="tasks" id="tHex">
+    <li data-v="33">点格子，做出 0x21（P0 和 P5 亮）</li><li data-v="63">做出 0x3F（P0 到 P5 全亮）</li><li data-v="128">做出 0x80（只有 P7 是 1）</li></ul>
+    ${takeaway('看到 0x3F，就拆成 3 和 F 两组：3 是 0011，F 是 1111，拼起来是 00111111，也就是位 0 到位 5 都是 1。')}</div>`));
+  const nibs = $('#nibs', root), btn = [];
+  for (const hi of [1, 0]) {
+    const box = el(`<div class="nib"><span class="sub">${hi ? '左边一组（位 7 到 4）' : '右边一组（位 3 到 0）'}</span><div class="cells"></div><div class="sum"></div></div>`);
+    for (let k = 3; k >= 0; k--) {
+      const n = hi * 4 + k;
+      const c = el(`<div class="cell"><span class="idx">位${n}</span><button class="bit" aria-label="位 ${n}"></button><span class="w">值 ${1 << k}</span></div>`);
+      $('button', c).addEventListener('click', () => { value ^= 1 << n; render(true); });
+      $('.cells', box).append(c); btn[n] = $('button', c);
+    }
+    nibs.append(box);
+  }
+  function render(byUser) {
+    for (let n = 0; n < 8; n++) { const on = (value >> n) & 1; btn[n].textContent = on; btn[n].classList.toggle('on', !!on); }
+    [...nibs.children].forEach((box, i) => {
+      const v = i === 0 ? value >> 4 : value & 15, parts = [8, 4, 2, 1].filter((w) => v & w);
+      const ch = v.toString(16).toUpperCase();
+      $('.sum', box).innerHTML = `${parts.length ? parts.join(' + ') : '0'} = ${v}${v > 9 ? `，写成 <b>${ch}</b>` : `，写成 <b>${ch}</b>`}`;
+    });
+    $('#hxBig', root).textContent = C.hex(value);
+    const lit = C.LED_PINS.filter((n) => (value >> n) & 1).map((n) => 'P' + n);
+    $('#hxWhy', root).textContent = `也就是 ${C.bin(value)}。把它写进 OUT，${lit.length ? lit.join('、') + ' 的灯亮' : '没有灯亮'}。`;
+    if (byUser) seen[value] = true;
+    for (const li of $('#tHex', root).children) li.classList.toggle('done', !!seen[li.dataset.v]);
+    api.sync();
+  }
+  render(false);
+  return { view: () => C.boardView({ clk: 1, dir: 0xFF, out: value, pull: 0, otype: 0 }, {}, -1) };
+}
+
+// ---------- 地址：每个格子都有门牌号 ----------
+function chAddr(root, api) {
+  const BOX = [
+    { key: 'a', addr: '0x2000_0000', name: '内存格子', kind: 'ram', v: 0 },
+    { key: 'b', addr: '0x2000_0001', name: '内存格子', kind: 'ram', v: 0 },
+    { key: 'out', addr: C.addrText(C.REG.OUT.addr), name: 'OUT 寄存器', kind: 'reg', v: 0 },
+    { key: 'none', addr: '0x5000_0000', name: '这个门牌号后面没有东西', kind: 'none', v: null },
+  ];
+  const VALS = [0x00, 0x01, 0x21, 0x3F];
+  let sel = 0, val = 0x21, msg = '', last = null; const seen = {};
+  root.append(el(`<div class="panel">
+    <p>CPU 其实只会两个动作：往一个有编号的格子里<b>存</b>一个数，或者从一个有编号的格子里<b>取</b>一个数。这个编号就是地址，可以当成门牌号。</p>
+    <p>大部分格子是内存，只负责记住数。少数几个格子后面连着硬件，前面见过的 OUT 寄存器就是其中一个。</p>
+    <span class="sub">第一步：选一个门牌号</span>
+    <div class="lockers" id="lockers"></div>
+    <span class="sub">第二步：选要存的数</span>
+    <div class="seg" id="vals"></div>
+    <div class="envelope"><div><span class="sub">门牌号（走地址总线）</span><b id="envA"></b></div><div><span class="sub">要存的数（走数据总线）</span><b id="envD"></b></div></div>
+    <div class="ops"><button class="primary" id="store">存进去</button></div>
+    <p class="msg" id="addrMsg" aria-live="polite"></p>
+  </div>`));
+  root.append(el(`<div class="panel"><h3>试一试</h3><ul class="tasks" id="tAddr">
+    <li data-s="ram">往内存格子存一个数，看灯有没有反应</li><li data-s="reg">往 OUT 存 0x21，看灯</li><li data-s="none">往没有东西的门牌号存一个数</li></ul>
+    ${takeaway('寄存器就是一个有门牌号的格子，只是它后面连着硬件。“总线”就是送信的路：地址总线送门牌号，数据总线送要存的数。')}
+    <p class="note">这一关已经替你把时钟和方向设好了，所以往 OUT 存数马上就能看到灯。真实代码里，<code>OUT</code> 这个名字就是门牌号的外号：</p>
+    <pre>#define OUT (*(volatile uint8_t*)0x40002004)</pre></div>`));
+  const lk = $('#lockers', root), vs = $('#vals', root);
+  BOX.forEach((b, i) => { const r = el(`<button class="locker"><span class="mono a">${b.addr}</span><span class="nm">${b.name}${b.kind === 'reg' ? '<i class="tag">连着引脚</i>' : ''}</span><span class="mono v"></span></button>`);
+    r.addEventListener('click', () => { sel = i; last = null; msg = ''; render(); }); lk.append(r); });
+  VALS.forEach((v) => { const b = el(`<button>${C.hex(v)}</button>`); b.addEventListener('click', () => { val = v; last = null; msg = ''; render(); }); vs.append(b); });
+  function render() {
+    [...lk.children].forEach((r, i) => { r.setAttribute('aria-pressed', i === sel); r.classList.toggle('hitnow', last === i);
+      $('.v', r).textContent = BOX[i].v === null ? '' : C.hex(BOX[i].v); });
+    [...vs.children].forEach((b, i) => b.setAttribute('aria-pressed', VALS[i] === val));
+    $('#envA', root).textContent = BOX[sel].addr; $('#envD', root).textContent = `${C.hex(val)}（${C.bin(val)}）`;
+    $('#addrMsg', root).textContent = msg || '选好门牌号和数，按“存进去”。';
+    for (const li of $('#tAddr', root).children) li.classList.toggle('done', !!seen[li.dataset.s]);
+    api.sync();
+  }
+  $('#store', root).addEventListener('click', () => {
+    const b = BOX[sel]; last = sel; seen[b.kind === 'reg' ? (val === 0x21 ? 'reg' : 'reg0') : b.kind] = true;
+    if (b.kind === 'none') msg = '没有任何格子的门牌号是这个，这封信没人收。什么都没发生。';
+    else { b.v = val;
+      msg = b.kind === 'ram' ? `${b.addr} 这个内存格子记下了 ${C.hex(val)}。仅此而已，内存不连任何东西，灯没有反应。`
+        : `OUT 收下了 ${C.hex(val)}。它的每一位都连着一个引脚的开关，所以板子上的灯马上跟着变了。同样是“存一个数”，只因为门牌号不同，结果就不同。`; }
+    render();
+  });
+  render();
+  return { view: () => C.boardView({ clk: 1, dir: 0x3F, out: BOX[2].v, pull: 0, otype: 0 }, {}, -1) };
+}
+
+// ---------- 一行代码怎么走到引脚（精简版：每次只亮一站） ----------
+function chCode(root, api) {
   const PROG = [
     [{ reg: 'CLK', op: '=', val: 0x01 }, '打开 GPIO 的时钟'],
     [{ reg: 'DIR', op: '=', val: 0x3F }, 'P0 到 P5 设为输出'],
-    [{ reg: 'OUT', op: '=', val: 0x01 }, '点亮 P0'],
     [{ reg: 'OUT', op: '=', val: 0x21 }, '点亮 P0 和 P5'],
-    [{ reg: 'OUT', op: '|=', val: 0x02 }, '再点亮 P1，别的不动'],
-    [{ reg: 'OUT', op: '&=~', val: 0x01 }, '熄灭 P0，别的不动'],
   ];
-  const ROWS = ['CLK', 'DIR', 'OUT', 'IN'];
+  const ST = ['CPU 读到这一行', '信上路', '寄存器收信', '引脚跟着变'];
   let st;
   root.append(el(`<div class="panel">
-    <p>上一关是你用手改寄存器。现在换成代码来改。每按一次“下一小步”，只发生一件事，看清数是怎么从 CPU 走到引脚的。</p>
-    <ol class="code" id="code4"></ol>
-    <div class="bus">
-      <div><span class="sub">地址总线</span><b id="bAddr"></b></div>
-      <div><span class="sub">数据总线</span><b id="bData"></b></div>
-      <div><span class="sub">方向</span><b id="bRw"></b></div>
-    </div>
-    <p class="cpu" id="cpu4"></p>
-    <table class="map"><thead><tr><th>地址</th><th>寄存器</th><th>里面的值</th></tr></thead><tbody id="map4"></tbody></table>
-    <div class="dock"><p class="msg" id="msg4" aria-live="polite"></p>
-    <div class="ops"><button class="primary" id="next4">下一小步</button><button id="reset4">重来</button></div></div>
+    <p>前两关的东西合起来，就是一行代码做的事：<code>OUT = 0x21;</code> 的意思是“往 OUT 的门牌号存 0x21”。下面三行程序，每按一次只往前走一站，只看亮着的那一站就行。</p>
+    <ol class="code" id="codeC"></ol>
+    <ol class="stations" id="stC"></ol>
+    <div class="dock"><div class="ops"><button class="primary" id="nextC">下一步</button><button id="resetC">重来</button></div></div>
   </div>`));
-  root.append(el(`<div class="panel">${takeaway('代码控制引脚只靠一个动作：往某个地址写一个数。这个地址背后不是内存，是寄存器。这种做法叫内存映射 I/O。')}
-    <p class="note">真实的 C 代码里，<code>OUT</code> 这个名字是这样定义出来的：</p>
-    <pre>#define OUT (*(volatile uint8_t*)0x40002004)</pre>
-    <p class="note">意思是“把 0x40002004 这个地址当成一个 8 位的数来读写”。<code>volatile</code> 告诉编译器每次读写都要真的发生，不许优化掉。</p></div>`));
-  const codeEl = $('#code4', root);
+  root.append(el(`<div class="panel">${takeaway('一行赋值 = 一封信：门牌号是寄存器的地址，信里是要存的数。寄存器收下，引脚就变。CPU 不需要知道“引脚”这回事。')}
+    <p class="note">三行的顺序有讲究：先开时钟，寄存器才肯收信；再设方向，引脚才变成输出；最后写数据。漏掉一步会怎样，后面“踩坑”那一关专门讲。</p></div>`));
+  const codeEl = $('#codeC', root), stEl = $('#stC', root);
   PROG.forEach(([s, cm]) => codeEl.append(el(`<li><code>${C.stmtText(s)}</code><span class="cm">// ${cm}</span></li>`)));
-  const mapEl = $('#map4', root);
-  ROWS.forEach((r) => mapEl.append(el(`<tr data-r="${r}"><td>${C.addrText(C.REG[r].addr)}</td><td><b>${r}</b> ${C.REG[r].zh}</td><td class="val"></td></tr>`)));
-
-  const litList = (chip) => { const a = C.boardView(chip).leds.map((on, i) => (on ? 'P' + i : '')).filter(Boolean); return a.length ? a.join('、') + ' 的灯亮' : '没有灯亮'; };
-  function plan(s) {
-    const R = C.REG[s.reg], A = C.addrText(R.addr);
-    let old = 0, nv = s.val, res;
-    const sWrite = [
-      () => { st.bus = { addr: A, data: C.hex(nv), rw: '写' }; return `${s.op === '=' ? 'CPU 执行这一行：' : '第三步“写”：CPU '}把地址 ${A} 放上地址总线，把数据 ${C.hex(nv)} 放上数据总线，方向是“写”。`; },
-      () => { st.selReg = s.reg; return `每个寄存器都在比对地址总线上的数。只有 ${s.reg} 的地址对得上，它被选中，其他寄存器不动。`; },
-      () => { const before = C.read(st.chip, s.reg); res = C.write(st.chip, s.reg, nv); st.changed = res.ok ? before ^ C.read(st.chip, s.reg) : 0;
-        return res.ok ? `${s.reg} 把数据总线上的 ${C.hex(nv)} 存进自己的触发器。` : `GPIO 的时钟还没开，${s.reg} 不理会这次写入。里面的值没变，也没有任何报错。`; },
-      () => { st.shown = C.cloneChip(st.chip);
-        if (s.reg === 'CLK') return '时钟开了，GPIO 这个外设开始工作。引脚暂时没有变化。';
-        if (s.reg === 'DIR') return '方向位是 1 的引脚变成输出，里面的两个开关开始听 OUT 的指挥。OUT 现在是 0，所以 P0 到 P5 都输出 0 V，板子上这几条走线变成蓝色。';
-        return `触发器的输出直接连着引脚里的两个开关。位是 1 的引脚上开关闭合，输出 3.3 V。现在${litList(st.chip)}。`; },
-    ];
-    if (s.op === '=') return sWrite;
-    const sym = s.op === '|=' ? '|' : '& ~';
-    return [
-      () => { st.bus = { addr: A, data: '', rw: '读' }; return `这一行要分“读、改、写”三步。第一步“读”：CPU 把 ${s.reg} 的地址 ${A} 放上地址总线，方向是“读”。`; },
-      () => { st.selReg = s.reg; old = C.read(st.chip, s.reg); nv = C.newValue(s, old); st.bus.data = C.hex(old); return `${s.reg} 被选中，把自己现在的值 ${C.hex(old)} 放上数据总线，送回 CPU。`; },
-      () => { st.cpu = `${C.hex(old)} ${sym}${C.hex(s.val)} = ${C.hex(nv)}`; st.selReg = null;
-        return `第二步“改”：CPU 在自己内部算 ${C.bin(old)} ${sym === '|' ? '或上' : '清掉'} ${C.bin(s.val)}，得到 ${C.bin(nv)}。这时候寄存器还没变。`; },
-      ...sWrite,
-    ];
+  ST.forEach((t, i) => stEl.append(el(`<li><span class="n">${i + 1}</span><div><b>${t}</b><p class="d"></p></div></li>`)));
+  const litList = (chip) => { const a = C.boardView(chip).leds.map((on, i) => (on ? 'P' + i : '')).filter(Boolean); return a.length ? a.join('、') + ' 的灯亮了' : '还没有灯亮'; };
+  function detail(k) {
+    const [s] = PROG[st.pc], R = C.REG[s.reg], A = C.addrText(R.addr);
+    if (k === 0) return `<code>${C.stmtText(s)}</code> 意思是：往 ${s.reg} 的门牌号存 ${C.hex(s.val)}。`;
+    if (k === 1) return `门牌号 <span class="mono">${A}</span> 走地址总线，数 <span class="mono">${C.hex(s.val)}</span>（${C.bin(s.val)}）走数据总线。`;
+    if (k === 2) return `只有 ${s.reg} 的门牌号对得上，它把 ${C.hex(s.val)} 存进自己的 8 个格子：<span class="mono hl">${C.bin(s.val)}</span>`;
+    if (s.reg === 'CLK') return '时钟开了，GPIO 开始工作，以后的信它才会收。引脚暂时没变。';
+    if (s.reg === 'DIR') return 'P0 到 P5 变成输出，里面的开关开始听 OUT 的。OUT 现在是 0，所以这六条走线变成蓝色（0 V）。';
+    return `OUT 的格子直接连着开关：是 1 的位，引脚输出 3.3 V。${litList(st.chip)}。`;
   }
-  function reset() {
-    st = { pc: 0, k: 0, steps: null, chip: C.createChip(), shown: C.createChip(), bus: { addr: '', data: '', rw: '' }, selReg: null, cpu: '', changed: 0,
-      msg: '程序还没开始。寄存器全是 0，所有引脚都是输入，灯全灭。按“下一小步”开始。' };
-    render();
-  }
+  function reset() { st = { pc: 0, k: -1, chip: C.createChip(), shown: C.createChip() }; render(); }
   function next() {
     if (st.pc >= PROG.length) return;
-    if (!st.steps) { st.steps = plan(PROG[st.pc][0]); st.k = 0; st.bus = { addr: '', data: '', rw: '' }; st.selReg = null; st.cpu = ''; }
-    st.changed = 0;
-    st.msg = st.steps[st.k++]();
-    if (st.k >= st.steps.length) { st.steps = null; st.pc++; st.done = true; } else st.done = false;
+    st.k++;
+    if (st.k === 2) C.exec(st.chip, PROG[st.pc][0]);
+    if (st.k === 3) st.shown = C.cloneChip(st.chip);
+    if (st.k > 3) { st.pc++; st.k = st.pc < PROG.length ? 0 : 4; }
     render();
   }
   function render() {
-    [...codeEl.children].forEach((li, i) => {
-      const cur = st.steps ? i === st.pc : (st.done && i === st.pc - 1);
-      li.classList.toggle('cur', !!cur); li.classList.toggle('past', i < st.pc && !cur);
-    });
-    $('#bAddr', root).textContent = st.bus.addr || '空闲'; $('#bData', root).textContent = st.bus.data || '空闲'; $('#bRw', root).textContent = st.bus.rw || '空闲';
-    $('#cpu4', root).textContent = st.cpu ? 'CPU 内部：' + st.cpu : '';
-    for (const tr of mapEl.children) {
-      const r = tr.dataset.r, v = r === 'CLK' ? st.chip.clk : C.read(st.chip, r, {});
-      tr.classList.toggle('hit', st.selReg === r);
-      $('.val', tr).innerHTML = `<span class="mono${st.selReg === r && st.changed ? ' flash' : ''}">${C.bin(v)}</span> <span class="sub">${C.hex(v)}</span>`;
-    }
     const end = st.pc >= PROG.length;
-    $('#msg4', root).textContent = st.msg + (end ? ' 程序跑完了。按“重来”可以再看一遍。' : '');
-    $('#next4', root).disabled = end;
+    [...codeEl.children].forEach((li, i) => { li.classList.toggle('cur', !end && i === st.pc && st.k >= 0); li.classList.toggle('past', i < st.pc); });
+    [...stEl.children].forEach((li, i) => {
+      const act = !end && i === st.k;
+      li.classList.toggle('act', act); li.classList.toggle('past', !end && i < st.k);
+      $('.d', li).innerHTML = act ? detail(i) : '';
+    });
+    $('#nextC', root).disabled = end;
+    $('#nextC', root).textContent = end ? '程序跑完了' : st.k < 0 ? '开始' : st.k === 3 ? (st.pc === PROG.length - 1 ? '完成' : '下一行') : '下一步';
     api.sync();
   }
-  $('#next4', root).addEventListener('click', next);
-  $('#reset4', root).addEventListener('click', reset);
+  $('#nextC', root).addEventListener('click', next);
+  $('#resetC', root).addEventListener('click', reset);
   reset();
   return { view: () => C.boardView(st.shown, {}, -1) };
+}
+
+// ---------- 只改一位：|= 和 &= ~ ----------
+function chBit(root, api) {
+  let out = 0x21, mask = 0, mode = 'or'; const seen = {};
+  root.append(el(`<div class="panel">
+    <p><code>OUT = 0x21;</code> 会把 8 个格子一次全部重写。如果只想多点亮一盏灯，别的灯保持原样，就要用另外两种写法。它们看着吓人，其实只是在说“我只动我点名的那几位”。</p>
+    <div class="seg" role="group" aria-label="想做什么"><button id="mOr">点亮几位（|=）</button><button id="mAnd">熄灭几位（&amp;= ~）</button></div>
+    <div class="rows3">
+      <span class="sub">OUT 现在的值</span><div id="rOld"></div>
+      <span class="sub" id="pickLbl"></span><div id="rMask"></div>
+      <span class="sub">执行之后</span><div id="rNew"></div>
+    </div>
+    <p id="bitRule"></p>
+    <pre id="bitCode"></pre>
+    <div class="ops"><button class="primary" id="bitRun">执行这一行</button><button id="bitReset">重来</button></div>
+    <p class="note" id="bitCmp"></p>
+  </div>`));
+  root.append(el(`<div class="panel"><h3>CPU 实际上分三步做</h3>
+    <p>CPU 没办法只碰一个格子，它只会整格取、整格存。所以这一行在机器里是三步：</p>
+    <ol class="plain" id="rmw3"></ol>
+    <p class="note">记住“读、改、写是三步”这件事，最后一关会用到。</p></div>`));
+  root.append(el(`<div class="panel"><h3>试一试</h3><ul class="tasks" id="tBit">
+    <li data-s="or">再点亮 P1，原来亮着的灯不能灭</li><li data-s="and">只熄灭 P0，别的灯不能变</li></ul>
+    ${takeaway('<code>OUT |= 数</code>：数里是 1 的位被点亮，其余不动。<code>OUT &= ~数</code>：数里是 1 的位被熄灭，其余不动。符号不用背，记住“点名”就行。')}</div>`));
+  const dOld = makeBits($('#rOld', root)), dNew = makeBits($('#rNew', root));
+  const dMask = makeBits($('#rMask', root), { onFlip: (n) => { mask ^= 1 << n; render(); } });
+  const nv = () => (mode === 'or' ? out | mask : out & ~mask) & 0xFF;
+  function render() {
+    const or = mode === 'or', r = nv();
+    $('#mOr', root).setAttribute('aria-pressed', or); $('#mAnd', root).setAttribute('aria-pressed', !or);
+    $('#pickLbl', root).textContent = or ? '点名：点你想点亮的位' : '点名：点你想熄灭的位';
+    dOld(out); dMask(mask); dNew(r, -1, r ^ out);
+    $('#bitRule', root).textContent = or ? '规则：被点名的位变成 1，没点名的位照抄上面一行。' : '规则：被点名的位变成 0，没点名的位照抄上面一行。';
+    $('#bitCode', root).innerHTML = `OUT ${or ? '|=' : '&= ~'}${or ? ' ' : ''}${C.hex(mask)};   <span class="cm">// 点名的位写成一个数就是 ${C.hex(mask)}</span>`;
+    $('#bitCmp', root).textContent = mask ? `对比一下：如果偷懒直接写 OUT = ${C.hex(mask)};，结果会是 ${C.bin(mask)}，没点名的灯全被改掉了。` : '先在中间一行点名。';
+    $('#bitRun', root).disabled = !mask;
+    $('#rmw3', root).innerHTML = `<li>读：把 OUT 整格取出来，拿到 <span class="mono">${C.bin(out)}</span></li><li>改：在 CPU 手里把点名的位${or ? '变成 1' : '变成 0'}，得到 <span class="mono">${C.bin(r)}</span></li><li>写：把 <span class="mono">${C.bin(r)}</span> 整格存回 OUT</li>`;
+    for (const li of $('#tBit', root).children) li.classList.toggle('done', !!seen[li.dataset.s]);
+    api.sync();
+  }
+  $('#mOr', root).addEventListener('click', () => { mode = 'or'; mask = 0; render(); });
+  $('#mAnd', root).addEventListener('click', () => { mode = 'and'; mask = 0; render(); });
+  $('#bitRun', root).addEventListener('click', () => {
+    const before = out; out = nv();
+    if (mode === 'or' && mask === 0x02 && (before & 0x02) === 0) seen.or = true;
+    if (mode === 'and' && mask === 0x01 && (before & 0x01)) seen.and = true;
+    mask = 0; render();
+  });
+  $('#bitReset', root).addEventListener('click', () => { out = 0x21; mask = 0; render(); });
+  render();
+  return { view: () => C.boardView({ clk: 1, dir: 0x3F, out, pull: 0, otype: 0 }, {}, -1) };
 }
 
 // ---------- 第 5 关：输入 ----------
@@ -427,7 +538,7 @@ function ch7(root, api) {
   // 读-改-写竞争
   let rm;
   root.append(el(`<div class="panel"><h3>读、改、写中间被打断</h3>
-    <p>第 4 关看到 <code>OUT |= 0x01</code> 要走“读、改、写”三步。主程序想点亮 P0，中断程序想点亮 P1。你来决定中断在哪一刻插进来。</p>
+    <p>“改一位”那一关讲过，<code>OUT |= 0x01</code> 在机器里要走“读、改、写”三步。主程序想点亮 P0，中断程序想点亮 P1。你来决定中断在哪一刻插进来。</p>
     <div class="seg" role="group" aria-label="写法"><button id="rmA">OUT |= 写法</button><button id="rmB">SET 寄存器写法</button></div>
     <div class="two">
       <div><span class="sub">主程序</span><ol class="code" id="rmMain"></ol></div>
@@ -493,14 +604,18 @@ function ch7(root, api) {
 
 // ---------- 外壳：导航、三维舞台、关卡切换 ----------
 const CHAPTERS = [
-  { id: 'level1', nav: '电平', title: '第 1 关　高电平和低电平', build: ch1 },
-  { id: 'level2', nav: '开关', title: '第 2 关　引脚里的两个开关', build: ch2 },
-  { id: 'level3', nav: '寄存器', title: '第 3 关　寄存器：一排连着引脚的格子', build: ch3 },
-  { id: 'level4', nav: '代码', title: '第 4 关　一行代码怎么走到引脚', build: ch4 },
-  { id: 'level5', nav: '输入', title: '第 5 关　输入：让芯片读按键', build: ch5 },
-  { id: 'level6', nav: '踩坑', title: '第 6 关　灯为什么不亮', build: ch6 },
-  { id: 'level7', nav: '进阶', title: '第 7 关　开漏和读改写', build: ch7 },
+  { key: 'level', nav: '电平', title: '高电平和低电平', build: ch1 },
+  { key: 'switch', nav: '开关', title: '引脚里的两个开关', build: ch2 },
+  { key: 'reg', nav: '寄存器', title: '寄存器：一排连着引脚的格子', build: ch3 },
+  { key: 'hex', nav: '数的写法', title: '0x21 是什么意思', build: chHex },
+  { key: 'addr', nav: '地址', title: '每个格子都有门牌号', build: chAddr },
+  { key: 'code', nav: '代码', title: '一行代码怎么走到引脚', build: chCode },
+  { key: 'bit', nav: '改一位', title: '只改一位，别的不动', build: chBit },
+  { key: 'input', nav: '输入', title: '输入：让芯片读按键', build: ch5 },
+  { key: 'pitfall', nav: '踩坑', title: '灯为什么不亮', build: ch6 },
+  { key: 'adv', nav: '进阶', title: '开漏和读改写', build: ch7 },
 ];
+CHAPTERS.forEach((c, i) => { c.id = 'level' + (i + 1); c.title = `第 ${i + 1} 关　${c.title}`; });
 
 let stage = null, current = null, infoSel = -1;
 const built = {};

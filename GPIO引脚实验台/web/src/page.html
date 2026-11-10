@@ -174,6 +174,41 @@ pre{margin:0;padding:12px;border-radius:8px;background:var(--bg);border:1px soli
 .dock{position:sticky;bottom:8px;z-index:4;display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 -6px 16px rgb(0 0 0 / .12)}
 .dock .msg{min-height:6.6em;font-size:15px}
 
+.nibs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.nib{border:1px solid var(--line);border-radius:10px;padding:10px 8px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.nib .cells{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.nib .cell{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.nib .idx,.nib .w{font-size:11px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap}
+.nib .bit{width:100%;aspect-ratio:1;max-width:44px;border:2px solid var(--line);border-radius:6px;background:var(--panel);color:var(--lo);font-family:var(--font-mono);font-size:18px;font-weight:700;padding:0;cursor:pointer}
+.nib .bit.on{color:var(--hi);border-color:var(--hi)}
+.nib .sum{font-family:var(--font-mono);font-size:13px}
+.nib .sum b{font-size:20px;color:var(--hi)}
+.hexmap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-family:var(--font-mono);font-size:14px}
+.hexmap span{border:1px solid var(--line);border-radius:6px;padding:4px 8px;text-align:center}
+.lockers{display:flex;flex-direction:column;gap:6px}
+.locker{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;text-align:left;padding:10px;border:2px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-size:14px}
+.locker .a{font-size:13px;white-space:nowrap}
+.locker .v{font-weight:700}
+.locker[aria-pressed="true"]{border-color:var(--accent)}
+.locker.hitnow{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.tag{font-style:normal;font-size:11px;margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--hi);color:#fff;white-space:nowrap}
+.envelope{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.envelope div{border:1px dashed var(--muted);border-radius:8px;padding:8px;display:flex;flex-direction:column;min-width:0}
+.envelope b{font-family:var(--font-mono);font-size:13px;overflow-wrap:anywhere}
+.stations{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.stations li{display:flex;gap:10px;padding:10px;border:2px solid var(--line);border-radius:8px;opacity:.45}
+.stations li.past{opacity:.7}
+.stations li.act{opacity:1;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.stations .n{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--line);font-family:var(--font-mono);font-size:13px;font-weight:700}
+.stations li.act .n{background:var(--accent);color:var(--accent-ink)}
+.stations li.past .n::after{content:"";}
+.stations .d{font-size:15px}
+.stations .d:empty{display:none}
+.hl{color:var(--hi);font-weight:700}
+.rows3{display:flex;flex-direction:column;gap:4px}
+.rows3 .sub{margin-top:6px}
+.rows3 #rOld .idx,.rows3 #rNew .idx{display:none}
+.reg .col.chg .bit{box-shadow:0 0 0 3px var(--hi)}
 .strip{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px;font-family:var(--font-mono);font-size:12px}
 .strip i{font-style:normal;text-align:center;border-radius:3px;padding:2px 0;color:#fff}
 .strip .one{background:var(--hi)} .strip .zero{background:var(--lo)}
@@ -202,7 +237,7 @@ footer{grid-column:1 / -1;font-size:13px;color:var(--muted)}
 <div class="app">
   <header class="top">
     <h1>GPIO 引脚实验台</h1>
-    <p class="sub">从电压到代码，七关弄懂芯片怎么控制一根引脚。用的是一颗虚构的简化芯片：1 个端口、8 个引脚。</p>
+    <p class="sub">从电压到代码，十关弄懂芯片怎么控制一根引脚。用的是一颗虚构的简化芯片：1 个端口、8 个引脚。</p>
   </header>
   <nav id="nav" class="chapnav" aria-label="关卡"></nav>
   <div class="stagewrap" id="stageWrap">
