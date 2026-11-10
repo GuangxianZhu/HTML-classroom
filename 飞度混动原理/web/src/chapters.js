@@ -19,6 +19,27 @@ const btn = (id, label, pressed) => `<button class="btn" id="${id}" type="button
 const EV = { o: ['b', '官方资料'], a: ['a', '公认'], b: ['c', '工程实践 / 媒体'], c: ['c', '本页简化'], d: ['d', '我的推测'] };
 const note = (title, ev, body) => `<div class="note"><h3>${title}${(Array.isArray(ev) ? ev : ev ? [ev] : []).map((e) => ` <span class="ev ${EV[e][0]}">${EV[e][1]}</span>`).join('')}</h3>${body}</div>`;
 const key = (c, t) => `<span><i style="background:${c}"></i>${t}</span>`;
+// 先猜再看的小题、分步算式（和 踏板摩托车动力系统 同一套写法）
+const CH = (id) => `第 ${CHAPTERS.findIndex((c) => c.id === id) + 1} 章`;
+const quiz = (id, q, opts) => `<div class="quiz" id="${id}"><p class="qq"><b>先猜一猜</b>${q}</p>
+  <div class="qo">${opts.map((o, i) => `<button type="button" class="btn" data-i="${i}">${'ABCD'[i]}. ${o}</button>`).join('')}</div>
+  <div class="qa stepnote" hidden></div></div>`;
+function quizBind(id, right, explain) {
+  const box = $(id), ans = box.querySelector('.qa');
+  box.querySelectorAll('.qo button').forEach((b) => {
+    b.onclick = () => {
+      const ok = +b.dataset.i === right;
+      box.querySelectorAll('.qo button').forEach((x) => { x.classList.remove('yes', 'no'); if (+x.dataset.i === right) x.classList.add('yes'); });
+      if (!ok) b.classList.add('no');
+      ans.hidden = false;
+      ans.innerHTML = `<b>${ok ? '对了。' : '不是这个。'}</b>${explain}`;
+    };
+  });
+}
+const calc = (no, title, html) => `<div class="calc"><h4><i>${no}</i>${title}</h4>${html}</div>`;
+const eq = (id) => `<div class="eq" id="${id}"></div>`;
+const hl = (v) => `<b>${v}</b>`;        // 会跟着滑块变的数
+const rs = (v) => `<u>${v}</u>`;        // 这一步算出来的结果
 
 function bind(id, fn, fmt) {
   const el = $(id), o = $(`${id}-o`);
@@ -106,7 +127,7 @@ function flowsOf(st) {
 }
 
 /** 让 3D 转起来：车轮和曲轴按真实转速除以慢放倍数 */
-function animate(A, dt, st, slowK, fd) {
+function animate(A, dt, st, slowK, fd, noFlow) {
   const s = A.stage;
   s.th.W += S.wheelW(st.v) / slowK * dt;
   s.th.I += S.rpm2rad(st.nE || 0) / slowK * dt;
@@ -115,7 +136,7 @@ function animate(A, dt, st, slowK, fd) {
   s.setAngles(s.th.W, s.th.I);
   if (s.view === 'drive') s.scrollRoad(st.v / slowK * dt);
   const fl = flowsOf(st);
-  s.setFlows(fl.three);
+  s.setFlows(noFlow ? {} : fl.three);   // noFlow：这一步只看转速，不画能量粒子
   if (fd) { fd.update(fl.dia); fd.tick(dt); }
   return fl;
 }
@@ -246,49 +267,177 @@ const modes = {
 };
 
 // ---------------------------------------------------------------- 第 3 章 e-CVT 里面
+// 拆成六小步，一步只加一个新概念：车速→车轮转速、一对齿轮、电机这条路、发动机这条路、离合器、后果。
+const STEP3 = ['车速 → 车轮转速', '一对齿轮', '电机 → 车轮', '发动机这边', '合上离合器', '只有一个挡'];
+const R3 = { F: 65 / 19, M: 54 / 22, E: 54 / 67, circ: 2 * PI * CAR.rw };
 const ecvt = {
   id: 'ecvt', nav: '一个离合器', view: 'ecvt',
   title: '拆开 e-CVT：两台电机、几对齿轮、一个离合器',
-  lead: '这里面<b>没有变速箱</b>。电机到车轮固定 8.40 倍，发动机到车轮固定 2.757 倍。所以离合器一合上，<b>发动机转速就被车速钉死</b>了。',
+  lead: '这一章只想讲明白一句话：<b>离合器一合上，发动机转速就被车速钉死了</b>。要走到这句话，中间有几个小台阶，下面分六步，一步只加一个新东西。每一步都可以拖车速。',
   body: () => `
+    <div class="steps s6" role="group" aria-label="六小步">${STEP3.map((t, i) => `<button class="btn" id="s3-${i}" type="button" aria-pressed="${i === 0}"><small>第 ${i + 1} 步</small>${t}</button>`).join('')}</div>
     ${ctl('sp3', '车速', 0, 150, 1, 80)}
-    <div class="btns" role="group" aria-label="发动机">${btn('e-off', '发动机熄火', false)}${btn('e-gen', '发电（离合器分开）', true)}${btn('e-lock', '合上离合器（直驱）', false)}</div>
-    ${ctl('ng3', '发电时转速', 1000, 4500, 50, 2000)}
-    <p class="mini" id="msg3"></p>
-    <div class="kpis">${kpi('r-w', '车轮')}${kpi('r-m', '驱动电机')}${kpi('r-c', '中间轴')}${kpi('r-e', '直驱齿轮')}${kpi('r-i', '发动机')}${kpi('r-g', '发电机')}</div>
-    ${plot('p3', 132, `离合器两边的转速 <span>${key('#58e0a0', '直驱齿轮（跟着车轮）')} ${key('#ff9d3c', '发动机')}</span>`)}
-    <div class="chain"><span>电机 22 齿</span><em>→</em><span>中间轴 54 齿</span><em>·</em><span>中间轴 19 齿</span><em>→</em><span>差速器 65 齿</span></div>
-    <div class="chain"><span>发动机 → 直驱齿轮 67 齿</span><em>→</em><span>中间轴 54 齿</span><em>·</em><span>输入轴 60 齿</span><em>→</em><span>发电机 30 齿</span></div>`,
+    <div id="s3" class="lab"></div>
+    <div id="part3" class="card"><h4>点三维里的标签</h4><p>三维模型上只标了这一步用到的零件（已经点亮）。点标签或零件，这里会说明它是干什么的。</p></div>`,
   notes: () => `
     ${note('为什么只要一个挡', 'o', '<p>本田说这个直驱齿比相当于手动挡的<b>最高挡</b>。低速、起步、加速全交给电机，电机从 0 rpm 就有最大扭矩，用不着低挡；发动机只在高速巡航时才上场，一个高挡就够。少了变速箱，结构简单、损耗小。</p>')}
-    ${note('合上之前要先同步', 'b', '<p>离合器两边转速不一样时硬合，会冲击、磨片。所以合上前先用发电机把发动机转速拉到和直驱齿轮一样（上面的图里两条线重合），再合。车速一变，发动机转速跟着变：直驱时 <b>发动机转速 ≈ 24.6 × 车速（km/h）</b>。</p>')}
+    ${note('合上之前要先同步', 'b', '<p>离合器两边转速不一样时硬合，会冲击、磨片。所以合上前先用发电机把发动机转速拉到和直驱齿轮一样（第 5 步的图里两条线重合），再合。车速一变，发动机转速跟着变：直驱时 <b>发动机转速 ≈ 24.6 × 车速（km/h）</b>。</p>')}
     ${note('什么时候合不上', 'c', `<p>车速太低时，锁死的发动机转速太低（50 km/h 只有约 ${f0(S.lockRpm(50 / 3.6))} rpm），容易抖、效率也差，所以低速不直驱。拖着重物爬坡这种要大扭矩的时候，一个高挡也不够用，就退回混动模式。</p><p>这正是本田后来在 CR-V（2023）上给直驱多加一个<b>低挡</b>的原因（媒体报道）。飞度这代只有一个。</p>`)}
-    ${note('驱动电机为什么一直在转', 'a', '<p>电机和车轮之间没有离合器，车动它就转。直驱时它零电流空转，但永磁体的磁场还在，会有一点铁损。这是这种结构躲不掉的小代价，第 5 章会算进去。</p>')}`,
+    ${note('驱动电机为什么一直在转', 'a', `<p>电机和车轮之间没有离合器，车动它就转。直驱时它零电流空转，但永磁体的磁场还在，会有一点铁损。这是这种结构躲不掉的小代价，${CH('highway')}会算进去。</p>`)}
+    ${note('这一章里哪些数是示意', 'c', '<p>齿数（22、54、19、65、67）是我按官方齿比凑出来的，乘出来和官方的 8.40、2.757 对得上，但本田没有公布真实齿数。发电机那一级的 2 倍是假设。轮胎滚动半径取 0.297 m。“45 km/h 以下不让合”是本页为了演示定的门槛，真车的标定没有公开。</p>')}`,
   enter(A) {
-    const s = A.stage;
-    let v = 80 / 3.6, mode = 'gen', nGen = 2000, nE = 2000, clutch = 'open';
-    const msg = (t, cls = '') => { const e = $('msg3'); e.textContent = t; e.className = `mini ${cls}`; };
-    bind('sp3', (x) => { v = x / 3.6; }, (x) => `${x} km/h`);
-    bind('ng3', (x) => { nGen = x; }, (x) => `${x} rpm`);
-    const pickMode = (m) => {
-      if (m === 'lock' && v * 3.6 < 45) { msg(`车速 ${Math.round(v * 3.6)} km/h 时锁上，发动机只有 ${f0(S.lockRpm(v))} rpm，太低了。先把车速加到 45 km/h 以上。`, 'warn'); return; }
-      mode = m; group(['e-off', 'e-gen', 'e-lock'], `e-${m}`);
-      if (m === 'lock') { clutch = 'sync'; msg('同步中：发电机正在把发动机转速拉到和直驱齿轮一致…'); } else { clutch = 'open'; msg(m === 'off' ? '发动机熄火：车靠电池驱动，发电机和发动机都停着，直驱齿轮照样跟着车轮转。' : '离合器分开：发动机转速可以随便定（拖滑块），和车速无关。'); }
-    };
-    $('e-off').onclick = () => pickMode('off'); $('e-gen').onclick = () => pickMode('gen'); $('e-lock').onclick = () => pickMode('lock');
-    pickMode('gen');
-    const p3 = new Plot($('p3'), { l: 40, b: 18, t: 8 });
+    const s = A.stage, sp = A.spec.anchors, ax = A.spec.axes, K80 = 80 / 3.6;
+    let v = K80, mode = 'off', nGen = 1200, nE = 0, clutch = 'open', step = 0, p3 = null, t = 0;
     const hist = rolling(240);
-    let t = 0;
+    const msg = (txt, cls = '') => { const e = $('msg3'); if (e) { e.textContent = txt; e.className = `mini ${cls}`; } };
+    bind('sp3', (x) => { v = x / 3.6; }, (x) => `${x} km/h`);
+
+    // 三维标签：[零件组, 文字, 位置（Blender 坐标 mm）]
+    const TAG = {
+      wheel: ['wheel_FR', '车轮', [-sp.wheel_FL[0], sp.wheel_FL[1], sp.wheel_FL[2]]],
+      diff: ['diff', '差速器齿圈 65 齿', sp.diff],
+      counter: ['counter', '中间轴 54 齿 + 19 齿', sp.counter],
+      mot: ['mot_rotor', '驱动电机 22 齿', sp.mot_stator],
+      eng: ['eng_block', '发动机', sp.eng_block],
+      gen: ['gen_rotor', '发电机', sp.gen_stator],
+      clu: ['clutch', '离合器', sp.clutch],
+      ed: ['edrive', '直驱齿轮 67 齿', [A.spec.x.p1, ax.I[0], ax.I[1]]],
+    };
+
+    const pickMode = (m) => {
+      if (m === 'lock' && v * 3.6 < 45) { msg(`车速 ${Math.round(v * 3.6)} km/h 时合上，发动机只有 ${f0(S.lockRpm(v))} rpm，太低了。先把车速加到 45 km/h 以上。`, 'warn'); return; }
+      mode = m; group(['e-off', 'e-gen', 'e-lock'], `e-${m}`);
+      if (m === 'lock') { clutch = 'sync'; msg('同步中：发电机正在把发动机转速拉到和直驱齿轮一致…'); }
+      else { clutch = 'open'; msg(m === 'off' ? '发动机熄火：车靠电池驱动，发动机和发电机都停着，直驱齿轮照样跟着车轮转。' : '离合器分开：发动机转速可以随便定（拖滑块），和车速无关。'); }
+    };
+
+    const DEF = [
+      // ---- 1 车速 → 车轮转速
+      {
+        tags: ['wheel'], hl: ['wheel_FR'], flows: false, mode: 'off',
+        html: () => `
+          <p class="stepnote"><b>这一步只看车轮。</b>轮胎每滚一圈，车就前进一个轮胎周长。所以知道车速，就能算出车轮每分钟转几圈（rpm）。</p>
+          ${calc(1, '把车速换成车轮转速', `<p>本页取轮胎滚动半径 0.297 m，周长 = 2 × 3.14 × 0.297 ≈ <b>${f2(R3.circ)} m</b>。</p>${eq('q1a')}${eq('q1b')}`)}
+          <div class="kpis">${kpi('r-w', '车轮')}</div>
+          <p class="stepnote"><b>记住这一条：</b>轮胎不打滑时，车速定了，车轮转速就定了，没有别的可能。后面所有转速都从这个数出发。</p>`,
+        live: (n) => {
+          const k = Math.round(v * 3.6);
+          set('q1a', `${hl(k)} km/h = ${hl(k)} × 1000 m ÷ 60 分 = ${hl(f0(k * 1000 / 60))} m/分`);
+          set('q1b', `${hl(f0(k * 1000 / 60))} m/分 ÷ ${f2(R3.circ)} m/圈 = ${rs(f0(n.W))} 圈/分（rpm）`);
+        },
+      },
+      // ---- 2 一对齿轮
+      {
+        tags: ['wheel', 'diff', 'counter'], hl: ['diff', 'counter'], flows: false, mode: 'off',
+        html: () => `
+          <p class="stepnote"><b>这一步只看一对齿轮。</b>车轮连着一个 65 齿的大齿圈（差速器），它咬着旁边一根轴上的 19 齿小齿轮。这根轴叫<b>中间轴</b>。</p>
+          ${quiz('q3a', '小齿轮（19 齿）转 1 圈，大齿圈（65 齿）转了多少？', ['也是 1 圈', '约 0.29 圈（19 ÷ 65）', '约 3.42 圈（65 ÷ 19）', '不一定，看转得多快'])}
+          ${calc(2, '齿咬着齿，一个齿只能推过去一个齿', `<p>两个齿轮在咬合的地方，每分钟走过的<b>齿数必须一样多</b>，不会打滑。所以齿少的转得快，齿多的转得慢，倍数就是齿数比，而且是<b>固定</b>的。</p><p>反过来算：车轮（大齿圈）转 1 圈走过 65 个齿，小齿轮只有 19 个齿，要转 65 ÷ 19 ≈ <b>${f2(R3.F)}</b> 圈。</p>${eq('q2a')}`)}
+          <div class="kpis">${kpi('r-w', '车轮')}${kpi('r-c', '中间轴')}</div>
+          <p class="stepnote"><b>顺带一句</b> <span class="ev a">公认</span>：转速降几倍，扭矩（拧的力气）就大几倍。中间轴转得快、劲小；到车轮转得慢、劲大。齿轮不凭空多出功率，只是在“快”和“有劲”之间换。</p>`,
+        bind: () => quizBind('q3a', 1, '小齿轮转 1 圈推过去 19 个齿，大齿圈有 65 个齿，所以只转了 19 ÷ 65 ≈ 0.29 圈。和转得多快没关系，这个比例永远不变。'),
+        live: (n) => set('q2a', `中间轴 = 车轮 ${hl(f0(n.W))} × 65 ÷ 19 = ${rs(f0(n.C))} rpm`),
+      },
+      // ---- 3 电机 → 车轮
+      {
+        tags: ['mot', 'counter', 'diff', 'wheel'], hl: ['mot_rotor', 'counter', 'diff'], flows: false, mode: 'off',
+        html: () => `
+          <p class="stepnote"><b>这一步加上驱动电机。</b>中间轴上其实有<b>两个</b>齿轮：刚才的 19 齿，还有一个 54 齿的大齿轮。它们固定在同一根轴上，所以转速一样。电机轴头上的 22 齿小齿轮，咬着这个 54 齿。</p>
+          <div class="chain"><span>驱动电机 22 齿</span><em>→</em><span>54 齿 ·（中间轴，同一根轴）· 19 齿</span><em>→</em><span>差速器 65 齿</span><em>→</em><span>车轮</span></div>
+          ${calc(3, '两对齿轮串起来，倍数相乘', `${eq('q3x')}${eq('q3y')}<p>合起来：65 ÷ 19 × 54 ÷ 22 ≈ <b>${f2(CAR.Gm)}</b>。这就是“电机到车轮固定 8.40 倍”（官方数字 2.454 × 3.423 = 8.40）。</p>`)}
+          <div class="kpis">${kpi('r-w', '车轮')}${kpi('r-c', '中间轴')}${kpi('r-m', '驱动电机')}</div>
+          <p class="stepnote"><b>注意：</b>电机和车轮之间<b>没有离合器</b>，也没有别的挡可换。车一动电机就转，车速定了电机转速也定了。拖车速到 150 km/h，电机到 ${f0(S.motorRpm(150 / 3.6))} rpm，还在它的最高转速（约 13,300 rpm）以内，所以电机这边一个固定齿比就够用。</p>`,
+        live: (n) => {
+          set('q3x', `中间轴 = 车轮 ${hl(f0(n.W))} × 65 ÷ 19 = ${rs(f0(n.C))} rpm`);
+          set('q3y', `电机 = 中间轴 ${hl(f0(n.C))} × 54 ÷ 22 = ${rs(f0(n.M))} rpm`);
+        },
+      },
+      // ---- 4 发动机这边
+      {
+        tags: ['eng', 'gen', 'clu', 'ed', 'counter'], hl: ['edrive', 'input', 'gen_rotor'], flows: false, mode: 'gen',
+        html: () => `
+          <p class="stepnote"><b>这一步看发动机那根轴。</b>发动机的曲轴直接连着一根<b>输入轴</b>，轴上挂着两样东西：</p>
+          ${calc('a', '发电机：永远跟着发动机', `<p>输入轴上的 60 齿，咬着发电机的 30 齿，中间没有离合器。所以发电机永远是发动机的 60 ÷ 30 = <b>2 倍</b>（这个 2 是本页假设）。</p>${eq('q4g')}`)}
+          ${calc('b', '直驱齿轮：永远跟着车轮', `<p>还有一个 67 齿的<b>直驱齿轮</b>，它是<b>空套</b>在输入轴上的（轴转它可以不转），咬着中间轴那个 54 齿。所以它和电机一样，永远被车轮带着转。</p>${eq('q4e')}<p>合起来：65 ÷ 19 × 54 ÷ 67 ≈ <b>${f2(CAR.Ge)}</b>（更精确是 2.757）。这就是“发动机到车轮固定 2.757 倍”里的那个数，不过现在它还只是直驱齿轮的转速，和发动机没关系。</p>`)}
+          ${ctl('ng3', '发动机转速', 1000, 4500, 50, nGen)}
+          <p class="pt">跟着<b>车轮</b>的一组</p>
+          <div class="kpis">${kpi('r-w', '车轮')}${kpi('r-c', '中间轴')}${kpi('r-m', '驱动电机')}${kpi('r-e', '直驱齿轮')}</div>
+          <p class="pt">跟着<b>发动机</b>的一组</p>
+          <div class="kpis">${kpi('r-i', '发动机')}${kpi('r-g', '发电机')}</div>
+          <p class="stepnote"><b>动手试：</b>拖<b>车速</b>，只有上面一组在变；拖<b>发动机转速</b>，只有下面一组在变。两组之间只隔着一个<b>离合器</b>：它的一半在输入轴上，另一半连着直驱齿轮。现在它是分开的，所以两组各转各的。</p>`,
+        bind: () => bind('ng3', (x) => { nGen = x; }, (x) => `${x} rpm`),
+        live: (n) => {
+          set('q4g', `发电机 = 发动机 ${hl(f0(nE))} × 2 = ${rs(f0(nE * CAR.Gg))} rpm`);
+          set('q4e', `直驱齿轮 = 中间轴 ${hl(f0(n.C))} × 54 ÷ 67 = ${rs(f0(n.L))} rpm`);
+        },
+      },
+      // ---- 5 合上离合器
+      {
+        tags: ['eng', 'gen', 'clu', 'ed'], hl: ['edrive', 'input'], flows: true, mode: 'gen',
+        html: () => `
+          <p class="stepnote"><b>这一步只加离合器。</b>离合器就是两组叠在一起的摩擦片，一组跟输入轴（发动机），一组跟直驱齿轮（车轮）。<b>分开</b>时两边各转各的；<b>压紧</b>后变成一个整体，两边转速必须一样。</p>
+          ${quiz('q3b', '车速 80 km/h，离合器合上以后，发动机是多少转？', ['看油门，踩得深就转得快', `约 ${f0(S.lockRpm(K80))} rpm，只由车速决定`, `和驱动电机一样，约 ${f0(S.motorRpm(K80))} rpm`, `和车轮一样，约 ${f0(S.rad2rpm(S.wheelW(K80)))} rpm`])}
+          <div class="btns" role="group" aria-label="发动机">${btn('e-off', '发动机熄火', false)}${btn('e-gen', '发电（离合器分开）', true)}${btn('e-lock', '合上离合器（直驱）', false)}</div>
+          ${ctl('ng3', '发电时转速', 1000, 4500, 50, nGen)}
+          <p class="mini" id="msg3"></p>
+          <div class="kpis">${kpi('r-e', '直驱齿轮（车轮那边）')}${kpi('r-i', '发动机')}${kpi('r-g', '发电机')}</div>
+          ${plot('p3', 132, `离合器两边的转速 <span>${key('#58e0a0', '直驱齿轮（跟着车轮）')} ${key('#ff9d3c', '发动机')}</span>`)}
+          ${calc(5, '合上以后', `${eq('q5a')}<p>把前面几步连起来：车速 → 车轮转速 → × ${f2(CAR.Ge)} → 直驱齿轮 → 离合器压紧 → 发动机。每一环都是固定的，所以<b>发动机转速被车速钉死</b>，每 1 km/h 对应约 ${f1(S.rpmPerKmh)} rpm。</p>`)}
+          <p class="stepnote"><b>动手试：</b>① 现在两条线是分开的，拖“发电时转速”，橙线动、绿线不动。② 点“合上离合器”：发电机先把发动机拉到和绿线一样高（同步），再压紧。③ 合上以后拖车速，两条线一起走；这时“发电时转速”滑块不再起作用。</p>`,
+        bind: () => {
+          quizBind('q3b', 1, `合上以后，发动机和直驱齿轮是一个整体。直驱齿轮永远是车轮的 ${f2(CAR.Ge)} 倍，所以发动机也是：${f0(S.rad2rpm(S.wheelW(K80)))} × ${f2(CAR.Ge)} ≈ ${f0(S.lockRpm(K80))} rpm。油门这时只改变发动机出多大的力，改不了转速。`);
+          bind('ng3', (x) => { nGen = x; }, (x) => `${x} rpm`);
+          $('e-off').onclick = () => pickMode('off'); $('e-gen').onclick = () => pickMode('gen'); $('e-lock').onclick = () => pickMode('lock');
+          p3 = new Plot($('p3'), { l: 40, b: 18, t: 8 });
+        },
+        live: (n) => set('q5a', clutch === 'locked'
+          ? `发动机 = 直驱齿轮 = 车轮 ${hl(f0(n.W))} × ${f2(CAR.Ge)} = ${rs(f0(n.L))} rpm（≈ ${hl(Math.round(v * 3.6))} km/h × ${f1(S.rpmPerKmh)}）`
+          : `现在还没合上：直驱齿轮 ${hl(f0(n.L))} rpm，发动机 ${hl(f0(nE))} rpm，相差 ${rs(f0(Math.abs(n.L - nE)))} rpm`),
+      },
+      // ---- 6 后果：只有一个挡
+      {
+        tags: ['eng', 'clu', 'ed'], hl: ['edrive', 'input'], flows: true, mode: 'auto',
+        html: () => `
+          <p class="stepnote"><b>最后一步：这有什么后果。</b>发动机转速被车速钉死，倍数还只有一个。把各个车速对应的发动机转速列出来：</p>
+          <div class="tw"><table><thead><tr><th>车速</th><th>合上时发动机转速</th><th>能不能合</th></tr></thead><tbody>${[20, 40, 60, 80, 100, 120].map((k) => `<tr><th>${k} km/h</th><td>${f0(S.lockRpm(k / 3.6))} rpm</td><td>${k < 45 ? '太低，不合' : '可以'}</td></tr>`).join('')}</tbody></table></div>
+          ${quiz('q3c', '在 20 km/h 的小路上，能不能合上离合器让发动机直接推车？', ['能：电脑会自动换到低挡', '能：多踩点油门，把转速拉上去就行', `不能：发动机只有约 ${f0(S.lockRpm(20 / 3.6))} rpm，转得太慢，会抖甚至熄火`, '能：离合器可以只合上一半，一直打滑着用'])}
+          <p class="mini" id="msg3"></p>
+          <div class="kpis">${kpi('r-e', '直驱齿轮')}${kpi('r-i', '发动机')}</div>
+          <p class="stepnote"><b>和普通汽油车比：</b>普通车有好几个挡（或一套无级变速），就是为了不管车速多少，都能让发动机待在合适的转速。这里只有一个固定倍数，相当于只有<b>最高挡</b>。所以低速、起步、急加速都不合离合器，交给电机；发动机只管发电，转速想定多少定多少（第 4 步）。</p>
+          <p class="stepnote"><b>下一章接着问：</b>表里写“可以”不等于“划算”。合上以后发动机转速没得选，只能靠油门调出力，不一定落在省油的地方。${CH('engmap')}看这件事，${CH('highway')}算什么车速以上合上才真的省。</p>`,
+        bind: () => quizBind('q3c', 2, '没有低挡可换；合上以后油门改不了转速（第 5 步）；一直打滑会把摩擦片烧掉，这个离合器只用来“合”或“分”。所以低速就是不合，车由电机推。'),
+      },
+    ];
+
+    const show = (k, top) => {
+      step = k; p3 = null;
+      const d = DEF[k];
+      STEP3.forEach((_, i) => $(`s3-${i}`).setAttribute('aria-pressed', i === k));
+      $('s3').innerHTML = `${d.html()}
+        <div class="pn">${k > 0 ? btn('s3-pv', `← ${STEP3[k - 1]}`) : '<span></span>'}${k < DEF.length - 1 ? btn('s3-nx', `下一步：${STEP3[k + 1]} →`) : '<span class="mini">六步走完了。下面是补充说明。</span>'}</div>`;
+      if ($('s3-pv')) $('s3-pv').onclick = () => show(k - 1, true);
+      if ($('s3-nx')) $('s3-nx').onclick = () => show(k + 1, true);
+      if (d.bind) d.bind();
+      if (d.mode === 'auto') { pickMode('gen'); if (v * 3.6 >= 45) pickMode('lock'); else msg('现在车速低于 45 km/h，离合器合不上，车由电机推。把车速拖到 45 km/h 以上，它会自动同步、合上。', 'warn'); } else pickMode(d.mode);
+      A.setTags(d.tags.map((x) => TAG[x]), (g) => A.showPart(g));
+      s.highlight(d.hl);
+      A.setLegend(d.flows ? LEG_FLOW : '');
+      if (top) { const sd = $('side'); if (sd) sd.scrollTop = 0; }
+    };
+    STEP3.forEach((_, i) => { $(`s3-${i}`).onclick = () => show(i); });
+    A.partHost = 'part3';
     A.setSlow('3D 转动慢放 ×40');
-    A.setLegend(LEG_FLOW);
+    show(0);
+
     return {
       tick(dt) {
         t += dt;
         const nLock = S.lockRpm(v);
         if (mode === 'off') nE = Math.max(0, nE - 2500 * dt);
-        else if (mode === 'gen') nE += clamp(nGen - nE, -2500 * dt, 2500 * dt);
-        else {
+        else if (mode === 'gen') {
+          nE += clamp(nGen - nE, -2500 * dt, 2500 * dt);
+          if (step === 5 && v * 3.6 >= 45) pickMode('lock');   // 第 6 步：车速够了就自动合上
+        } else {
           if (v * 3.6 < 45) { pickMode('gen'); msg('车速掉到 45 km/h 以下，离合器自动分开，回到发电模式。', 'warn'); }
           else if (clutch === 'sync') { nE += clamp(nLock - nE, -1500 * dt, 1500 * dt); if (Math.abs(nLock - nE) < 20) { clutch = 'locked'; msg(`已接合：发动机 = 直驱齿轮 = ${f0(nLock)} rpm。现在拖车速滑块，发动机转速会跟着变。`, 'ok'); } }
           else nE = nLock;
@@ -307,19 +456,22 @@ const ecvt = {
           const g = S.genChain(Math.max(D, 3000) * 1.2, nE > 900 ? nE : 1000);
           st = { v, nE, eng: nE > 900, spin: nE > 50, clutch, Pw: F * v, Pe: Math.max(D, 3000) * 1.2, fuel: S.fuelPower(Math.max(nE, 1000), Math.max(D, 3000) * 1.2 / S.rpm2rad(Math.max(nE, 1000))), Pgen: g.Pdc, Pmot: m.Pac, Pbat: D - g.Pdc };
         }
-        animate(A, dt, st, 40);
+        animate(A, dt, st, 40, null, !DEF[step].flows);
+        A.tagsUpdate(['ecvt']);
         const nW = S.rad2rpm(S.wheelW(v));
-        set('r-w', unit(f0(nW), 'rpm')); set('r-m', unit(f0(nW * CAR.Gm), 'rpm')); set('r-c', unit(f0(nW * 65 / 19), 'rpm'));
+        const n = { W: nW, C: nW * R3.F, M: nW * CAR.Gm, L: nLock };
+        set('r-w', unit(f0(n.W), 'rpm')); set('r-m', unit(f0(n.M), 'rpm')); set('r-c', unit(f0(n.C), 'rpm'));
         set('r-e', unit(f0(nLock), 'rpm')); set('r-i', unit(f0(nE), 'rpm')); set('r-g', unit(f0(nE * CAR.Gg), 'rpm'));
+        if (DEF[step].live) DEF[step].live(n);
         hist.push(t, nLock, nE);
-        if (Math.round(t * 30) % 2 === 0) {
+        if (p3 && Math.round(t * 30) % 2 === 0) {
           const x = hist.x, x0 = x[0], x1 = Math.max(x0 + 8, x[x.length - 1]);
           const ymax = Math.max(4000, ...hist.col(0), ...hist.col(1)) * 1.08;
           p3.clear().scale(x0, x1, 0, ymax).axes({ yt: niceTicks(0, ymax, 4), yf: (y) => y >= 1000 ? `${y / 1000}k` : y, yl: 'rpm' });
           p3.line(x, hist.col(0), '#58e0a0', 2).line(x, hist.col(1), '#ff9d3c', 2, clutch === 'locked' ? [5, 4] : null);
         }
       },
-      leave() { s.setFlows({}); s.setClutch('open'); },
+      leave() { s.setFlows({}); s.setClutch('open'); s.highlight(null); A.setTags([]); A.partHost = null; },
     };
   },
 };

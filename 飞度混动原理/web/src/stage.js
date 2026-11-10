@@ -365,7 +365,8 @@ export class Stage {
     for (const m of this.meshes) {
       const nm = m.userData.node.name;
       if (nm.startsWith('Burn_') || nm.startsWith('Clutch_')) continue;
-      const on = g && m.userData.node.userData.g === g;
+      const mg = m.userData.node.userData.g;
+      const on = g && (Array.isArray(g) ? g.includes(mg) : mg === g);   // g 可以是一个组名，也可以是一组
       const mats = Array.isArray(m.material) ? m.material : [m.material];
       for (const mt of mats) {
         mt.emissive.copy(on ? new THREE.Color('#ffb547') : mt.userData.baseEm);
