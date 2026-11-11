@@ -1,4 +1,105 @@
 {
+ "cmd2finger": {
+  "page": "一条指令到手指/index.html",
+  "colors": 64,
+  "loadWait": 3500,
+  "steps": [
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "#sec-level1 #next"
+   ],
+   [
+    "wait",
+    750
+   ],
+   [
+    "sel",
+    "#sec-level1 #next"
+   ],
+   [
+    "wait",
+    750
+   ],
+   [
+    "sel",
+    "#sec-level1 #next"
+   ],
+   [
+    "wait",
+    750
+   ],
+   [
+    "sel",
+    "#sec-level1 #next"
+   ],
+   [
+    "wait",
+    750
+   ],
+   [
+    "sel",
+    "#sec-level1 #next"
+   ],
+   [
+    "wait",
+    750
+   ],
+   [
+    "sel",
+    "#nav button:nth-child(2)"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "sel",
+    "#sec-level2 #bMax"
+   ],
+   [
+    "wait",
+    1400
+   ],
+   [
+    "sel",
+    "#sec-level2 #bMin"
+   ],
+   [
+    "wait",
+    1500
+   ],
+   [
+    "sel",
+    "#nav button:nth-child(8)"
+   ],
+   [
+    "wait",
+    1000
+   ],
+   [
+    "sel",
+    "#sec-level8 [data-v=sr]"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "sel",
+    "#sec-level8 [data-v=ping]"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "drag"
+   ]
+  ]
+ },
  "gpio": {
   "page": "GPIO引脚实验台/index.html",
   "colors": 64,
