@@ -1,9 +1,9 @@
-// 第 6–10 关：电平转换、合线、总线上谁来听、舵机内部、线轴和腱绳
+// 电平转换、合线、总线上谁来听、舵机内部、线轴和腱绳
 import * as C from './core.js';
-import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, vbar, svg, wavePath, tween } from './ui.js';
+import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, vbar, svg, tween, lv } from './ui.js';
 import { GOAL_POS } from './levels_a.js';
 
-// ---------- 第 6 关：3.3 V 变 5 V ----------
+// ---------- 3.3 V 变 5 V ----------
 export function chLevel(root, api) {
   let v = 3.3, vcc = 5, r3 = 100000, sawLow = false;
   root.append(el(`<div class="panel">${where('TXB0104 小板。左边接 M7C（3.3 V），右边接 241 和舵机总线（5 V）。')}
@@ -65,7 +65,7 @@ export function chLevel(root, api) {
   } };
 }
 
-// ---------- 第 7 关：两根线合成一根 ----------
+// ---------- 两根线合成一根 ----------
 export function chDuplex(root, api) {
   let dir = 0, tx = 1, servo = null, touched = false;
   const seen = new Set();
@@ -133,7 +133,7 @@ export function chDuplex(root, api) {
   } };
 }
 
-// ---------- 第 8 关：17 个舵机，谁来听 ----------
+// ---------- 17 个舵机，谁来听 ----------
 export function chBus(root, api) {
   const KIND = {
     w8: { t: '写给 8 号', pkt: () => C.writePacket(8, 116, 4, GOAL_POS) },
@@ -142,8 +142,8 @@ export function chBus(root, api) {
     sr: { t: 'Sync Read：读 7、8、9 号的位置', pkt: () => C.syncRead(132, 4, [7, 8, 9]) },
     ping: { t: '广播 Ping：都有谁在', pkt: () => C.pingPacket(C.BROADCAST) },
   };
-  let kind = 'w8', rd = 20, rel = 2, picked = null;
-  const seen = new Set(), ok = new Set();
+  let kind = 'w8', picked = null;
+  const seen = new Set(['w8']);
   root.append(el(`<div class="panel">${where('舵机总线。17 个舵机的 DATA 脚全都并在同一根线上。')}
     <p>包从 241 出来，沿着这根线到了手腕下面的舵机堆。线是并联的：一个舵机收到的电平，另外 16 个也同时收到。</p>
     <div id="q"></div></div>`));
@@ -154,26 +154,14 @@ export function chBus(root, api) {
       { t: 'B　都收到了，各自看一眼 ID，不是自己的就不管', ok: true, why: '每个舵机里都有一颗小芯片，一直在听这根线。它们都收下了完整的一包，都检查了校验，然后比 ID：只有 8 号往下执行，并且只有 8 号应答。所以每个舵机的 ID 必须不一样，这就是装手之前要一个一个设 ID 的原因。' },
     ],
   });
-  const p = el(`<div class="panel"><p><b>实验一：换几种包，看谁执行、谁应答。</b>模型上：<span class="lo">蓝</span> = 听到了但不管，<span class="hi">橙</span> = 执行，<span class="good">绿</span> = 执行并应答。点模型上的舵机可以看它是几号。</p>
+  const p = el(`<div class="panel"><p>换几种包，看谁执行、谁应答。模型上：<span class="lo">蓝</span> = 听到了但不管，<span class="hi">橙</span> = 执行，<span class="good">绿</span> = 执行并应答。</p>
     <div id="kd"></div><div id="by"></div><div id="st"></div>
-    <div class="readout" id="say"><span class="sub">结果</span><p></p></div></div>`);
+    <div class="readout" id="say"><span class="sub">结果</span><p></p></div><div id="tk"></div></div>`);
   root.append(p);
+  const done = tasks($('#tk', p), ['五种包都试一遍', '在模型上点一个舵机，看它是几号、管哪个关节']);
   seg($('#kd', p), { value: 'w8', options: Object.entries(KIND).map(([k, v]) => [k, v.t]), onChange: (x) => { kind = x; seen.add(x); render(); } });
   const draw = bytesView($('#by', p));
   const setStats = stats($('#st', p));
-  const p2 = el(`<div class="panel"><p><b>实验二：TXEN 什么时候松手。</b>舵机收完指令，会等一小段时间（Return Delay）再开口应答。主机必须在这之前把 TXEN 放回 0，把线让出来；但也不能在最后一位发完之前就松手。</p>
-    <div id="rd"></div><div class="ops"><button data-r="tc">用“发送完成”标志松手</button><button data-r="txe">用“缓冲区空”标志松手</button><button data-r="dly">发完后固定等 1 ms 再松手</button></div>
-    <div id="sl"></div><div class="fig" id="fig"></div>
-    <div class="readout" id="out"><span class="sub">结果</span><span class="big"></span><p></p></div><div id="tk"></div></div>`);
-  root.append(p2);
-  const done = tasks($('#tk', p2), ['实验一：五种包都试一遍', '实验二：Return Delay 20 µs 时，三个按钮各试一次', '实验二：拖滑块，找出能成功的范围有多宽']);
-  seg($('#rd', p2), { label: '舵机的 Return Delay', value: 20, options: [[500, '500 µs（出厂）'], [20, '20 µs（orca_core 设过以后）']], onChange: (x) => { rd = +x; render(); } });
-  const sl = slider($('#sl', p2), { label: 'TXEN 松手的时刻（0 = 最后一位刚发完）', min: -260, max: 1100, step: 2, value: rel, show: (x) => (x > 0 ? '+' : '') + x + ' µs', onInput: (x) => { rel = x; ok.add('drag'); render(); } });
-  $$('[data-r]', p2).forEach((b) => b.addEventListener('click', () => {
-    rel = b.dataset.r === 'tc' ? 2 : b.dataset.r === 'txe' ? -Math.round(C.byteUs(57600)) : 1000;
-    if (rd === 20) ok.add(b.dataset.r);
-    sl.set(rel); render();
-  }));
   function render() {
     const pkt = KIND[kind].pkt(), who = C.whoReacts(pkt, C.ALL_IDS);
     draw(pkt);
@@ -183,46 +171,19 @@ export function chBus(root, api) {
       w8: `8 号执行，然后回一包很短的应答：<span class="mono">${C.hexs(C.statusPacket(8))}</span>。里面 55 表示“这是应答”，后面的 00 表示没有错误。`,
       w30: '17 个都看了，没有一个是 30 号，全都不管。线上一片安静。电脑等不到应答，过一会儿报超时。ID 设错、舵机没上电、线没接好，看到的都是这个现象。',
       wall: 'ID 写 FE 是广播：所有舵机都执行。但是都不应答，因为 17 个同时开口会在线上打架。',
-      sr: '这一包点了三个名。7、8、9 号按包里列的顺序，一个答完下一个再答，不会撞在一起。读回整只手的状态用的就是这种包，第 12 关算它要多久。',
+      sr: '这一包点了三个名。7、8、9 号按包里列的顺序，一个答完下一个再答，不会撞在一起。读回整只手的状态用的就是这种包，' + lv('timing') + '算它要多久。',
       ping: '广播 Ping 是例外：每个舵机都应答，但各自按自己的 ID 错开时间，一个一个来。用它可以一次扫出线上都有谁。',
     }[kind];
-    // 时间轴
-    const bit = C.bitUs(57600), t0 = rd === 20 ? -200 : -260, t1 = rd === 20 ? 150 : rd + 320, X = (t) => 60 + (Math.max(t0, Math.min(t1, t)) - t0) / (t1 - t0) * 310;
-    const res = C.txenOutcome({ releaseUs: rel, returnDelayUs: rd, baud: 57600 });
-    const last = C.uartBits(C.writePacket(8, 116, 4, GOAL_POS).slice(-1)[0]);
-    const hostWave = last.map((b, i) => `${i ? 'L' : 'M'}${X(-(10 - i) * bit)} ${b ? 32 : 52} L${X(-(9 - i) * bit)} ${b ? 32 : 52}`).join(' ');
-    const rep = C.uartBits(0xFF), repWave = rep.map((b, i) => `${i ? 'L' : 'M'}${X(rd + i * bit)} ${b ? 122 : 142} L${X(rd + (i + 1) * bit)} ${b ? 122 : 142}`).join(' ');
-    const relX = X(rel);
-    $('#fig', p2).innerHTML = svg(380, 180, `
-      <text x="2" y="46">主机发</text><text x="2" y="92">TXEN</text><text x="2" y="136">舵机答</text>
-      <line class="axis" x1="${X(0)}" y1="14" x2="${X(0)}" y2="156" stroke-dasharray="3 3"/><text x="${X(0)}" y="170" text-anchor="middle">0</text>
-      <line class="axis" x1="${X(rd)}" y1="14" x2="${X(rd)}" y2="156" stroke-dasharray="3 3"/><text x="${X(rd) + (rd < 100 ? 16 : 0)}" y="170" text-anchor="${rd < 100 ? 'start' : 'middle'}">+${rd} µs 舵机开口</text>
-      ${res.kind === 'late' ? `<rect class="f-bad" opacity=".22" x="${X(rd)}" y="60" width="${Math.max(2, relX - X(rd))}" height="90"/>` : ''}
-      ${res.kind === 'cut' ? `<rect class="f-bad" opacity=".22" x="${relX}" y="22" width="${Math.max(2, X(-bit) - relX)}" height="78"/>` : ''}
-      ${res.kind === 'ok' ? `<rect class="f-ok" opacity=".18" x="${X(-bit)}" y="60" width="${Math.max(2, X(rd) - X(-bit))}" height="46"/>` : ''}
-      <path class="wave" d="M60 32 L${X(-10 * bit)} 32 ${hostWave.replace(/^M/, 'L')} L${X(0)} 32"/><text x="${X(-5 * bit)}" y="24" text-anchor="middle">最后一个字节</text>
-      <path class="wave ${res.kind === 'ok' ? 'w-ok' : 'w-bad'}" d="M60 78 L${relX} 78 L${relX} 98 L370 98"/>
-      <text class="mono ${res.kind === 'ok' ? 'f-ok' : 'f-bad'} b" x="${Math.min(relX + 4, 300)}" y="74">松手</text>
-      <path class="wave w-lo" d="M60 122 L${X(rd)} 122 ${repWave.replace(/^M/, 'L')} L370 122"/>`, 'TXEN 松手时刻和舵机应答的时间关系');
-    const o = $('#out', p2);
-    o.className = 'readout ' + (res.kind === 'ok' ? 'ok' : 'bad');
-    $('.big', o).textContent = res.kind === 'ok' ? '成功' : res.kind === 'cut' ? '松早了：指令被截断' : '松晚了：应答被盖住';
-    $('p', o).textContent = res.text + (res.kind === 'ok' ? ` 能成功的范围：从 ${-Math.round(bit)} µs（停止位本来就是高，提前这一位松手没关系）到 +${rd} µs，一共约 ${Math.round(rd + bit)} µs 宽。` : '');
-    if (seen.size >= 4) done(0);
-    if (['tc', 'txe', 'dly'].every((k) => ok.has(k))) done(1);
-    if (ok.has('drag')) done(2);
+    if (seen.size >= 5) done(0);
+    if (picked) done(1);
     api.sync();
   }
-  root.append(el(`<div class="panel">${takeaway('17 个舵机都听得到每一包，靠 ID 认领。主机说完要立刻松开 TXEN：窗口从“最后一位发完”到“舵机开口”，出厂设置有 500 µs，orca_core 配过以后只有 20 µs。')}
-    <p><b>三种松手办法：</b></p>
-    <ul class="plain"><li><b>发送完成标志（TC）</b>：串口硬件告诉程序“最后一位已经离开引脚了”。这时松手正好，是标准做法。</li>
-      <li><b>缓冲区空标志（TXE）</b>：只表示“下一个字节可以交给我了”，这时最后一个字节才刚开始往外发。按它松手，最后一个字节被截断。很多人第一次写都栽在这里，因为两个标志名字很像。</li>
-      <li><b>固定延时</b>：出厂 500 µs 时偶尔能蒙对，改成 20 µs 以后必错。而且换个波特率就要重调。</li></ul>
-    <p><b>换成 1 Mbps 会不会更紧：</b>一位从 17 µs 变成 1 µs，字节变短了，但舵机的 20 µs 不变，所以窗口还是 20 µs 左右。要求没变，只是程序动作要够快。</p>
-    ${basis([['手册', 'ID 认领、广播不应答、Sync Read 按顺序应答、Return Delay 出厂 500 µs，都是协议和控制表的规定。'], ['仓库（读源码）', 'orca_core 的设 ID 脚本会把 Return Delay 改成 20 µs（whj_MCU 的 下一步_预紧到换KM1M7C.md“坑 2”）。'], ['还不知道', '你板子上实际在跑的透传固件，TXEN 是按哪个标志松手的，仓库里没有记录。它在实物上能稳定控制整只手，说明至少落在窗口里。']])}</div>`));
+  root.append(el(`<div class="panel">${takeaway('17 个舵机都听得到每一包，靠包里的 ID 认领：点到名的才执行、才应答。所以 ID 不能重复，也不能写错。')}
+    <p><b>应答是怎么回来的：</b>被点名的舵机收完指令，不是立刻开口，而是先等一小会儿，再沿着同一根线把应答发回来。这“一小会儿”里主机必须把线让出来。让早了、让晚了都会出事，下一关专门讲。</p>
+    ${basis([['手册', 'ID 认领、广播不应答、Sync Read 按顺序应答、广播 Ping 错开应答，都是 DYNAMIXEL Protocol 2.0 的规定。'], ['仓库', '左手 v2.0 的 17 个 ID 各管哪个关节，来自 whj_MCU 的 orca_core代码导读_左手v2.0.md。']])}</div>`));
   render();
   return {
-    pick(k, id) { if (id) { picked = id; api.sync(); } },
+    pick(k, id) { if (id) { picked = id; render(); } },
     view: () => {
       const who = C.whoReacts(KIND[kind].pkt(), C.ALL_IDS);
       const servos = Object.fromEntries(C.ALL_IDS.map((id) => [id, who.reply.includes(id) ? 'G' : who.act.includes(id) ? 'H' : 'L']));
@@ -233,7 +194,7 @@ export function chBus(root, api) {
   };
 }
 
-// ---------- 第 9 关：舵机内部 ----------
+// ---------- 舵机内部 ----------
 export function chServo(root, api) {
   const PARTS = {
     conn: ['总线接口', '数据线和电源从这里进来。两个口是通的，方便一个接一个串下去。'],
@@ -313,7 +274,7 @@ export function chServo(root, api) {
   return { view: () => ({ scene: 'servo', zoom: 0.82, outDeg: pos * 360 / 4096, current: cur, hot: [hot], info: `输出轴在第 ${Math.round(pos)} 格　电流 ${cur} mA` }) };
 }
 
-// ---------- 第 10 关：线轴和腱绳 ----------
+// ---------- 线轴和腱绳 ----------
 export function chTendon(root, api) {
   let ang = 0, rs = 10, rj = 5, crank = false;
   const seen = new Set();
@@ -375,7 +336,7 @@ export function chTendon(root, api) {
     <p><b>大小线轴的取舍：</b>线轴越大，舵机转一点关节就转很多（快），但同样的电流，线上的拉力越小（力气小）。反过来也一样。上面最后两个读数就是在比这个。</p>
     <p><b>为什么不把线直接绑在舵盘孔上：</b>孔在绕圈，沿着线的方向最多只能拉“孔到中心距离的两倍”，转过 180° 线反而放回去；而且一根线收进的和另一根放出的长度对不上，会一边松一边紧。所以正式做都用卷线轮，两根线贴着圆周走，一收一放永远相等。</p>
     <p><b>这个式子什么时候不准：</b>它假设线不伸长、不打滑、一直贴着圆周。细线受力会被拉长一点；多个关节的手指上，通往指尖的线要路过根部关节，根部一弯，指尖会被带着动（叫耦合）。ORCA 的手靠走线位置和标定来处理这些。</p>
-    ${basis([['公认', '弧长 = 半径 × 转角；线只能拉不能推，所以要成对。'], ['仓库', '半径 10 / 5 mm 的算例、舵盘孔最多拉 2r，来自 whj_MCU 的 路线图_腱绳手指.md 和 腱绳收紧确认.md。'], ['估算', '拉力那一栏同第 9 关，是粗估。'], ['示例数字', '10 mm、5 mm 是讲原理用的，不是你那只手上的实际尺寸。']])}</div>`));
+    ${basis([['公认', '弧长 = 半径 × 转角；线只能拉不能推，所以要成对。'], ['仓库', '半径 10 / 5 mm 的算例、舵盘孔最多拉 2r，来自 whj_MCU 的 路线图_腱绳手指.md 和 腱绳收紧确认.md。'], ['估算', '拉力那一栏同' + lv('servo') + '，是粗估。'], ['示例数字', '10 mm、5 mm 是讲原理用的，不是你那只手上的实际尺寸。']])}</div>`));
   render();
   return { view: () => {
     const s = state();

@@ -1,26 +1,29 @@
-// 外壳：导航、三维舞台、关卡切换。十四关的内容在 levels_a / b / c 里。
+// 外壳：导航、三维舞台、关卡切换。各关的内容在 levels_a / b / c 和 levels_txen 里。
 import { createStage } from './stage.js';
-import { $, el } from './ui.js';
+import { $, el, setLevels } from './ui.js';
 import { chMap, chCal, chPacket, chUart, chBridge } from './levels_a.js';
 import { chLevel, chDuplex, chBus, chServo, chTendon } from './levels_b.js';
 import { chPretension, chTiming, chMultibus, chReplay } from './levels_c.js';
+import { chTxen } from './levels_txen.js';
 
 const CHAPTERS = [
-  { nav: '全程地图', title: '一条指令要过几站', build: chMap },
-  { nav: '角度变成数', title: '关节角度换成电机位置数', build: chCal },
-  { nav: '数据包', title: '把数装进数据包', build: chPacket },
-  { nav: '高低电平', title: '字节变成线上的高和低', build: chUart },
-  { nav: 'M7C 转发', title: 'M7C 板：在两个串口之间搬字节', build: chBridge },
-  { nav: '3.3 V 变 5 V', title: '电平转换：3.3 V 的“高”不够高', build: chLevel },
-  { nav: '两根合一根', title: '发和收两根线，合成一根', build: chDuplex },
-  { nav: '谁来听', title: '17 个舵机在一根线上，谁来听', build: chBus },
-  { nav: '舵机内部', title: '舵机里面：自己跟自己较劲的小闭环', build: chServo },
-  { nav: '线轴和腱绳', title: '线轴卷线，手指弯曲', build: chTendon },
-  { nav: '预紧和回差', title: '线太松、太紧会怎样', build: chPretension },
-  { nav: '时间账', title: '读回来，再算一笔时间账', build: chTiming },
-  { nav: '六块 M7C', title: '一条总线拆成六条', build: chMultibus },
-  { nav: '全程回放', title: '回放一遍，再练排查', build: chReplay },
-].filter((c) => c.build);
+  { key: 'map', nav: '全程地图', title: '一条指令要过几站', build: chMap },
+  { key: 'cal', nav: '角度变成数', title: '关节角度换成电机位置数', build: chCal },
+  { key: 'packet', nav: '数据包', title: '把数装进数据包', build: chPacket },
+  { key: 'uart', nav: '高低电平', title: '字节变成线上的高和低', build: chUart },
+  { key: 'bridge', nav: 'M7C 转发', title: 'M7C 板：在两个串口之间搬字节', build: chBridge },
+  { key: 'level', nav: '3.3 V 变 5 V', title: '电平转换：3.3 V 的“高”不够高', build: chLevel },
+  { key: 'duplex', nav: '两根合一根', title: '发和收两根线，合成一根', build: chDuplex },
+  { key: 'bus', nav: '谁来听', title: '17 个舵机在一根线上，谁来听', build: chBus },
+  { key: 'txen', nav: '松开说话键', title: '一问一答：什么时候松开说话键', build: chTxen },
+  { key: 'servo', nav: '舵机内部', title: '舵机里面：自己跟自己较劲的小闭环', build: chServo },
+  { key: 'tendon', nav: '线轴和腱绳', title: '线轴卷线，手指弯曲', build: chTendon },
+  { key: 'pretension', nav: '预紧和回差', title: '线太松、太紧会怎样', build: chPretension },
+  { key: 'timing', nav: '时间账', title: '读回来，再算一笔时间账', build: chTiming },
+  { key: 'multibus', nav: '六块 M7C', title: '一条总线拆成六条', build: chMultibus },
+  { key: 'replay', nav: '全程回放', title: '回放一遍，再练排查', build: chReplay },
+];
+setLevels(CHAPTERS.map((c) => c.key));          // 文案里的“第 N 关”都从这里查，见 ui.js 的 lv()
 CHAPTERS.forEach((c, i) => { c.id = 'level' + (i + 1); c.title = `第 ${i + 1} 关　${c.title}`; });
 
 let stage = null, current = null;

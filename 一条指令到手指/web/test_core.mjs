@@ -91,6 +91,20 @@ t('TXEN：停止位里松手没事；太早截断；太晚盖掉应答', () => {
   assert.equal(C.txenOutcome({ releaseUs: 100, returnDelayUs: 500, baud: b }).kind, 'ok');
 });
 
+t('时间线：按时松手一问一答；松早了舵机不答；松晚了应答开头撞上', () => {
+  const b = 57600, B = C.byteUs(b);
+  const ok = C.txenTimeline({ releaseUs: 2, returnDelayUs: 500, baud: b });
+  assert.deepEqual([C.txenAt(ok, -50), C.txenAt(ok, 100), C.txenAt(ok, 600), C.txenAt(ok, 500 + 11 * B + 1)], ['host', 'idle', 'servo', 'idle']);
+  assert.equal(ok.lostCmdBytes + ok.lostReplyBytes, 0);
+  const early = C.txenTimeline({ releaseUs: -Math.round(B), returnDelayUs: 500, baud: b });
+  assert.equal(early.replies, false); assert.equal(early.lostCmdBytes, 1);
+  assert.deepEqual([C.txenAt(early, -300), C.txenAt(early, -50), C.txenAt(early, 600)], ['host', 'cut', 'idle']);
+  const late = C.txenTimeline({ releaseUs: 1000, returnDelayUs: 500, baud: b });
+  assert.equal(late.lostReplyBytes, 3);
+  assert.deepEqual([C.txenAt(late, 300), C.txenAt(late, 700), C.txenAt(late, 1100)], ['idle', 'clash', 'servo']);
+  assert.equal(C.txenTimeline({ releaseUs: 100, returnDelayUs: 20, baud: b }).lostReplyBytes, 1);
+  assert.equal(C.txenTimeline({ releaseUs: 100, returnDelayUs: 500, baud: b }).kind, 'ok');
+});
 t('电流限制：没东西挡就到位；有东西挡，电流停在上限，位置停在半路', () => {
   const free = C.servoSettle({ start: 2000, goal: 2600, limitmA: 60 });
   assert.equal(free.pos, 2600); assert.equal(free.reached, true);

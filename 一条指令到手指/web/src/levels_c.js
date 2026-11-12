@@ -1,9 +1,9 @@
-// 第 11–14 关：预紧和回差、时间账、六块 M7C、全程回放和排查
+// 预紧和回差、时间账、六块 M7C、全程回放和排查
 import * as C from './core.js';
-import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, svg, tween, rad, OUT, BACK } from './ui.js';
+import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, svg, tween, rad, OUT, BACK, lv } from './ui.js';
 import { GOAL_POS, GOAL_PACKET, GOAL_DEG, SIDE } from './levels_a.js';
 
-// ---------- 第 11 关：预紧和回差 ----------
+// ---------- 预紧和回差 ----------
 export function chPretension(root, api) {
   const RS = 10, RJ = 5;
   let tight = -2, ang = 0, y = 0, lastDir = 0, trace = [[0, 0]];
@@ -16,7 +16,7 @@ export function chPretension(root, api) {
     q: '两根线一共松了 2 mm。舵机正在把手指往弯的方向拉，现在突然反过来往直的方向转。手指会怎样？',
     options: [
       { t: 'A　立刻跟着往回走', why: '往弯拉的时候，屈线是绷着的，伸线是松的。反转以后，先要把伸线那 2 mm 的松卷掉，它才开始吃上劲。' },
-      { t: 'B　先不动，舵机空转一小段以后才跟着走', ok: true, why: '这一段“舵机转了、手指没动”的空程叫回差。它让同一个舵机位置对应两个不同的关节角度（取决于是从哪边转过来的），第 2 关那条标定直线就不准了。' },
+      { t: 'B　先不动，舵机空转一小段以后才跟着走', ok: true, why: '这一段“舵机转了、手指没动”的空程叫回差。它让同一个舵机位置对应两个不同的关节角度（取决于是从哪边转过来的），' + lv('cal') + '那条标定直线就不准了。' },
     ],
   });
   const p = el(`<div class="panel"><p>先保持“松 2 mm”，把舵机转角来回拖几次，看上面两根线哪根绷着、哪根垂着，再看下面的图。然后调松紧。</p>
@@ -64,7 +64,7 @@ export function chPretension(root, api) {
   }
   root.append(el(`<div class="panel">${takeaway('太松：换方向有一段空转，位置不准。太紧：摩擦大、发热、伤线、行程变短。目标是“刚好绷直再多一点点”。调过松紧以后，两头的极限位置变了，要重新标定。')}
     <p><b>实物上怎么判断松紧：</b>不靠手感，靠两个数。标定时测到的行程比同类关节明显短，或者不动的时候电流偏高，多半是太紧。换方向时手指明显慢半拍，是太松。</p>
-    <p><b>宁松勿紧：</b>松了只是不准，重新调就行。紧了会把力一直压在结和孔上，第 9 关说的绳结脱出就是这样被一点点挤出去的，修起来很费事。</p>
+    <p><b>宁松勿紧：</b>松了只是不准，重新调就行。紧了会把力一直压在结和孔上，${lv('servo')}说的绳结脱出就是这样被一点点挤出去的，修起来很费事。</p>
     ${basis([['公认', '回差（背隙）是所有靠线、齿轮、皮带传动的机构都有的现象。'], ['仓库', '“行程变短、电流偏高 = 太紧”是 ORCA 软件里判断预紧的办法；“宁松勿紧”是那次绳结脱出以后定的做法（whj_MCU 的 下一步_预紧到换KM1M7C.md）。'], ['示意', '空载电流那个数只是为了让你看到趋势，系数是随手取的，不是这只手的实测值。回差用的是最简单的“死区”模型，没有算线的弹性。']])}</div>`));
   render();
   return { view: () => {
@@ -84,7 +84,7 @@ function cycleBars(n, baud, rdUs, t0, scale) {
   return { html: h, end: t };
 }
 
-// ---------- 第 12 关：读回来和时间账 ----------
+// ---------- 读回来和时间账 ----------
 export function chTiming(root, api) {
   let n = 17, baud = 57600, rd = 20;
   const seen = new Set();
@@ -126,8 +126,8 @@ export function chTiming(root, api) {
     api.sync();
   }
   root.append(el(`<div class="panel">${takeaway('总线上的时间 ≈ 字节数 × 10 位 ÷ 波特率，再加上每个舵机应答前的等待。一条线上同一时刻只能有一个在说话，所以舵机越多，一轮越长，是成正比地长。')}
-    <p><b>最省事的提速办法是提高波特率：</b>同样 17 个舵机，57600 时一轮约 85 ms，1 Mbps 时约 5 ms。要改两处：每个舵机控制表里的波特率（8 号格子），和 M7C 固件里舵机那一侧串口的速度，两边必须一样（第 4 关）。</p>
-    <p><b>Return Delay 的影响：</b>17 个舵机每个多等 0.48 ms，一轮多 8 ms 左右。57600 时不起眼，1 Mbps 时就比传数据本身还长了。这是 orca_core 把它改成 20 µs 的原因，代价是第 8 关那个更窄的 TXEN 窗口。</p>
+    <p><b>最省事的提速办法是提高波特率：</b>同样 17 个舵机，57600 时一轮约 85 ms，1 Mbps 时约 5 ms。要改两处：每个舵机控制表里的波特率（8 号格子），和 M7C 固件里舵机那一侧串口的速度，两边必须一样（${lv('uart')}）。</p>
+    <p><b>Return Delay 的影响：</b>17 个舵机每个多等 0.48 ms，一轮多 8 ms 左右。57600 时不起眼，1 Mbps 时就比传数据本身还长了。这是 orca_core 把它改成 20 µs 的原因，代价是${lv('txen')}那条更窄的缝。</p>
     <p><b>这些数没算什么：</b>只算了舵机那根线上的字节。电脑上 USB 一来一回、Python 程序自己的开销都没算，实际一轮会更长。USB 转接器如果有“攒一会儿再上报”的设置（U2D2 在 Windows 上默认 16 ms），会把这里省下的时间全吃掉。</p>
     ${basis([['算出来的', '字节数按协议格式数的：Sync Write = 14 + 5 × 舵机数，点名包 = 14 + 舵机数，每个应答 21 字节（读位置、速度、电流共 10 字节）。'], ['校验过', '85 ms、19 ms、5.2 ms 这几个数和 whj_MCU 的 六块M7C方案调研.md 里的表一致；orca_core 源码注释里写 1 Mbps 下全读约 3.8 ms，量级对得上。'], ['没实测', '仓库里有测速脚本 tools/orca/bus_timing.py，但没有记录实测结果。上面全是理论值。']])}</div>`));
   render();
@@ -138,7 +138,7 @@ export function chTiming(root, api) {
   } };
 }
 
-// ---------- 第 13 关：六块 M7C ----------
+// ---------- 六块 M7C ----------
 export function chMultibus(root, api) {
   let mode = 'one', baud = 57600, dead = new Set();
   const seen = new Set();
@@ -204,29 +204,29 @@ export function chMultibus(root, api) {
   } };
 }
 
-// ---------- 第 14 关：全程回放 + 排查 ----------
+// ---------- 全程回放 + 排查 ----------
 export function chReplay(root, api) {
   const KEYS = { pc: '电脑和配置文件', baud: '波特率', level: '电平转换', gnd: '合线和地线', txen: 'TXEN 松手时机', servo: '舵机和电流上限', tendon: '腱绳' };
   const CASES = [
-    { sym: '用万用表量：DIR 拉高时，M7C 那边是 3.3 V，241 那边只有约 3.5 V，应该接近 5 V。', ans: 'level', lv: 6,
+    { sym: '用万用表量：DIR 拉高时，M7C 那边是 3.3 V，241 那边只有约 3.5 V，应该接近 5 V。', ans: 'level', lv: 'level',
       why: '下拉电阻 R3 插成了 10 kΩ。TXB 输出很软，被这个电阻分走了一截。换成 100 kΩ 后量到 4.77 V。【实测】' },
-    { sym: '发指令的时候，M7C 的 RX 上也有波形，自己发的被自己收回来了；把逻辑分析仪的地线夹上去，反而好了。', ans: 'gnd', lv: 7,
+    { sym: '发指令的时候，M7C 的 RX 上也有波形，自己发的被自己收回来了；把逻辑分析仪的地线夹上去，反而好了。', ans: 'gnd', lv: 'duplex',
       why: '地线分在两条轨上，DIR 上有毛刺，接收门被误打开。逻辑分析仪的地线碰巧把两处地连得更好了。把所有地并到一条轨后解决。【现象和解法是实测，根因是推断】' },
-    { sym: '用 U2D2 一切正常。换成 M7C 后，orca_core 每次读舵机都报超时。', ans: 'baud', lv: 4,
+    { sym: '用 U2D2 一切正常。换成 M7C 后，orca_core 每次读舵机都报超时。', ans: 'baud', lv: 'uart',
       why: 'M7C 的 USB 虚拟串口不理会电脑设的波特率，orca_core 自动探测时会误以为是 1 Mbps，固件其实是 57600。在配置文件里把波特率写死。【读源码预先发现的隐患；换 M7C 最后成功了，过程中具体改了什么仓库里没有记录】' },
-    { sym: '能扫到舵机，但时有时无，同一条命令有时成功有时超时。', ans: 'txen', lv: 8,
+    { sym: '能扫到舵机，但时有时无，同一条命令有时成功有时超时。', ans: 'txen', lv: 'txen',
       why: '舵机的 Return Delay 被设成了 20 µs，主机松开 TXEN 稍慢一点就盖住了应答的开头。看一下固件是按哪个标志松手的，用逻辑分析仪同时看 DIR 和 DATA。【读源码推出来的隐患，没在实物上复现过】' },
-    { sym: '标定时，拇指有两个关节往反方向使劲。', ans: 'pc', lv: 2,
+    { sym: '标定时，拇指有两个关节往反方向使劲。', ans: 'pc', lv: 'cal',
       why: '配置里的硬件版本号填成了 21。v2.0 和 v2.1 的左手，拇指 MCP 和 DIP 两根绳的绕向相反，方向表选错了。改回 2。【读源码】' },
-    { sym: '小角度都正常。测最大活动范围时听到连续的“嘎嘣”声，之后中指的外展不动了。', ans: 'tendon', lv: 11,
+    { sym: '小角度都正常。测最大活动范围时听到连续的“嘎嘣”声，之后中指的外展不动了。', ans: 'tendon', lv: 'pretension',
       why: '腱绳末端的结被拉出了孔，掉进手掌的通道。关节顶到机械极限后舵机以上限电流一直拉着。也可以说是“舵机和电流上限”那一站的事，两个都算对。【现象实测，原因是推断】', also: 'servo' },
-    { sym: '一运行就报 PermissionError: Access is denied。', ans: 'pc', lv: 5,
+    { sym: '一运行就报 PermissionError: Access is denied。', ans: 'pc', lv: 'bridge',
       why: '串口被别的程序占着：串口助手、Dynamixel Wizard 或者另一个终端。一个串口同一时刻只能被一个程序打开。【文档】' },
   ];
   let baud = 57600, phase = 0, t = 0, bend = 0, stop = () => {}, right = 0;
   const answered = new Set();
   root.append(el(`<div class="panel">${where('从头到尾再走一遍，这次带上时间。')}
-    <p>十三关拆开看完了。现在把它们接起来：按“播放”，看这条指令走完全程，再对着下面的时间表，体会每一段各占多少。</p>
+    <p>前面一关一关拆开看完了。现在把它们接起来：按“播放”，看这条指令走完全程，再对着下面的时间表，体会每一段各占多少。</p>
     <div id="bd"></div>
     <div class="ops"><button id="play" class="primary">播放全程</button><button id="rst">回到起点</button></div>
     <div class="scroll"><table id="tb"></table></div>
@@ -235,9 +235,9 @@ export function chReplay(root, api) {
   const rows = () => [
     ['电脑：换算、组包', 0.05, '估', '程序里几步计算'],
     ['USB 到 M7C', 1, '估', 'USB 大约每 1 ms 传一批'],
-    [`${GOAL_PACKET.length} 个字节上线`, C.frameMs(GOAL_PACKET.length, baud), '算', '第 4 关'],
-    ['舵机等 Return Delay', 0.02, '手册', '第 8 关'],
-    ['应答 11 个字节回来', C.frameMs(11, baud), '算', '第 8 关'],
+    [`${GOAL_PACKET.length} 个字节上线`, C.frameMs(GOAL_PACKET.length, baud), '算', lv('uart')],
+    ['舵机等 Return Delay', 0.02, '手册', lv('txen')],
+    ['应答 11 个字节回来', C.frameMs(11, baud), '算', lv('bus')],
     ['电机带着手指转 45°', 400, '估', '取决于速度设置，量级是几百毫秒'],
   ];
   function table() {
@@ -274,7 +274,7 @@ export function chReplay(root, api) {
       b.classList.add(ok ? 'right' : 'wrong');
       if (ok || box.dataset.tries) {
         $$('button', box).forEach((x) => { if (x.dataset.k === c.ans) x.classList.add('right'); });
-        const fb = $('.fb', box); fb.hidden = false; fb.innerHTML = `${c.why}　<span class="sub">（第 ${c.lv} 关）</span>`;
+        const fb = $('.fb', box); fb.hidden = false; fb.innerHTML = `${c.why}　<span class="sub">（${lv(c.lv)}）</span>`;
       } else box.dataset.tries = '1';
       $('#score span', p).textContent = `答了 ${answered.size} / ${CASES.length} 题，第一次就选对 ${right} 题。`;
     }));

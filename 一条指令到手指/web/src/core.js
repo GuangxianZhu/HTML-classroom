@@ -165,6 +165,26 @@ export function txenOutcome({ releaseUs, returnDelayUs, baud }) {
   return { kind: 'ok', marginUs: returnDelayUs - Math.max(0, releaseUs), text: `在舵机开口之前松了手，应答完整收到。离舵机开口还有 ${Math.round(returnDelayUs - Math.max(0, releaseUs))} µs。` };
 }
 
+// 一问一答的时间线（时间以指令最后一位发完为 0，单位 µs）：主机实际占线到什么时候、舵机答不答、应答被盖住多少
+export function txenTimeline({ releaseUs, returnDelayUs, baud, replyBytes = 11 }) {
+  const o = txenOutcome({ releaseUs, returnDelayUs, baud }), bit = bitUs(baud), byte = byteUs(baud);
+  const replyStart = returnDelayUs, replyEnd = returnDelayUs + replyBytes * byte;
+  return {
+    kind: o.kind, releaseUs, replyStart, replyEnd,
+    hostEnd: o.kind === 'cut' ? releaseUs : 0,                                   // 松早了：指令到松手那一刻就断了
+    replies: o.kind !== 'cut',                                                   // 指令没收全，舵机不应答
+    coverEnd: o.kind === 'late' ? Math.min(releaseUs, replyEnd) : replyStart,    // 应答从开头被盖到这里
+    lostCmdBytes: o.kind === 'cut' ? Math.ceil((-releaseUs - bit) / byte) : 0,
+    lostReplyBytes: o.kind === 'late' ? Math.min(replyBytes, Math.ceil((releaseUs - returnDelayUs) / byte)) : 0,
+  };
+}
+// 某一时刻线上的情况：host 主机在发 / cut 主机想发但已经松手 / idle 没人说 / servo 舵机在答 / clash 舵机在答而主机还占着线
+export function txenAt(tl, t) {
+  if (t < 0) return t < tl.hostEnd ? 'host' : 'cut';
+  if (tl.replies && t >= tl.replyStart && t < tl.replyEnd) return t < tl.coverEnd ? 'clash' : 'servo';
+  return 'idle';
+}
+
 // ---------- 舵机内部：位置环 + 电流上限（模式 5，电流限制的位置控制） ----------
 export const STALL = { torqueNm: 1.0, currentmA: 880 };       // XC330-T288 在 12 V 的堵转数据（e-Manual）
 export const GEAR_RATIO = 288.35;                              // XC330-T288 的减速比

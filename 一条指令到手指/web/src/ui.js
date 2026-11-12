@@ -136,3 +136,9 @@ export const rad = (d) => d * Math.PI / 180;
 // 桌面上信号去和回的路线（名字对应 blender/build_models.py 里的 paths）
 export const OUT = ['in_pc', 'WIRE_usb', 'in_m7c', 'WIRE_tx', 'in_txb', 'WIRE_tx5', 'in_241', 'WIRE_data', 'in_phb', 'WIRE_bus', 'chain'];
 export const BACK = [['chain', -1], ['WIRE_bus', -1], ['in_phb', -1], ['WIRE_data', -1], ['in_241', -1], ['WIRE_rx5', -1], ['in_txb', -1], ['WIRE_rx', -1], ['in_m7c', -1], ['WIRE_usb', -1], ['in_pc', -1]];
+
+// 关卡编号不写死：文案里用 lv('key')，顺序由 main.js 里的 CHAPTERS 决定，以后加关、拆关不用到处改数字
+const ORDER = [];
+export const setLevels = (keys) => { ORDER.splice(0, ORDER.length, ...keys); };
+export const LV = (key) => { const i = ORDER.indexOf(key); if (i < 0) throw new Error('没有这一关：' + key); return i + 1; };
+export const lv = (key) => `第 ${LV(key)} 关`;

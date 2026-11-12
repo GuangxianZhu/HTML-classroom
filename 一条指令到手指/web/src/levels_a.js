@@ -1,25 +1,25 @@
-// 第 1–5 关：电脑这一头（全程地图、标定、数据包、UART、M7C 转发）
+// 电脑这一头（全程地图、标定、数据包、UART、M7C 转发）
 import * as C from './core.js';
-import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, fieldKey, svg, wavePath, tween, rad, OUT } from './ui.js';
+import { $, $$, el, fmt, takeaway, basis, where, quiz, tasks, slider, seg, stats, bytesView, fieldKey, svg, wavePath, tween, rad, OUT, lv } from './ui.js';
 
 export const GOAL_DEG = 45;
 export const SIDE = [-1, 0.22, 0.75];        // 从侧面看手，食指往前弯才看得出来
 export const GOAL_POS = C.jointToMotor(C.CAL_DEMO, GOAL_DEG);          // 2323
 export const GOAL_PACKET = C.writePacket(8, C.ADDR.goalPos, 4, GOAL_POS);
 
-// ---------- 第 1 关：全程地图 ----------
+// ---------- 全程地图 ----------
 export function chMap(root, api) {
   const ST = [
-    { t: '电脑：你写的那一行', form: '关节角度 45°', d: '程序里只有“食指根部弯到 45°”这个意思。', n: 0, focus: 'pc', hot: 'pc', lv: 2 },
-    { t: '电脑：查标定表', form: `电机位置数 ${GOAL_POS}`, d: '舵机不认识角度，只认识 0 到 4095 的格数。', n: 0, focus: 'pc', hot: 'pc', lv: 2 },
-    { t: '电脑：装进数据包', form: `${GOAL_PACKET.length} 个字节`, d: '加上给谁、写到哪、校验，像写信封。', n: 1, focus: 'pc', hot: 'pc', lv: 3 },
-    { t: 'USB 线', form: '字节，走 USB', d: '电脑没有能直接接舵机的口，先经 USB 到 M7C 板。', n: 2, focus: ['pc', 'm7c'], hot: 'm7c', lv: 5 },
-    { t: 'M7C 板', form: '3.3 V 的高低电平', d: '把字节一位一位变成引脚上的高低电平发出去。', n: 3, focus: 'm7c', hot: 'm7c', lv: 4 },
-    { t: '电平转换 TXB0104', form: '5 V 的高低电平', d: '后面的芯片和舵机用 5 V，3.3 V 的“高”它们认不稳。', n: 5, focus: ['m7c', 'txb'], hot: 'txb', lv: 6 },
-    { t: '合线 241', form: '一根 DATA 线', d: '发和收两根线，合成舵机用的一根。', n: 7, focus: ['txb', 'g241'], hot: 'g241', lv: 7 },
-    { t: '舵机总线', form: '17 个舵机都听到，8 号认领', d: '所有舵机并在同一根线上，只有 ID 对上的那个执行。', n: 11, focus: ['phb', 'tower'], hot: 'tower', lv: 8 },
-    { t: '8 号舵机内部', form: '电流 → 电机转 → 齿轮减速', d: '舵机自己比较“目标”和“现在”，推着电机转过去。', n: 11, focus: 'tower', hot: 'tower', lv: 9 },
-    { t: '线轴和腱绳', form: '线长 → 关节角 45°', d: '线轴卷进一段线，手指关节被拉弯。', n: 11, focus: ['tower', 'hand'], hot: 'hand', lv: 10 },
+    { t: '电脑：你写的那一行', form: '关节角度 45°', d: '程序里只有“食指根部弯到 45°”这个意思。', n: 0, focus: 'pc', hot: 'pc', lv: 'cal' },
+    { t: '电脑：查标定表', form: `电机位置数 ${GOAL_POS}`, d: '舵机不认识角度，只认识 0 到 4095 的格数。', n: 0, focus: 'pc', hot: 'pc', lv: 'cal' },
+    { t: '电脑：装进数据包', form: `${GOAL_PACKET.length} 个字节`, d: '加上给谁、写到哪、校验，像写信封。', n: 1, focus: 'pc', hot: 'pc', lv: 'packet' },
+    { t: 'USB 线', form: '字节，走 USB', d: '电脑没有能直接接舵机的口，先经 USB 到 M7C 板。', n: 2, focus: ['pc', 'm7c'], hot: 'm7c', lv: 'bridge' },
+    { t: 'M7C 板', form: '3.3 V 的高低电平', d: '把字节一位一位变成引脚上的高低电平发出去。', n: 3, focus: 'm7c', hot: 'm7c', lv: 'uart' },
+    { t: '电平转换 TXB0104', form: '5 V 的高低电平', d: '后面的芯片和舵机用 5 V，3.3 V 的“高”它们认不稳。', n: 5, focus: ['m7c', 'txb'], hot: 'txb', lv: 'level' },
+    { t: '合线 241', form: '一根 DATA 线', d: '发和收两根线，合成舵机用的一根。', n: 7, focus: ['txb', 'g241'], hot: 'g241', lv: 'duplex' },
+    { t: '舵机总线', form: '17 个舵机都听到，8 号认领', d: '所有舵机并在同一根线上，只有 ID 对上的那个执行。', n: 11, focus: ['phb', 'tower'], hot: 'tower', lv: 'bus' },
+    { t: '8 号舵机内部', form: '电流 → 电机转 → 齿轮减速', d: '舵机自己比较“目标”和“现在”，推着电机转过去。', n: 11, focus: 'tower', hot: 'tower', lv: 'servo' },
+    { t: '线轴和腱绳', form: '线长 → 关节角 45°', d: '线轴卷进一段线，手指关节被拉弯。', n: 11, focus: ['tower', 'hand'], hot: 'hand', lv: 'tendon' },
   ];
   let cur = 0, t = 0, bend = 0, stop = () => {};
   const frac = (n) => (api.stage ? api.stage.frac(OUT, n) : n / OUT.length);
@@ -41,7 +41,7 @@ export function chMap(root, api) {
     <div class="ops"><button id="prev">上一站</button><button id="next" class="primary">下一站</button></div></div>`);
   root.append(panel);
   ST.forEach((s, i) => {
-    const li = el(`<li><span class="no">${i + 1}</span><div><div class="t">${s.t}</div><div class="form">→ ${s.form}</div><div class="d">${s.d}　<span class="sub">（第 ${s.lv} 关）</span></div></div></li>`);
+    const li = el(`<li><span class="no">${i + 1}</span><div><div class="t">${s.t}</div><div class="form">→ ${s.form}</div><div class="d">${s.d}　<span class="sub">（${lv(s.lv)}）</span></div></div></li>`);
     li.addEventListener('click', () => goSt(i));
     $('#stList', root).append(li);
   });
@@ -72,7 +72,7 @@ export function chMap(root, api) {
   };
 }
 
-// ---------- 第 2 关：角度变成电机位置数 ----------
+// ---------- 角度变成电机位置数 ----------
 export function chCal(root, api) {
   const cal = C.CAL_DEMO;
   let deg = 0, got = { min: false, max: false }, stop = () => {};
@@ -125,13 +125,13 @@ export function chCal(root, api) {
   root.append(el(`<div class="panel">${takeaway('标定就是找两个点、连一条线。之后任何角度都按比例换成电机位置数。这个例子里，45° 换出来是 <b style="display:inline;color:inherit;font-size:inherit;letter-spacing:0">' + GOAL_POS + '</b>，后面几关一直用它。')}
     <p>为什么数越弯越小：左手的 8 号舵机，弯曲时是顺时针转，位置数往小走。方向每个关节不一样，写在配置文件的映射表里。</p>
     <p><b>什么时候要重新标定：</b>腱绳重新装过、预紧调过，两个极限对应的电机位置就变了，要重标。只是把 U2D2 换成 M7C、换 USB 口，标定结果不用动。</p>
-    <p><b>这条直线什么时候不准：</b>它假设“电机转多少，关节就跟着转多少”。线松了会有一段空转（第 11 关），线被拉长、在线轴上打滑，也会偏。</p>
+    <p><b>这条直线什么时候不准：</b>它假设“电机转多少，关节就跟着转多少”。线松了会有一段空转（${lv('pretension')}），线被拉长、在线轴上打滑，也会偏。</p>
     ${basis([['手册', '一圈 4096 格、一格 0.088° 是 DYNAMIXEL X 系列的规格。'], ['仓库', '撞两头限位、按比例换算，是 orca_core 标定的做法（whj_MCU 的 ORCA软件调研.md）；8 号弯曲时顺时针，来自左手 v2.0 的映射表。'], ['示例数字', `${cal.mMin}、${cal.mMax} 和 ${cal.degMin}°～${cal.degMax}° 是为了演示编的。你那只手的真实数值在 calibration.yaml 里。`]])}</div>`));
   render();
   return { view: () => ({ scene: 'finger', zoom: 1.25, jointDeg: deg, spoolDeg: deg * 0.5, hot: ['joint'], info: got.min && got.max ? `关节 ${Math.round(deg)}°　↔　电机位置 ${C.jointToMotor(cal, deg)}` : '先撞两头的极限' }) };
 }
 
-// ---------- 第 3 关：数装进数据包 ----------
+// ---------- 数装进数据包 ----------
 export function chPacket(root, api) {
   let id = 8, value = GOAL_POS, sel = 'data', selByte = -1, broken = -1, seen = new Set();
   root.append(el(`<div class="panel">${where('还在电脑里。手里有两个数：给 8 号舵机、位置 ' + GOAL_POS + '。')}
@@ -177,13 +177,13 @@ export function chPacket(root, api) {
     api.sync();
   }
   root.append(el(`<div class="panel">${takeaway('一包 = 包头 + 给谁 + 多长 + 干什么 + 写到哪个格子 + 写什么 + 校验。舵机里面也有一排带编号的格子（叫控制表），116 号格子是“目标位置”。往格子里写数，硬件就跟着变，这和 GPIO 那一课的寄存器是同一个思路。')}
-    <p><b>这里做了一个简化：</b>真正的 orca_core 不是一个舵机发一包，而是把 17 个舵机的目标装进同一包（Sync Write）。先用最简单的单个 Write 看清结构，第 12 关再看 17 个的。</p>
+    <p><b>这里做了一个简化：</b>真正的 orca_core 不是一个舵机发一包，而是把 17 个舵机的目标装进同一包（Sync Write）。先用最简单的单个 Write 看清结构，${lv('timing')}再看 17 个的。</p>
     ${basis([['手册', '包的格式、低字节在前、CRC 的算法，都是 DYNAMIXEL Protocol 2.0 的规定。'], ['校验过', '页面里的组包函数用 whj_MCU 仓库 HANDOFF.md 里的 6 个已知数据包对过，逐字节一致。']])}</div>`));
   render();
   return { view: () => ({ scene: 'desk', focus: 'pc', hot: ['pc'], zoom: 1, info: `电脑里组好的包：${C.hexs(C.writePacket(id, 116, 4, value))}` }) };
 }
 
-// ---------- 第 4 关：字节变成高低电平 ----------
+// ---------- 字节变成高低电平 ----------
 export function chUart(root, api) {
   const pkt = GOAL_PACKET;
   let idx = 8, baud = 57600, rx = 1, play = -1, timer = 0;
@@ -252,7 +252,7 @@ export function chUart(root, api) {
   };
 }
 
-// ---------- 第 5 关：M7C 转发 ----------
+// ---------- M7C 转发 ----------
 export function chBridge(root, api) {
   const N = GOAL_PACKET.length;
   let mode = 'pass', step = 0, bad = false, timer = 0;
@@ -264,7 +264,7 @@ export function chBridge(root, api) {
     q: 'M7C 上的转发程序，需要看懂数据包的内容吗？',
     options: [
       { t: 'A　需要，不然不知道要发给哪个舵机', why: '“发给谁”写在包里，是舵机自己看的。所有舵机接在同一根线上，M7C 只管把字节送上线，不用替它们分拣。' },
-      { t: 'B　不需要，把字节原样搬过去就行', ok: true, why: '这叫透传。你现在板子上跑的固件就是这样：UART5 收到什么，UART2 就发什么。它只额外管一件事：自己在发的时候，把“我在说话”那根线（TXEN）拉高。第 7、8 关讲这根线。' },
+      { t: 'B　不需要，把字节原样搬过去就行', ok: true, why: '这叫透传。你现在板子上跑的固件就是这样：UART5 收到什么，UART2 就发什么。它只额外管一件事：自己在发的时候，把“我在说话”那根线（TXEN）拉高。' + lv('duplex') + '和' + lv('txen') + '讲这根线。' },
     ],
   });
   const p = el(`<div class="panel"><p>两种转发办法都能用，各有代价。点“下一步”看字节怎么过板子。</p>
