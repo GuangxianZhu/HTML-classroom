@@ -1,0 +1,944 @@
+[
+{
+"name": "Tray_Base",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Tray_LipF",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Tray_LipB",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Tray_LipR",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Foot_0",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Foot_1",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Foot_2",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Foot_3",
+"cn": "接屑托盘和脚垫",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Bed",
+"cn": "床身和导轨",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Bed_WayF",
+"cn": "床身和导轨",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Bed_WayB",
+"cn": "床身和导轨",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Bed_Mid",
+"cn": "床身和导轨",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Bed_Rack",
+"cn": "床身和导轨",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Cabinet",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Panel",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Panel_Screw0",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Panel_Screw1",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Panel_Screw2",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Panel_Screw3",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Cabinet_Vent",
+"cn": "控制箱",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "LCD_Bezel",
+"cn": "数显屏",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "LCD",
+"cn": "数显屏",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Key_0",
+"cn": "功能键",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Key_1",
+"cn": "功能键",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Key_2",
+"cn": "功能键",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Key_3",
+"cn": "功能键",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Key_4",
+"cn": "功能键",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Knob_Speed",
+"cn": "调速旋钮",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Knob_Speed_Mark",
+"cn": "调速旋钮",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Knob_Dir",
+"cn": "进给方向 / 启停开关",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Knob_Dir_Bar",
+"cn": "进给方向 / 启停开关",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Headstock",
+"cn": "主轴箱",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Headstock_Front",
+"cn": "主轴箱",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Switch_Upper",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Up_G",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Up_R",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_FR",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Lower",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Lo_G",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Lo_R",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Switch_Guard",
+"cn": "开关组",
+"grp": "ctrl",
+"guess": 0
+},
+{
+"name": "Spindle",
+"cn": "主轴",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Spindle_Nose",
+"cn": "主轴",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Back",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Body",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_FaceRing",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Bore",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_KeyHole0",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_KeyHole1",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_KeyHole2",
+"cn": "三爪卡盘",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw0_0",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw0_1",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw1_0",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw1_1",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw2_0",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Chuck_Jaw2_1",
+"cn": "卡爪",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Workpiece",
+"cn": "工件（铝棒 Φ20）",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Spindle_Pulley",
+"cn": "主轴皮带轮（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Encoder_Disc",
+"cn": "主轴编码器码盘（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Encoder_Slots",
+"cn": "主轴编码器码盘（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Encoder_Sensor",
+"cn": "编码器读头（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Bearing_F",
+"cn": "主轴轴承",
+"grp": "inside",
+"guess": 0
+},
+{
+"name": "Bearing_R",
+"cn": "主轴轴承",
+"grp": "inside",
+"guess": 0
+},
+{
+"name": "Motor_Body",
+"cn": "主电机 200 W（推测位置）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Motor_Cap",
+"cn": "主电机 200 W（推测位置）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Motor_Shaft",
+"cn": "主电机 200 W（推测位置）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Motor_Pulley",
+"cn": "电机带轮（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Belt",
+"cn": "同步带（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_PCB",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_Chip0",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_Chip1",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_Chip2",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_Chip3",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Board_Chip4",
+"cn": "控制板（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "LeadScrew",
+"cn": "丝杠",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Coupling",
+"cn": "联轴器（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Stepper",
+"cn": "步进电机（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Stepper_Cap",
+"cn": "步进电机（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Stepper_Shaft",
+"cn": "步进电机（推测）",
+"grp": "inside",
+"guess": 1
+},
+{
+"name": "Stepper_Cover",
+"cn": "步进电机罩",
+"grp": "lathe",
+"guess": 1
+},
+{
+"name": "LS_Bracket",
+"cn": "丝杠尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Hub",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Rim",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Web",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Dial",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Handle",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Long_Grip",
+"cn": "纵向手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Saddle",
+"cn": "大拖板（床鞍）",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Apron",
+"cn": "大拖板（床鞍）",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HalfNut",
+"cn": "丝杠螺母",
+"grp": "lathe",
+"guess": 1
+},
+{
+"name": "Saddle_Lock",
+"cn": "大拖板（床鞍）",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Base",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Top0",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Top1",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Top2",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Slot0",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Cross_Slot1",
+"cn": "中拖板 = 钻铣工作台",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "TopSlide_Base",
+"cn": "小拖板",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "TopSlide",
+"cn": "小拖板",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "TopSlide_Screw",
+"cn": "小拖板",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost_Bolt0",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost_Bolt1",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost_Bolt2",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost_Bolt3",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "ToolPost_Stud",
+"cn": "四方刀架",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tool_Shank",
+"cn": "车刀",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tool_Tip",
+"cn": "车刀",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Hub",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Rim",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Web",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Dial",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Handle",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Cross_Grip",
+"cn": "中拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Hub",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Rim",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Web",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Dial",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Handle",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Top_Grip",
+"cn": "小拖板手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Base",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Body",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Barrel",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Lock",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_LockBall",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Clamp",
+"cn": "尾座",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Quill",
+"cn": "尾座套筒和顶尖",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Tail_Center",
+"cn": "尾座套筒和顶尖",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Hub",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Rim",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Web",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Dial",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Handle",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "HW_Tail_Grip",
+"cn": "尾座手轮",
+"grp": "lathe",
+"guess": 0
+},
+{
+"name": "Guard_Back",
+"cn": "挡屑板",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Guard_Roll",
+"cn": "挡屑板",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Guard_Right",
+"cn": "挡屑板",
+"grp": "base",
+"guess": 0
+},
+{
+"name": "Column",
+"cn": "立柱",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Column_Lock",
+"cn": "立柱",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Column_LockGrip",
+"cn": "立柱",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_Sleeve",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_Box",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_Nose",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_TopCap",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_TopKnob",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_Plate",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Head_Lock",
+"cn": "钻铣头",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill_Hub",
+"cn": "主轴套筒进给手柄",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill_Lever",
+"cn": "主轴套筒进给手柄",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill_LeverBall",
+"cn": "主轴套筒进给手柄",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill_FineDial",
+"cn": "主轴套筒进给手柄",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill_FineKnob",
+"cn": "主轴套筒进给手柄",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Quill",
+"cn": "主轴套筒",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Mill_Spindle",
+"cn": "铣主轴 + 弹簧夹头 + 立铣刀",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "Collet_Nut",
+"cn": "铣主轴 + 弹簧夹头 + 立铣刀",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "EndMill_Shank",
+"cn": "铣主轴 + 弹簧夹头 + 立铣刀",
+"grp": "mill",
+"guess": 0
+},
+{
+"name": "EndMill_Flute",
+"cn": "铣主轴 + 弹簧夹头 + 立铣刀",
+"grp": "mill",
+"guess": 0
+}
+]
