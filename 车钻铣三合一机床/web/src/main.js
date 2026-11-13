@@ -88,11 +88,15 @@ function ensureVise() {
   add(steel, cx - 30, cx + 30, cy + 14, cy + 22, z + 14, z + 27);
   add(steel, cx - 30, cx + 30, cy - 22, cy - 14, z + 14, z + 27);
   vise.block = add(alu, cx - 22, cx + 22, cy - 14, cy + 14, z + 14, z + 37);
-  // 放进中拖板组（跟着 X / Y 走）
+  // 放进中拖板组（跟着 X / Y 走）。先把姿态归零再取矩阵，否则会带上上一章留下的拖板位移
+  const saved = { ...S.pose };
+  for (const k of Object.keys(S.pose)) S.pose[k] = 0;
+  S.applyPose();
   const G = S.N.G_Cross; G.updateWorldMatrix(true, false);
   const inv = new THREE.Matrix4().copy(G.matrixWorld).invert();
   vise.applyMatrix4(inv); G.add(vise);
   vise.holes = new THREE.Group(); vise.add(vise.holes);
+  Object.assign(S.pose, saved);
   return vise;
 }
 
@@ -415,8 +419,8 @@ CH.mill = {
     this.sQ = slider('套筒下伸', 0, 40, 0.5, 0, (v) => f1(v, 1) + ' mm', (v) => { st.quill = v; });
     b.append(this.sYaw.row, this.sZ.row, this.sQ.row);
     b.append(btnRow([
-      { t: '钻孔演示', on: () => { st.mode = 'drill'; st.t = 0; vise.holes.clear(); } },
-      { t: '铣槽演示', on: () => { st.mode = 'mill'; st.t = 0; } },
+      { t: '钻孔演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'drill'; st.t = 0; vise.holes.clear(); S.setView('drill'); } },
+      { t: '铣槽演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'mill'; st.t = 0; S.setView('drill'); } },
       { t: '停', on: () => { st.mode = 'idle'; } },
       { t: '转开，让出车削', on: () => { st.mode = 'idle'; this.sYaw.set(110); this.sZ.set(0); } },
       { t: '转回工作台上方', on: () => { this.sYaw.set(0); this.sZ.set(-45); } },
@@ -433,6 +437,22 @@ CH.mill = {
     side.append(basis(`${EV.s} 最大钻孔 6 mm、主轴端到台面 180 mm、主轴中心到立柱 125 mm、绕立柱 360°、升降 60 mm、套筒 40 mm、台面 85 × 60、T 形槽 8 mm × 2、50 ~ 2250 转/分。${EV.k} 铣削转速 n = 1000v ÷ (πD)。${EV.g} 平口钳和铝块是示意；钻铣头和车床主轴是一台电机切换还是两台电机，资料不足（图上有“主 / 铣切换”开关）。`));
     this.calc();
   },
+  // 刀尖要伸进铝块 mm 深时，套筒该伸出多少（钻铣头已经降到 st.headZ）
+  quillFor(mm) {
+    const L = layout, tip0 = L.head_z0 + this.st.headZ - 84;   // 立铣刀刃底在头底下 84 mm
+    const top = L.table_top + 37;                              // 平口钳 14 + 铝块 23
+    return Math.max(0, Math.min(40, tip0 - (top - mm)));
+  },
+  // 孔打在刀尖此刻真正对着的位置：取刀具的世界坐标，换到铝块的坐标系里
+  markHole(k) {
+    const flute = S.N.EndMill_Flute; if (!flute) return;
+    S.applyPose(); S.root.updateMatrixWorld(true);
+    const p = new THREE.Vector3(); flute.getWorldPosition(p);
+    vise.holes.worldToLocal(p);
+    const top = vise.block.position.y + 0.0115;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.0031, 0.0031, 0.008, 24), new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.6 }));
+    m.position.set(p.x, top - 0.004 + 0.0003, p.z); m.userData.k = k; vise.holes.add(m);
+  },
   calc() {
     const d = this.st.d;
     const al = K.rpmFor(d, 90), st = K.rpmFor(d, 25);
@@ -448,23 +468,23 @@ CH.mill = {
     let cross = 0;
     if (st.mode === 'drill') {
       const cyc = 3.2, k = Math.floor(st.t / cyc) % 4, u = (st.t % cyc) / cyc;
-      const holes = [[-12, -7], [12, -7], [12, 7], [-12, 7]];
-      S.pose.car += holes[k][0]; cross = holes[k][1];
-      quill = u < 0.15 ? 0 : u < 0.55 ? 34 * (u - 0.15) / 0.4 : u < 0.65 ? 34 : u < 0.85 ? 34 * (1 - (u - 0.65) / 0.2) : 0;
-      if (u > 0.55 && u < 0.6 && vise.holes.children.length < 4 && !vise.holes.children.some((h) => h.userData.k === k)) {
-        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.0004, 20), new THREE.MeshStandardMaterial({ color: 0x1a1d22 }));
-        const blk = vise.block; m.position.copy(blk.position); m.position.y += 0.0115 + 0.0002;
-        m.position.x += holes[k][0] * 0.001; m.position.z += -holes[k][1] * 0.001; m.userData.k = k; vise.holes.add(m);
-      }
+      const holes = [[-12, -7], [12, -7], [12, 7], [-12, 7]];   // 工作台相对“对中位置”的位移（mm）
+      const prev = holes[(k + 3) % 4], w = k === 0 && st.t < cyc ? 1 : Math.min(1, u / 0.15);
+      S.pose.car += prev[0] + (holes[k][0] - prev[0]) * w;
+      cross = prev[1] + (holes[k][1] - prev[1]) * w;
+      const depth = this.quillFor(8);   // 钻 8 mm 深
+      quill = u < 0.15 ? 0 : u < 0.55 ? depth * (u - 0.15) / 0.4 : u < 0.65 ? depth : u < 0.85 ? depth * (1 - (u - 0.65) / 0.2) : 0;
+      if (u > 0.55 && u < 0.65 && !vise.holes.children.some((h) => h.userData.k === k)) this.pendingHole = k;   // 等下面拖板姿态更新完再打
       if (st.t > cyc * 4) { st.t = 0; vise.holes.clear(); }
     } else if (st.mode === 'mill') {
-      quill = 32;
+      quill = this.quillFor(2);
       const u = (st.t / 10) % 1, s = u * 4, seg = Math.floor(s), w = s - seg;
       const pts = [[-12, -6], [12, -6], [12, 6], [-12, 6], [-12, -6]];
       S.pose.car += pts[seg][0] + (pts[seg + 1][0] - pts[seg][0]) * w;
       cross = pts[seg][1] + (pts[seg + 1][1] - pts[seg][1]) * w;
     }
     S.pose.cross = cross; S.pose.hwCross = cross * TAU;
+    if (this.pendingHole !== undefined && this.pendingHole !== null) { this.markHole(this.pendingHole); this.pendingHole = null; }
     S.pose.yaw += ((st.yaw * Math.PI / 180) - S.pose.yaw) * Math.min(1, dt * 5);
     S.pose.headZ += (st.headZ - S.pose.headZ) * Math.min(1, dt * 5);
     S.pose.quill += (quill - S.pose.quill) * Math.min(1, dt * 8);
@@ -585,6 +605,7 @@ async function main() {
   S.canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
   S.canvas.addEventListener('pointerup', (e) => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 6) showPart(S.pick(e)); down = null; });
   window.addEventListener('hashchange', () => { const k = CHAPTERS.indexOf(location.hash.slice(1)); if (k >= 0 && k !== curIdx) go(k); });
+  window.__ct = { S, CH, layout, get vise() { return vise; } };
   const start = Math.max(0, CHAPTERS.indexOf((location.hash || '').slice(1)));
   go(start);
   let last = performance.now();

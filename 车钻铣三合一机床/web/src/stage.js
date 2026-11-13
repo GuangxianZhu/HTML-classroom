@@ -82,6 +82,7 @@ export class Stage {
     thread: { pos: B(150, -280, 230), tgt: B(70, -10, 160) },
     mill: { pos: B(470, -760, 600), tgt: B(70, -10, 220) },
     front: { pos: B(60, -900, 260), tgt: B(60, 0, 200) },
+    drill: { pos: B(215, -300, 330), tgt: B(87, -20, 180) },
   };
   setView(name, instant = false) {
     const v = this.VIEWS[name]; if (!v) return;
