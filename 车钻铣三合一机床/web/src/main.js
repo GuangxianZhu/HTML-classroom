@@ -96,6 +96,9 @@ function ensureVise() {
   const inv = new THREE.Matrix4().copy(G.matrixWorld).invert();
   vise.applyMatrix4(inv); G.add(vise);
   vise.holes = new THREE.Group(); vise.add(vise.holes);
+  vise.groove = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0031, 0.0031, 0.002, 24), new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.6 }), 1200);
+  vise.groove.count = 0; vise.groove.frustumCulled = false; vise.add(vise.groove);
+  vise.clearMarks = () => { vise.holes.clear(); vise.groove.count = 0; vise.groove.instanceMatrix.needsUpdate = true; vise.lastCut = null; };
   Object.assign(S.pose, saved);
   return vise;
 }
@@ -419,8 +422,8 @@ CH.mill = {
     this.sQ = slider('套筒下伸', 0, 40, 0.5, 0, (v) => f1(v, 1) + ' mm', (v) => { st.quill = v; });
     b.append(this.sYaw.row, this.sZ.row, this.sQ.row);
     b.append(btnRow([
-      { t: '钻孔演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'drill'; st.t = 0; vise.holes.clear(); S.setView('drill'); } },
-      { t: '铣槽演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'mill'; st.t = 0; S.setView('drill'); } },
+      { t: '钻孔演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'drill'; st.t = 0; vise.clearMarks(); S.setView('drill'); setTags([{ name: 'Head_Box', text: '钻铣头' }, { name: 'Quill_Lever', text: '套筒进给手柄' }]); } },
+      { t: '铣槽演示', on: () => { this.sYaw.set(0); this.sZ.set(-60); this.sQ.set(0); st.mode = 'mill'; st.t = 0; vise.clearMarks(); S.setView('drill'); setTags([{ name: 'Head_Box', text: '钻铣头' }, { name: 'Quill_Lever', text: '套筒进给手柄' }]); } },
       { t: '停', on: () => { st.mode = 'idle'; } },
       { t: '转开，让出车削', on: () => { st.mode = 'idle'; this.sYaw.set(110); this.sZ.set(0); } },
       { t: '转回工作台上方', on: () => { this.sYaw.set(0); this.sZ.set(-45); } },
@@ -442,6 +445,29 @@ CH.mill = {
     const L = layout, tip0 = L.head_z0 + this.st.headZ - 84;   // 立铣刀刃底在头底下 84 mm
     const top = L.table_top + 37;                              // 平口钳 14 + 铝块 23
     return Math.max(0, Math.min(40, tip0 - (top - mm)));
+  },
+  // 刀刃在铝块顶面以下、又在铝块范围内时，在刀轴位置印一个刀径大小的圆；走过的路连成槽
+  markCut() {
+    const L = layout, tip = L.head_z0 + S.pose.headZ - 84 - S.pose.quill, top = L.table_top + 37;
+    if (tip > top - 0.2) { vise.lastCut = null; return; }
+    const flute = S.N.EndMill_Flute; if (!flute) return;
+    S.applyPose(); S.root.updateMatrixWorld(true);
+    const p = new THREE.Vector3(); flute.getWorldPosition(p); vise.holes.worldToLocal(p);
+    const b = vise.block.position;
+    if (Math.abs(p.x - b.x) > 0.022 + 0.003 || Math.abs(p.z - b.z) > 0.014 + 0.003) { vise.lastCut = null; return; }
+    const add = (x, z) => {
+      const g = vise.groove; if (g.count >= g.instanceMatrix.count) return;
+      g.setMatrixAt(g.count++, new THREE.Matrix4().makeTranslation(x, b.y + 0.0115 - 0.001 + 0.0003, z));
+      g.instanceMatrix.needsUpdate = true;
+    };
+    const last = vise.lastCut;
+    if (!last) add(p.x, p.z);
+    else {   // 一帧走得多时中间补点，槽才连续
+      const d = Math.hypot(p.x - last.x, p.z - last.z), n = Math.floor(d / 0.0004);
+      if (n < 1) return;
+      for (let i = 1; i <= n; i++) add(last.x + (p.x - last.x) * i / n, last.z + (p.z - last.z) * i / n);
+    }
+    vise.lastCut = { x: p.x, z: p.z };
   },
   // 孔打在刀尖此刻真正对着的位置：取刀具的世界坐标，换到铝块的坐标系里
   markHole(k) {
@@ -475,11 +501,18 @@ CH.mill = {
       const depth = this.quillFor(8);   // 钻 8 mm 深
       quill = u < 0.15 ? 0 : u < 0.55 ? depth * (u - 0.15) / 0.4 : u < 0.65 ? depth : u < 0.85 ? depth * (1 - (u - 0.65) / 0.2) : 0;
       if (u > 0.55 && u < 0.65 && !vise.holes.children.some((h) => h.userData.k === k)) this.pendingHole = k;   // 等下面拖板姿态更新完再打
-      if (st.t > cyc * 4) { st.t = 0; vise.holes.clear(); }
+      if (st.t > cyc * 4) { st.t = 0; vise.clearMarks(); }
     } else if (st.mode === 'mill') {
-      quill = this.quillFor(2);
-      const u = (st.t / 10) % 1, s = u * 4, seg = Math.floor(s), w = s - seg;
+      // 工作台相对“对中位置”的位移（mm）；刀相对铝块走的是反方向的同一个矩形
       const pts = [[-12, -6], [12, -6], [12, 6], [-12, 6], [-12, -6]];
+      const T_PLUNGE = 1.2, T_LOOP = 12, T_UP = 1.0, T_SHOW = 3.0;
+      let tt = st.t, u = 0;
+      if (tt < T_PLUNGE) { quill = this.quillFor(2) * tt / T_PLUNGE; u = 0; }
+      else if ((tt -= T_PLUNGE) < T_LOOP) { quill = this.quillFor(2); u = tt / T_LOOP; }
+      else if ((tt -= T_LOOP) < T_UP) { quill = this.quillFor(2) * (1 - tt / T_UP); u = 1; }
+      else if ((tt -= T_UP) < T_SHOW) { quill = 0; u = 1; }
+      else { st.t = 0; vise.clearMarks(); u = 0; quill = 0; }
+      const s = Math.min(u * 4, 3.9999), seg = Math.floor(s), w = s - seg;
       S.pose.car += pts[seg][0] + (pts[seg + 1][0] - pts[seg][0]) * w;
       cross = pts[seg][1] + (pts[seg + 1][1] - pts[seg][1]) * w;
     }
@@ -489,6 +522,7 @@ CH.mill = {
     S.pose.headZ += (st.headZ - S.pose.headZ) * Math.min(1, dt * 5);
     S.pose.quill += (quill - S.pose.quill) * Math.min(1, dt * 8);
     if (st.mode !== 'idle' || st.quill > 0) S.pose.mill += dt * TAU * 3;
+    if (st.mode === 'mill' || st.quill > 0) this.markCut();
     S.pose.ls = (S.pose.car) / K.ASSUME.lead * TAU;
   },
 };
