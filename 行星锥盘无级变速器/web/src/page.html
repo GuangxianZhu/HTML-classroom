@@ -1,0 +1,399 @@
+<title>行星锥盘无级变速器：拧一下手轮，转速为什么就变了</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF1F0; --panel:#F9FAF9; --ink:#141B1F; --ink2:#3F4C54; --ink3:#5F6D76; --line:#CCD4D7;
+  --accent:#0E6A7E; --accent-bg:#DBECEF; --amber:#9A5B00; --amber-bg:#F7E9CF;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#B0362A; --no-bg:#F6E0DD; --pur:#5F45A0; --pur-bg:#ECE6F7;
+  --c-in:#D2862C; --c-out:#2F78C4; --c-ring:#56616A; --c-ring-dim:#2B8FB0; --c-planet:#AEB8BF; --c-adj:#7E62B8;
+  --c-spring:#2F363B; --c-slider:#B98A3E;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1416; --panel:#161D20; --ink:#E6EBEC; --ink2:#B3BEC4; --ink3:#8C98A0; --line:#2C363B;
+  --accent:#5BC2D6; --accent-bg:#14343B; --amber:#EDB45E; --amber-bg:#3A2B12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --pur:#B9A4EE; --pur-bg:#2A2340;
+  --c-in:#E59A44; --c-out:#5A9BE0; --c-ring:#8D99A2; --c-ring-dim:#55C3E2; --c-planet:#7D888F; --c-adj:#A58AE0;
+  --c-spring:#C9D1D6; --c-slider:#D3A65A; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.8 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.28}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+button{font:inherit;color:inherit;cursor:pointer}
+button.link{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b{font-weight:700}
+.mono{font-family:var(--mono)}
+
+.top{padding-block:calc(30px + env(safe-area-inset-top,0px)) 22px}
+.top h1{font-size:clamp(30px,5vw,50px);font-weight:900;letter-spacing:-.02em}
+.top .lead{color:var(--ink2);max-width:48em;margin-top:10px;font-size:16.5px}
+.name{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px;margin-top:18px;max-width:62em;border-left:3px solid var(--accent);padding:4px 0 4px 16px}
+.name b{font-size:15px}
+.name p{font-size:14.5px;color:var(--ink2);line-height:1.75}
+.guess{margin-top:20px;max-width:46em}
+.guess h2{font-size:17px;font-weight:700}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.btns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:4px 12px;font-size:14px}
+.btns button:hover{border-color:var(--accent)}
+.btns button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 390px;background:#10171B;border-block:1px solid var(--line)}
+.viewport{position:relative;min-height:600px;height:min(80vh,800px);min-width:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:#A9BBC4;font:500 14px var(--mono);padding:24px;text-align:center}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;display:flex;align-items:center;gap:6px;color:#E8F0F3;font:500 12.5px/1.2 var(--sans);margin:-7px 0 0 -7px;white-space:nowrap}
+.pin b{display:block;width:14px;height:14px;border-radius:7px;background:#11202A;border:1.5px solid #7FC8DE}
+.pin span{background:rgba(13,22,27,.82);padding:2px 7px;border-radius:3px;opacity:0;transition:opacity .15s}
+.pin:hover span,.pin.on span,.pin:focus-visible span,.labels .pin span{opacity:1}
+.pin.on b{background:#FFC24A;border-color:#FFC24A}
+.bar{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:2}
+.bar button,.hud button{background:rgba(16,26,32,.86);border:1px solid #3B4B55;color:#DCE7EB;border-radius:4px;padding:5px 11px;font-size:13.5px}
+.bar button:hover,.hud button:hover{border-color:#7FC8DE}
+.bar button[aria-pressed="true"],.hud button[aria-pressed="true"]{background:#CFEFF7;color:#0B1E25;border-color:#CFEFF7;font-weight:700}
+.hud{position:absolute;left:12px;bottom:12px;right:12px;display:flex;gap:6px 10px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;pointer-events:none}
+.hud>*{pointer-events:auto}
+.hud .grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hud label{color:#DCE7EB;font-size:13px;display:flex;gap:5px;align-items:center;background:rgba(16,26,32,.86);border:1px solid #3B4B55;border-radius:4px;padding:4px 9px}
+.legend{background:rgba(13,22,27,.84);padding:6px 10px;border-radius:4px;color:#D5E0E5;font:500 12px/1.6 var(--sans);display:flex;gap:4px 12px;flex-wrap:wrap;max-width:430px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.manual{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;height:min(80vh,800px);min-height:600px}
+#detail{padding:18px 18px 10px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:9px}
+#detail h2{font-size:21px;font-weight:700}
+#detail p{color:var(--ink2);font-size:14.5px;line-height:1.75}
+.kicker{font:500 12px var(--mono)!important;color:var(--ink3)!important}
+#knobs{border-top:1px solid var(--line);padding:10px 18px 14px;flex:none}
+.ctl{display:grid;gap:8px}
+.ctl label{display:grid;grid-template-columns:1fr auto;gap:0 10px;font-size:14px;align-items:baseline}
+.ctl label output{font:500 13px var(--mono);color:var(--ink)}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:3px 0 0}
+.ctl .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.ctl .row button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:2px 9px;font-size:13px}
+.ctl .row label{display:flex;gap:4px;align-items:center}
+.read{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:6px}
+.read div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding:4px 0;font-size:13px;color:var(--ink3);min-width:0}
+.read b{font:700 12.5px var(--mono);color:var(--ink);text-align:right;white-space:nowrap}
+.state{font-size:13.5px;margin-top:6px;padding:6px 9px;border-radius:4px;background:var(--ok-bg);color:var(--ok);line-height:1.6}
+.state.warn{background:var(--amber-bg);color:var(--amber)}
+.state.bad{background:var(--no-bg);color:var(--no)}
+
+.ev{font-style:normal;font:500 11px/1 var(--sans);padding:2px 5px;border-radius:3px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.ev.a{background:var(--ok-bg);color:var(--ok)}
+.ev.b{background:var(--accent-bg);color:var(--accent)}
+.ev.c{background:var(--amber-bg);color:var(--amber)}
+.ev.d{background:var(--pur-bg);color:var(--pur)}
+
+.thesis{padding-block:26px}
+.thesis h2{font-size:20px;font-weight:700;margin-bottom:12px}
+.who{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:2px solid var(--ink)}
+.who div{padding:10px 14px 2px 0;min-width:0}
+.who div+div{border-left:1px solid var(--line);padding-left:14px}
+.who h3{font-size:16px;font-weight:700}
+.who b{display:block;font:700 13px var(--mono);margin-top:2px}
+.who p{font-size:13.5px;color:var(--ink2);line-height:1.65;margin-top:4px}
+
+section.sec{padding-block:30px 34px;border-top:1px solid var(--line)}
+.scale{font:500 12.5px var(--mono);color:var(--ink3);letter-spacing:.02em}
+section.sec>.wrap>h2{font-size:clamp(23px,3vw,30px);font-weight:900;letter-spacing:-.01em;margin-top:2px}
+.intro{max-width:48em;color:var(--ink2);margin-top:8px}
+.intro+.intro{margin-top:8px}
+.lab{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:24px;margin-top:18px;align-items:start}
+.lab>*{min-width:0}
+canvas.plot{display:block;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;touch-action:pan-y}
+.cap{font-size:13px;color:var(--ink3);margin-top:5px;line-height:1.6}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.two>*{min-width:0}
+.side p{font-size:14.5px;color:var(--ink2);line-height:1.75}
+.side p+p{margin-top:8px}
+.side .ctl{margin:10px 0}
+.formula{font:500 14px/1.8 var(--mono);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px 12px;margin:10px 0;color:var(--ink);overflow-x:auto}
+.assume{margin-top:16px;max-width:52em;font-size:14px;color:var(--ink2)}
+.assume summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.assume ul{margin:6px 0 0;padding-left:20px}
+.assume li{margin:3px 0}
+.tw{overflow-x:auto;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{padding:8px 12px 8px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{font-size:13px;color:var(--ink3);font-weight:500;border-bottom:2px solid var(--ink)}
+td{color:var(--ink2)}
+tbody th{font-weight:700;min-width:7em}
+.pat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;margin-top:14px}
+.pat article{border-top:1px solid var(--line);padding:10px 0 12px;min-width:0}
+.pat h3{font-size:15.5px}
+.pat h3 a{font-family:var(--mono);font-size:14px}
+.pat .meta{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.pat p{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:4px}
+.pat p b{color:var(--ink);font-weight:500}
+.pat p.rel b{font-weight:700}
+.sources{columns:2;column-gap:32px;margin:12px 0 0;padding-left:18px;font-size:13.5px}
+.sources li{margin:3px 0;break-inside:avoid}
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 32px;margin-top:12px}
+.limits>div{min-width:0;border-top:1px solid var(--line);padding-block:7px}
+.limits h3{font-size:15px;font-weight:700}
+.limits p{font-size:14px;color:var(--ink2);line-height:1.7}
+.evkey{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13.5px;color:var(--ink2);margin-top:10px}
+footer{padding-block:22px calc(34px + env(safe-area-inset-bottom,0px));font-size:13px;color:var(--ink3);border-top:1px solid var(--line)}
+
+@media (max-width:900px){
+  .bench{grid-template-columns:minmax(0,1fr)}
+  .viewport{height:62vh;min-height:420px}
+  .manual{height:auto;min-height:0;border-left:0;border-top:1px solid var(--line)}
+  .lab,.two,.pat,.limits{grid-template-columns:minmax(0,1fr)}
+  .who{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .who div:nth-child(3){border-left:0;padding-left:0}
+  .sources{columns:1}
+}
+@media (max-width:560px){ .who{grid-template-columns:minmax(0,1fr)} .who div+div{border-left:0;padding-left:0;border-top:1px solid var(--line)} .legend{display:none} }
+</style>
+
+<header class="top wrap">
+  <p class="scale">机械无级变速 · Blender 建模 + 原理实验 + 公开专利</p>
+  <h1>行星锥盘无级变速器：拧一下手轮，转速为什么就变了</h1>
+  <p class="lead">照片里那种带电机、顶上一个手轮、“200 ~ 1000 转随意调”的小变速器，里面没有一个齿轮在换挡：动力全靠<b>摩擦</b>传，转速靠<b>改变摩擦接触点离中心的距离</b>来调。下面用 Blender 按公开说明和专利建了一台，转起来给你看，再用七个小实验把原理拆开。</p>
+  <div class="name">
+    <b>叫法</b><p>行星锥盘无级变速器、行星摩擦式机械无级变速器；型号常见 MB / MBL / UDL（L 一般指铝壳）。日文资料里归在“摩擦式無段変速機”。<i data-ev="b"></i></p>
+    <b>本页这台</b><p>0.75 kW 4 极电机，输入约 1400 r/min，手轮调到输出 1000 ~ 200 r/min（速比 1:1.4 ~ 1:7），和照片上写的一样。内部尺寸是我按结构关系定的示意值，不对应任何真实产品。<i data-ev="d"></i></p>
+  </div>
+  <div class="guess" id="guess">
+    <h2>先猜一下：手轮从 1000 转拧到 200 转，电机的转速怎么变？</h2>
+    <div class="btns"><button type="button" data-a="slow">跟着变慢</button><button type="button" data-a="same">基本不变</button><button type="button" data-a="fast">反而变快</button></div>
+    <p class="state" id="guessAns" hidden></p>
+  </div>
+</header>
+
+<div class="bench">
+  <div class="viewport">
+    <canvas id="gl" aria-label="行星锥盘无级变速器三维模型"></canvas>
+    <div id="pins"></div>
+    <div id="loading">正在加载 Blender 模型…</div>
+    <div class="bar" role="group" aria-label="看法">
+      <button type="button" data-view="ext" aria-pressed="true">外观</button>
+      <button type="button" data-view="cut" aria-pressed="false">剖开</button>
+      <button type="button" data-view="section" aria-pressed="false">正对截面</button>
+      <button type="button" data-view="core" aria-pressed="false">只看内部</button>
+      <button type="button" data-view="explode" aria-pressed="false">拆开</button>
+    </div>
+    <div class="hud">
+      <div class="grp" role="group" aria-label="播放速度">
+        <button type="button" data-speed="0" aria-pressed="false">暂停</button>
+        <button type="button" data-speed="0.0025" aria-pressed="false">1/400</button>
+        <button type="button" data-speed="0.01" aria-pressed="true">1/100</button>
+        <button type="button" data-speed="0.04" aria-pressed="false">1/25 慢放</button>
+        <label><input type="checkbox" id="tContacts" checked> 接触点</label>
+        <label><input type="checkbox" id="tPins" checked> 标注</label>
+      </div>
+      <div class="legend"><span><i style="background:#D2862C"></i>输入（跟电机转）</span><span><i style="background:#D4DADE"></i>行星锥盘</span><span><i style="background:#2F78C4"></i>行星架 = 输出</span><span><i style="background:#56616A"></i>不转的环</span><span><i style="background:#7E62B8"></i>调速机构</span><span><i style="background:#FFB238;border-radius:5px"></i>内侧接触点</span><span><i style="background:#55D6F2;border-radius:5px"></i>外侧接触点</span></div>
+    </div>
+  </div>
+  <aside class="manual">
+    <div id="detail">
+      <p class="kicker">检修台 · 点零件或标注看说明</p>
+      <h2>边拧手轮边看</h2>
+      <p>先点<b>剖开</b>，再把下面的手轮从最快拖到最慢：6 个银色的行星锥盘会整体<b>往外挪</b>，橙色的主动轮和压盘被它们的楔形让开、合拢，深灰的两个外环往两边张开。</p>
+      <p><b>正对截面</b>是沿最上面那个盘的轴线切开正对着看：盘中间厚、边上薄，内侧被橙色的两片夹着，外侧被深灰的两片夹着，两对夹子各在一个点上用力（黄点、蓝点）。</p>
+      <p>动画是慢放的：实际电机 1400 r/min，行星盘自转比电机还快（快挡约 <span class="mono" data-k="spin_fast"></span> r/min）。</p>
+    </div>
+    <div id="knobs" class="ctl">
+      <label>调速手轮 <output id="hwOut"></output><input type="range" id="hw" min="0" max="1000" value="500" aria-label="调速手轮"></label>
+      <div class="row"><button type="button" data-goto="0">最快 1000</button><button type="button" data-goto="0.5">中间</button><button type="button" data-goto="1">最慢 200</button></div>
+      <label>输出端负载 <output id="loadOut"></output><input type="range" id="load" min="0" max="250" value="40" aria-label="负载扭矩"></label>
+      <div class="row">油：<label><input type="radio" name="oilsel" value="traction" checked> 牵引油</label><label><input type="radio" name="oilsel" value="plain"> 普通润滑油</label></div>
+      <div class="read">
+        <div>电机 <b id="rIn"></b></div><div>输出 <b id="rOut"></b></div>
+        <div>速比 <b id="rI"></b></div><div>盘心到主轴 <b id="rE"></b></div>
+        <div>ρa/ρb <b id="rRa"></b></div><div>内/外夹缝 <b id="rGap"></b></div>
+        <div>碟簧力 <b id="rFs"></b></div><div>盘自转 <b id="rSpin"></b></div>
+        <div>摩擦极限 <b id="rCap"></b></div><div>额定 <b id="rRated"></b></div>
+        <div>摩擦用掉 内/外 <b id="rU"></b></div><div>电机负载 <b id="rMotor"></b></div>
+      </div>
+      <p class="state" id="state"></p>
+    </div>
+  </aside>
+</div>
+
+<section class="thesis wrap">
+  <h2>一句话版：行星机构 + 摩擦 + 能挪的接触点</h2>
+  <div class="who">
+    <div><h3>输入</h3><b style="color:var(--c-in)">主动轮 + 压盘</b><p>跟电机同速转，被碟簧夹紧，从两侧夹住 6 个行星锥盘的内侧，靠摩擦搓它们。</p></div>
+    <div><h3>行星</h3><b style="color:var(--ink2)">6 个双锥盘</b><p>外侧被两个不转的环夹着，只能沿着环滚，于是一边自转一边绕中心公转。</p></div>
+    <div><h3>输出</h3><b style="color:var(--c-out)">行星架</b><p>盘的心轴插在行星架的径向槽里，盘公转就推着行星架转。输出和输入同轴、同方向。</p></div>
+    <div><h3>调速</h3><b style="color:var(--c-adj)">手轮 → 凸轮环</b><p>凸轮环把外夹缝收窄或放宽，盘在槽里整体往里或往外挪，两个接触点离盘心的距离一个变大一个变小，速比就变了。</p></div>
+  </div>
+</section>
+
+<section class="sec" id="ch1"><div class="wrap">
+  <p class="scale">第一章</p>
+  <h2>两个轮子压在一起，就能传动</h2>
+  <p class="intro">没有齿，靠什么传？两个轮子压紧，接触点上两边的表面<b>速度一样</b>（不滑的话），所以转速比就是半径的反比。<i data-ev="a"></i> 能传多大的力，取决于压得多紧：最多是 μ × 压紧力，超过就打滑。<i data-ev="a"></i></p>
+  <div class="lab" id="lab-wheel">
+    <div><canvas class="plot" aria-label="两个摩擦轮"></canvas><p class="cap">黄点是接触点，红色闪烁表示打滑。动画按 1/60 慢放。</p></div>
+    <div class="side">
+      <div class="ctl">
+        <label>从动轮半径 <output data-o="r2"></output><input type="range" name="r2" min="30" max="90" value="60"></label>
+        <label>压紧力 N <output data-o="N"></output><input type="range" name="N" min="50" max="600" value="300"></label>
+        <label>负载扭矩 <output data-o="T2"></output><input type="range" name="T2" min="0" max="3" step="0.05" value="0.8"></label>
+        <div class="row"><label><input type="checkbox" name="oil" checked> 用牵引油（μ ≈ 0.07；不勾是普通油 0.04）</label></div>
+      </div>
+      <p class="state" data-o="out"></p>
+      <p style="margin-top:10px">这些变速器里是钢对钢，中间隔着一层油。油怎么还能传力？接触点上压强极高，油膜被压到一瞬间像固体一样，剪切它要花力气，这叫<b>弹流润滑（EHL）下的牵引</b>。<i data-ev="a"></i> 专用的“牵引油”这个系数比普通润滑油高，钢也不直接接触，所以磨损小。<i data-ev="a"></i> 本页取 0.07 / 0.04 是估算值。<i data-ev="d"></i></p>
+      <p>还有一个小细节：即使没打滑，从动轮也会比理想值慢一点点（几个百分点以内），这是接触区弹性变形造成的<b>蠕滑</b>。<i data-ev="a"></i> 所以这种变速器带上负载后转速会略微掉一点。</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="ch2"><div class="wrap">
+  <p class="scale">第二章</p>
+  <h2>中间转、外圈不转，行星架就慢慢转</h2>
+  <p class="intro">把摩擦轮排成行星机构：中间的太阳轮是输入，外环不转，夹在中间的行星轮被太阳轮搓着自转，又沿着外环滚，所以绕中心公转，带着行星架转。这里用一种“两级行星轮”来讲：行星轮内圈（半径 ρa）碰太阳轮，外圈（半径 ρb）碰外环。<i data-ev="a"></i></p>
+  <div class="lab" id="lab-planet">
+    <div><canvas class="plot" aria-label="行星机构俯视"></canvas><p class="cap">沿主轴方向看。红线是行星轮上的记号，看它自转。慢放 1/60。</p></div>
+    <div class="side">
+      <div class="ctl">
+        <label>行星轮的两个半径 <output data-o="ra"></output><input type="range" name="ra" min="3" max="17" step="0.1" value="10"></label>
+        <div class="row"><label><input type="checkbox" name="frame"> 站在行星架上看</label></div>
+      </div>
+      <p class="state" data-o="out"></p>
+      <p style="margin-top:10px"><b>怎么算出来的：</b>勾上“站在行星架上看”。这时行星架不动，行星轮只是个过桥轮：太阳轮相对你转得慢了（1400 − n<sub>架</sub>），外环反过来以 n<sub>架</sub> 倒转。过桥轮两边表面速度相等：</p>
+      <div class="formula">(1400 − n架) × r × ρb = n架 × R × ρa<br>⇒ n架 = 1400 / (1 + T)，T = (R/r)·(ρa/ρb)</div>
+      <p>这就是行星机构的老办法（把行星架当成不动，叫转化机构法，Willis 法）。<i data-ev="a"></i> 本页 r = 40、R = 60 mm。要想调速，就得让 <b>ρa 和 ρb 能变</b>，这就是下一章锥盘的事。</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="ch3"><div class="wrap">
+  <p class="scale">第三章</p>
+  <h2>行星锥盘：接触点在盘面上挪</h2>
+  <p class="intro">真机里的行星轮不是两级圆柱，而是<b>一个中间厚、边上薄的双锥盘</b>。主动轮和压盘的刃口从两侧夹住它靠里的一点，定环和凸轮环的刃口夹住它靠外的一点。盘的心轴插在行星架的径向槽里，能整体沿半径挪。<i data-ev="b"></i>（MB 型说明：“带锥度的行星轮内侧夹在主动轮和压盘之间，外侧夹在带锥度的定环和调速凸轮之间”。）</p>
+  <div class="lab" id="lab-section">
+    <div><canvas class="plot" aria-label="过行星盘轴线的截面"></canvas><p class="cap">过最上面那个行星盘的轴线剖开、正对着看（和三维的“正对截面”一样）。拖滑块或者拧上面的手轮，两边是联动的。</p></div>
+    <div class="side">
+      <div class="ctl"><label>手轮（左快右慢）<input type="range" name="u" min="0" max="1000" value="500"></label></div>
+      <p class="state" data-o="out" style="background:var(--accent-bg);color:var(--ink)"></p>
+      <p style="margin-top:10px"><b>调速是这样一环扣一环的：</b></p>
+      <p>① 凸轮环往里收，外夹缝变窄 → 外侧只能夹在盘更薄、也就是<b>离盘心更远</b>的地方。② 盘被这个楔面推着往里挪（盘心离主轴近了）。③ 于是内侧接触点离盘心近了（ρa 变小）、外侧远了（ρb 变大），T 变小，<b>输出变快</b>。④ 同时内侧夹的地方变厚，把主动轮和压盘撑开，<b>碟簧压得更紧</b>。<i data-ev="c"></i></p>
+      <p>反过来松开凸轮环，碟簧通过楔面把盘推回外面，变慢。最快挡盘心离主轴 <span class="mono" data-k="e_fast"></span> mm，最慢挡 <span class="mono" data-k="e_slow"></span> mm，凸轮环总共只走了 <span class="mono" data-k="gap_d"></span> mm 的夹缝变化。<i data-ev="d"></i></p>
+    </div>
+  </div>
+  <details class="assume"><summary>为什么盘一定是“中间厚、边上薄”</summary>
+    <ul>
+      <li>主动轮的刃口是一个半径 40 mm 的整圆。它压在盘面上只该碰一个点。盘中间厚时，沿着这个刃口圆往两边走，离盘心越来越远、盘越来越薄，刃口自然离开盘面，只剩一个接触点。<i data-ev="c"></i></li>
+      <li>如果反过来做成中间薄、边上厚，沿刃口圆往两边走盘越来越厚，刃口会一路“切进”盘里，装不上。这是本页从几何推出来的，也和“锥盘 = 两个圆锥底对底”的说法一致。<i data-ev="c"></i></li>
+      <li>心轴有粗细，接触点不能太靠近盘心：本页最快挡时内侧接触点离心轴表面只剩 <span class="mono" data-k="clear"></span> mm。专利 CN101398067B 说的正是这个限制：带连体心轴的行星轮，变速范围受轴径限制，工作面只好做得很窄。<i data-ev="b"></i></li>
+    </ul>
+  </details>
+</div></section>
+
+<section class="sec" id="ch4"><div class="wrap">
+  <p class="scale">第四章</p>
+  <h2>压紧力从哪来，什么时候会打滑</h2>
+  <p class="intro">摩擦能传多少，全看压紧力。MB 型的压紧力来自主动轮后面那叠<b>碟簧</b>。<i data-ev="b"></i> 本页模型里有三件事会改变它：</p>
+  <div class="lab" id="lab-force">
+    <div>
+      <div class="two"><canvas class="plot" aria-label="碟簧力和正压力"></canvas><canvas class="plot" aria-label="扭矩极限"></canvas></div>
+      <p class="cap">横轴都是输出转速（右边是快挡）。左：每个接触点上的正压力（碟簧总力分到 6 个盘、两个面上）。右：这个挡位最多能传的扭矩和你设的负载。</p>
+    </div>
+    <div class="side">
+      <div class="ctl">
+        <label>挡位（输出转速）<output id="hw2Out"></output><input type="range" id="hw2" min="0" max="1000" value="500"></label>
+        <label>负载扭矩 <output id="load2Out"></output><input type="range" id="load2" min="0" max="250" value="40"></label>
+        <div class="row">油：<label><input type="radio" name="oilsel2" value="traction" checked> 牵引油</label><label><input type="radio" name="oilsel2" value="plain"> 普通润滑油</label></div>
+      </div>
+      <p class="state" id="forceOut"></p>
+      <p style="margin-top:10px"><b>① 挡位。</b>快挡时盘往里挪、内侧夹的地方厚，碟簧被多压了一截：快挡 <span class="mono" data-k="Fs_fast"></span> N，慢挡 <span class="mono" data-k="Fs_slow"></span> N。<i data-ev="d"></i></p>
+      <p><b>② 离心力。</b>盘随行星架公转，被甩向外，外侧接触点因此比内侧多压一点：快挡多约 <span class="mono" data-k="cf"></span>%，慢挡几乎为零。<i data-ev="d"></i></p>
+      <p><b>③ 哪一圈先滑。</b>每个盘的自转要平衡：内侧切向力 × ρa = 外侧 × ρb。慢挡时 ρa 大、ρb 小，外侧那圈要出的力是内侧的好几倍，所以<b>慢挡先在外侧滑</b>；快挡反过来先在内侧滑。<i data-ev="c"></i></p>
+      <p>把油换成“普通润滑油”试试：同样的压紧力，能传的扭矩按 μ 等比例掉下来。这类变速器要求用指定的油，原因就在这。<i data-ev="c"></i></p>
+    </div>
+  </div>
+  <details class="assume"><summary>另外两条加压路线（各有取舍）</summary>
+    <ul>
+      <li><b>方向一：碟簧恒压（本页、MB 型说明）。</b>结构最简单，不管有没有负载都一直压着。代价是轻载时也压得很紧，摩擦面和轴承一直吃着大力，效率和寿命打折扣。<i data-ev="c"></i></li>
+      <li><b>方向二：按扭矩加压的凸轮。</b>在动力路线上串一个斜面（钢球）凸轮，扭矩越大斜面把盘顶得越紧，轻载就松。US4653349 用的是钢球凸轮，新宝的リングコーン样本也写着内置“自动调压凸轮”。代价是多一套零件，空载时要靠预紧弹簧保底。<i data-ev="b"></i></li>
+      <li><b>方向三：离心力加压。</b>JPH10115356A 让锥形行星轮的支架能摆，公转的离心力把它甩向变速环压紧。好处是转得快压得紧；但低速、起动时离心力很小，要别的办法补。<i data-ev="b"></i></li>
+    </ul>
+  </details>
+</div></section>
+
+<section class="sec" id="ch5"><div class="wrap">
+  <p class="scale">第五章</p>
+  <h2>快挡被电机卡住，慢挡被摩擦卡住</h2>
+  <p class="intro">“这台能带多大的负载”要看两条线谁先到：一条是<b>电机</b>（输入扭矩最多到额定 5.1 N·m，乘上速比和效率），另一条是<b>摩擦</b>（上一章的极限再除以 1.5 倍余量）。<i data-ev="d"></i></p>
+  <div class="lab" id="lab-char">
+    <div>
+      <div class="two"><canvas class="plot" aria-label="扭矩特性"></canvas><canvas class="plot" aria-label="功率特性"></canvas></div>
+      <p class="cap">黑点是 UDL010（0.75 kW/4P）样本表上的两个数：最高转速时 6 N·m、最低转速时 12 N·m。<i data-ev="b"></i> 圆圈是你现在的挡位。</p>
+    </div>
+    <div class="side">
+      <p><b>快挡（右边）：</b>速比只有 1.4，电机的扭矩放大得少，电机先到额定，能长期用约 <span class="mono" data-k="Tr_fast"></span> N·m，功率 <span class="mono" data-k="P_fast"></span> W——基本是把电机功率吃满，这一段接近<b>恒功率</b>。</p>
+      <p><b>慢挡（左边）：</b>速比 7，电机扭矩放大 7 倍，本来能给 30 多 N·m，但摩擦只传得了约 <span class="mono" data-k="Tr_slow"></span> N·m，这一段接近<b>恒扭矩</b>。这时电机只用到额定的 <span class="mono" data-k="motor_slow"></span>%，能输出的功率掉到约 <span class="mono" data-k="P_slow"></span> W。</p>
+      <p>所以这种变速器在<b>低速段功率是浪费的</b>：电机有劲，但摩擦传不过去。这和样本表“最低转速扭矩只是最高转速的 2 倍左右（不是 5 倍）”对得上。<i data-ev="c"></i> 前面那件专利 CN2477894Y 写明要解决的就是低速扭矩。<i data-ev="b"></i></p>
+      <p>同样的形状——“低速恒扭矩、高速恒功率”——也出现在 RX 系列行星环锥式的样本里。<i data-ev="b"></i></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="ch6"><div class="wrap">
+  <p class="scale">第六章</p>
+  <h2>手轮怎么拨动凸轮环，为什么要转着调</h2>
+  <p class="intro">本页的调速链：手轮 → 一对锥齿轮 → 蜗杆 → 凸轮环顶上的齿扇。凸轮环被拨转约 <span class="mono" data-k="cam"></span>°，它背面三段斜坡顶着壳体上的斜坡座，转动变成轴向移动。<i data-ev="c"></i>（MB 型说明里只写到“调速凸轮”，蜗杆、齿扇这些是本页为了让竖着的手轮能拨动它而选的示意结构。）</p>
+  <div class="lab" id="lab-adjust">
+    <div><canvas class="plot" aria-label="手轮圈数和转速"></canvas><p class="cap">本页示意 <span data-k="turns"></span> 圈走完全程。凸轮升程和手轮转角成正比，但转速不是：拧到一半时是 <span class="mono" data-k="n_mid_turn"></span> r/min，不是 600。</p></div>
+    <div class="side">
+      <p><b>为什么不是直线：</b>手轮转角 → 盘心位置是直线关系，但转速 = 1400 / (1 + T)，T 里还有 ρa/ρb 这个除法。本页的尺寸下几个效应互相抵掉不少，所以只是略弯；尺寸不同，弯法也不同。<i data-ev="d"></i> 所以刻度盘最好按实测转速标，不能简单等分。<i data-ev="c"></i></p>
+      <p><b>为什么手一松转速不跑：</b>碟簧的力通过楔面一直在把盘往外推、把凸轮环往外顶。斜坡很缓、蜗杆又有自锁性，这个反推力推不动手轮。<i data-ev="c"></i> 也因此往<b>快挡</b>拧会更费劲一点：那是在压碟簧。<i data-ev="c"></i></p>
+      <p><b>为什么要在运转时调：</b>停着的时候，盘被几千牛的力死死夹住，想让它横着挪，接触点只能硬刮；转着的时候接触点一边滚一边挪，阻力小得多，也不伤面，所以应该在运转中调速。<i data-ev="c"></i>（我没有找到 UDL 原厂说明书原文来确认这一条，是按原理推断的，用之前以你手上那台的说明书为准。）</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="ch7"><div class="wrap">
+  <p class="scale">第七章</p>
+  <h2>要调速，有哪几条路</h2>
+  <p class="intro">照片里这种机械无级变速器只是其中一条。按你的场景选，下面三条各有取舍。</p>
+  <div class="tw"><table>
+    <thead><tr><th></th><th>机械无级（MB / UDL，本页）</th><th>变频器 + 定速比减速机</th><th>行星环锥（Ring-cone / RX 类）</th></tr></thead>
+    <tbody>
+      <tr><th>怎么调</th><td>手轮拧，纯机械</td><td>改电机的供电频率，可以 PLC / 旋钮 / 通讯远程给定</td><td>手轮让变速环沿行星锥轴向走</td></tr>
+      <tr><th>调速范围</th><td>约 1:5（1.4 ~ 7）<i data-ev="b"></i></td><td>宽，低速受电机散热限制 <i data-ev="a"></i></td><td>差动输出，能降到很低 <i data-ev="b"></i></td></tr>
+      <tr><th>转速稳不稳</th><td>带载后掉几个百分点（蠕滑）<i data-ev="a"></i></td><td>开环有转差，加编码器闭环可以很准 <i data-ev="a"></i></td><td>同样有蠕滑 <i data-ev="a"></i></td></tr>
+      <tr><th>低速扭矩</th><td>被摩擦卡住，功率用不满（第五章）<i data-ev="d"></i></td><td>电机扭矩直接经减速机放大，低速长时间运行要注意电机发热 <i data-ev="a"></i></td><td>低速恒扭矩 <i data-ev="b"></i></td></tr>
+      <tr><th>效率</th><td>比齿轮低（摩擦面的滑动、自旋损失）<i data-ev="a"></i></td><td>高 <i data-ev="a"></i></td><td>手册给的一种行星锥式只有 0.6 ~ 0.7 <i data-ev="b"></i></td></tr>
+      <tr><th>要懂电吗</th><td>不用，插电就转</td><td>要配线、设参数；会带来电磁干扰，要做滤波和接地 <i data-ev="a"></i></td><td>不用</td></tr>
+      <tr><th>适合</th><td>现场有人拧、转速偶尔调、不想碰电控的老设备和小产线</td><td>要自动控制、要联动、要节能的场合。现在新设备多数走这条路（这是我的判断，不是统计）<i data-ev="c"></i></td><td>要很低转速或接近零速、又想纯机械的场合</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section class="sec" id="ch8"><div class="wrap">
+  <p class="scale">第八章</p>
+  <h2>公开专利里的做法</h2>
+  <p class="intro">“行星 + 锥面 + 不转的环 + 改变接触半径”这一族的专利很多。下面这些是本页查到并用来对照的，标了读到哪一步：只看到标题的不作结构推断。本页模型借的是它们的<b>结构关系</b>，尺寸和外形都是自己定的。</p>
+  <div class="pat" id="patents"></div>
+  <p class="cap" style="margin-top:12px">另外，U.S. Tsubaki 的 DISCO 变速机构目录列出的零件——内太阳轮 + 碟簧、行星、外环 + 带凸轮的外环、行星架上烧结轴承、输出轴——和 MB 型说明是同一个思路，可以互相印证。<i data-ev="b"></i></p>
+</div></section>
+
+<section class="sec" id="ch9"><div class="wrap">
+  <p class="scale">结论和边界</p>
+  <h2>哪些是确定的，哪些是本页自己算的</h2>
+  <div class="evkey"><span><i class="ev a">公认</i> 教科书级的原理</span><span><i class="ev b">资料</i> 厂商说明、样本表、专利原文</span><span><i class="ev c">推断</i> 我按原理和几何推出来的</span><span><i class="ev d">估算</i> 本页模型选的数和算出的数</span></div>
+  <div class="limits">
+    <div><h3>原理</h3><p>摩擦传动 + 行星机构 + 改变接触半径，速比 n<sub>出</sub> = n<sub>入</sub> / (1 + (R/r)·(ρa/ρb))。<i data-ev="a"></i></p></div>
+    <div><h3>MB / UDL 的结构</h3><p>主动轮 + 压盘 + 碟簧夹内侧，定环 + 调速凸轮夹外侧，滑块轴承带行星架输出，输入输出同轴同向，1:1.4 ~ 1:7。<i data-ev="b"></i></p></div>
+    <div><h3>调速链的方向</h3><p>“凸轮收紧 → 盘往里 → 变快 → 碟簧更紧”是按双锥盘的几何推的；不同厂家可能把碟簧放在外环那一侧，那时方向和受力都会反过来。<i data-ev="c"></i></p></div>
+    <div><h3>扭矩和功率</h3><p>μ = 0.07、安全系数 1.5、碟簧 1790 N + 60 N/mm、效率 0.9、蠕滑 3% 都是估算。曲线的两头和 UDL010 样本对得上，中间没有数据可对。<i data-ev="d"></i></p></div>
+    <div><h3>没算的</h3><p>接触应力和疲劳寿命、油温和油的粘度、接触区的自旋损失、轴承摩擦、零件变形。这些决定真机的寿命和发热，本页都没有。</p></div>
+    <div><h3>画面上的简化</h3><p>两个外环、主动轮和压盘都画成对称移动；真机一般是一侧固定、另一侧动，行星盘和主动轮组件跟着轴向浮动一点（CN2477894Y 写的是定环可轴向移动）。<i data-ev="c"></i></p></div>
+  </div>
+  <h3 style="margin-top:22px;font-size:17px">来源</h3>
+  <ul class="sources" id="sources"></ul>
+</div></section>
+
+<footer><div class="wrap">Blender 脚本建模（<span class="mono">blender/build_variator.py</span>），参数和网页共用 <span class="mono">params.json</span>；物理模型 <span class="mono">web/src/core.js</span>，<span class="mono">web/test_core.mjs</span> 校验。外形和尺寸为原创示意，不对应任何真实产品。</div></footer>

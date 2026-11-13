@@ -1,4 +1,62 @@
 {
+ "variator": {
+  "page": "行星锥盘无级变速器/index.html",
+  "colors": 64,
+  "loadWait": 4000,
+  "steps": [
+   [
+    "into",
+    ".bench"
+   ],
+   [
+    "scroll",
+    -40
+   ],
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "[data-view=cut]"
+   ],
+   [
+    "wait",
+    1600
+   ],
+   [
+    "sel",
+    "[data-goto=\"0\"]"
+   ],
+   [
+    "wait",
+    1600
+   ],
+   [
+    "sel",
+    "[data-goto=\"1\"]"
+   ],
+   [
+    "wait",
+    2200
+   ],
+   [
+    "sel",
+    "[data-view=section]"
+   ],
+   [
+    "wait",
+    2000
+   ],
+   [
+    "sel",
+    "[data-view=explode]"
+   ],
+   [
+    "wait",
+    2400
+   ]
+  ]
+ },
  "cmd2finger": {
   "page": "一条指令到手指/index.html",
   "colors": 64,
