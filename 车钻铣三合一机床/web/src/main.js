@@ -4,6 +4,7 @@ import glb from '../../blender/out/ct125e.glb';
 import layout from '../../blender/out/layout.json';
 import { Stage, B } from './stage.js';
 import * as K from './core.js';
+import { makeChapter } from './make.js';
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (html) e.innerHTML = html; return e; };
@@ -608,10 +609,11 @@ CH.patent = {
   tick(dt) { S.pose.spin += dt * 0.6; },
 };
 
-const CHAPTERS = ['parts', 'turn', 'gears', 'els', 'thread', 'mill', 'spec', 'patent'];
-const SHORT = { parts: '认识它', turn: '车削', gears: '挂轮', els: '电子挂轮', thread: '车螺纹', mill: '钻铣', spec: '参数', patent: '专利' };
+const CHAPTERS = ['parts', 'turn', 'gears', 'els', 'thread', 'mill', 'make', 'spec', 'patent'];
+const SHORT = { parts: '认识它', turn: '车削', gears: '挂轮', els: '电子挂轮', thread: '车螺纹', mill: '钻铣', make: '做零件', spec: '参数', patent: '专利' };
 
 function go(i) {
+  if (cur && cur.exit) cur.exit();
   curIdx = i; const id = CHAPTERS[i]; cur = CH[id];
   resetPose();
   side.innerHTML = ''; infoEl = null;
@@ -629,6 +631,7 @@ function go(i) {
 async function main() {
   S = new Stage($('#c'), layout);
   await S.init(glb);
+  CH.make = makeChapter({ S, layout, el, box, btnRow, hud, setTags, basis, EV, B, side, tags: () => tags });
   $('#loading').remove();
   const nav = $('#nav');
   CHAPTERS.forEach((id, i) => { const b = el('button', {}, `<b>${i + 1}</b>${SHORT[id]}`); b.onclick = () => go(i); nav.append(b); });

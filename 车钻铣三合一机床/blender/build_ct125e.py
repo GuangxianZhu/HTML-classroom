@@ -485,10 +485,11 @@ parent(hw_long, G_LS)
 # ================================================================= 大拖板 / 中拖板 / 小刀架
 CAR_X = 100.0
 G_CAR = empty('G_Carriage', (CAR_X, 0, 110))
-car = [box('Saddle', 95, 190, -62, 52, BED_TOP, 118, M['cast'], 1.2),
-       box('Apron', 118, 168, -74, -62, 58, 118, M['cast'], 1.2),
-       box('HalfNut', 130, 156, -70, -50, 66, 90, M['dark'], 0.6),
-       box('Saddle_Lock', 180, 188, 30, 40, 118, 126, M['screw'], 0.4)]
+# 大拖板以 CAR_X 为中心（以前写死成 95..190，和中拖板错开了）
+car = [box('Saddle', CAR_X - 47, CAR_X + 48, -62, 52, BED_TOP, 118, M['cast'], 1.2),
+       box('Apron', CAR_X - 24, CAR_X + 26, -74, -62, 58, 118, M['cast'], 1.2),
+       box('HalfNut', CAR_X - 12, CAR_X + 14, -70, -50, 66, 90, M['dark'], 0.6),
+       box('Saddle_Lock', CAR_X + 38, CAR_X + 46, 30, 40, 118, 126, M['screw'], 0.4)]
 tag_all(car[:2] + car[3:], '大拖板（床鞍）', '骑在床身导轨上，左右走（纵向，X）。车外圆、车螺纹时刀具的“走”全靠它。', 'lathe', ex=(0, 0, 60))
 meta(car[2], '丝杠螺母', '丝杠转动 → 螺母带着大拖板走。电子挂轮机型一般一直啮合，退刀靠电机反转（推测）。', 'lathe', ex=(0, -40, 30), guess=1)
 for o in car:
