@@ -13,7 +13,7 @@ fs.writeFileSync('dist/artifact.html', body);
 // 本地版：补上文档骨架（发布版由平台补，所以不能带）
 const styleAt = page.indexOf('<style>');
 const head = page.slice(0, styleAt), styleEnd = page.indexOf('</style>') + 8;
-const local = `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n${head}${page.slice(styleAt, styleEnd)}</head>\n<body>${page.slice(styleEnd)}\n<script>${js}</script>\n</body></html>\n`;
+const local = `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n${head}${page.slice(styleAt, styleEnd)}</head>\n<body>${page.slice(styleEnd)}\n<script>${js}</script>\n</body></html>\n`;
 fs.writeFileSync('dist/index.html', local);
 fs.writeFileSync('../index.html', local);
 console.log('artifact', (body.length / 1e6).toFixed(2), 'MB; local', (local.length / 1e6).toFixed(2), 'MB');
