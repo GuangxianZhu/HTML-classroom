@@ -1372,6 +1372,21 @@ def wheelhouse(bm, skin, yc, zc, r, x_in, mi=0, clear=8.0, smax=7.0, n=40, mirro
     return out
 
 
+def arch_check(verts, yc, zc, r, x_in, clear=8.0, zfloor=None):
+    """轮罩里不该有车身件：x 在内衬挡板外侧、离轮心（y-z 平面）不到 r + clear 的点都会捅穿黑色内衬，
+    从轮拱里看就是一块灰色骨架。返回 [(点, 伸进去多少毫米)]"""
+    R = r + clear
+    zf = zfloor if zfloor is not None else zc - R * .45
+    bad = []
+    for v in verts:
+        if abs(v.x) <= x_in + .5 or v.z < zf:
+            continue
+        d = math.hypot(v.y - yc, v.z - zc)
+        if d < R:
+            bad.append((v.copy(), R - d))
+    return bad
+
+
 # ======================================================================== 座椅
 def loft(bm, rings, mi=0, cap=True, smooth=True):
     """把一串同样点数的闭合环连起来，两头封口"""
