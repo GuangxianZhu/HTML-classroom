@@ -39,6 +39,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import ee_data as D  # noqa: E402
+import carkit as CK  # noqa: E402  汽车建模套件的副本，母版在仓库根目录 汽车建模套件/
 
 _argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
 _ap = argparse.ArgumentParser()
@@ -46,6 +47,7 @@ _ap.add_argument('--out', default=os.path.join(HERE, 'out'))
 _ap.add_argument('--render', action='store_true')
 _ap.add_argument('--samples', type=int, default=48)
 _ap.add_argument('--res', type=int, default=1400)
+_ap.add_argument('--stage', default='', help='只渲一张阶段图：frame / panels / glass / seats / interior')
 ARGS, _ = _ap.parse_known_args(_argv)
 OUT = os.path.abspath(ARGS.out)
 os.makedirs(OUT, exist_ok=True)
@@ -87,7 +89,7 @@ def hexcol(h):
     return tuple(_lin(int(h[i:i + 2], 16) / 255) for i in (0, 2, 4))
 
 
-def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None):
+def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, coat_rough=0.03, emit=None, alpha=None):
     m = bpy.data.materials.new(name)
     try:
         m.use_nodes = True
@@ -109,6 +111,7 @@ def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None
     put(['Roughness'], rough)
     if coat > 0:
         put(['Coat Weight', 'Clearcoat'], coat)
+        put(['Coat Roughness', 'Clearcoat Roughness'], coat_rough)
     if emit:
         put(['Emission Color', 'Emission'], (*hexcol(emit[0]), 1))
         put(['Emission Strength'], emit[1])
@@ -126,9 +129,16 @@ def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None
 
 def make_materials():
     return dict(
-        paint=principled('Paint', '#26465f', metal=.55, rough=.32, coat=1.0),
+        # 清漆层默认粗糙度 0.03 近乎镜面，会把环境里的灯箱照成一条条刺眼的白线，0.16 让高光柔一点
+        paint=principled('Paint', '#26465f', metal=.55, rough=.32, coat=.8, coat_rough=.16),
         trim=principled('Trim', '#14171b', rough=.62),
-        glass=principled('Glass', '#090e13', rough=.14),
+        # 玻璃要能看清车里：前挡法规透光率 ≥ 70%，颜色只给一点点灰蓝（网页里用 alpha，渲图时换成 thin_glass）
+        glass=principled('Glass', '#7d929e', rough=.03, alpha=.26),
+        biw=principled('BIW', '#5d646b', metal=.05, rough=.5),
+        biw2=principled('BIW2', '#4a5057', metal=.05, rough=.55),
+        piano=principled('PianoBlack', '#050607', rough=.3, coat=.5, coat_rough=.08),
+        urethane=principled('Urethane', '#0b0b0c', rough=.7),
+        seatframe=principled('SeatFrame', '#30353b', metal=.55, rough=.45),
         seam=principled('Seam', '#050608', rough=.55),
         tyre=principled('Tyre', '#15171a', rough=.86),
         rim=principled('Rim', '#b9c1ca', metal=.92, rough=.3),
@@ -192,7 +202,18 @@ def add(name, bm, mats, group, loc=(0, 0, 0), ang=34, coll='Car', extras=None):
     me.transform(Matrix.Scale(MM, 4))
     ob = bpy.data.objects.new(name, me)
     collection(coll).objects.link(ob)
-    shade(me, ang)
+    cn = me.attributes.get('cn')
+    if cn is not None:
+        # 车板：carkit 在每个点存了曲面的解析法线，设成自定义法线，三角形再乱也不会花；
+        # 面的平滑 / 硬边标记沿用 bmesh 里的（折边是硬边）
+        vals = [0.0] * (3 * len(me.vertices))
+        cn.data.foreach_get('vector', vals)
+        me.attributes.remove(cn)
+        if hasattr(me, 'set_sharp_from_angle'):
+            me.set_sharp_from_angle(angle=radians(ang))
+        me.normals_split_custom_set_from_vertices([vals[i:i + 3] for i in range(0, len(vals), 3)])
+    else:
+        shade(me, ang)
     ob.location = Vector(loc) * MM
     ob['group'] = group
     for k, v in (extras or {}).items():
@@ -256,6 +277,12 @@ def lathe(bm, prof, c, axis='X', seg=48, mi=0, closed=False):
     rings = []
     for (r, a) in prof:
         ring = []
+        if r < 1e-6:
+            # 半径为 0 的一圈只放一个点、连成三角扇。原来放 seg 个重合点再封一个零面积的盖，
+            # recalc_face_normals 判断不了朝向，轮毂盘面整片朝里，网页里会发灰
+            p = (c[0] + a, c[1], c[2]) if axis == 'X' else (c[0], c[1] + a, c[2]) if axis == 'Y' else (c[0], c[1], c[2] + a)
+            rings.append([bm.verts.new(p)] * seg)
+            continue
         for k in range(seg):
             t = 2 * pi * k / seg
             u, v = r * cos(t), r * sin(t)
@@ -273,16 +300,31 @@ def lathe(bm, prof, c, axis='X', seg=48, mi=0, closed=False):
         pairs.append((rings[-1], rings[0]))
     for a, b in pairs:
         for k in range(seg):
-            f = bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+            q = []
+            for v in (a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]):
+                if v not in q:
+                    q.append(v)
+            if len(q) < 3:
+                continue
+            f = bm.faces.new(q)
             f.material_index = mi
             f.smooth = True
             fs.append(f)
     if not closed:
         for ring in (rings[0], rings[-1]):
+            if ring[0] is ring[1]:
+                continue
             f = bm.faces.new(ring)
             f.material_index = mi
             fs.append(f)
-    bmesh.ops.recalc_face_normals(bm, faces=fs)
+    # 回转体是封闭的：用有向体积判断朝向，体积为负就整体翻面。
+    # recalc_face_normals 碰上轮毂这种盘面贴着轴线的形状会猜反，盘面整片朝里
+    for f in fs:
+        f.normal_update()
+    o = sum((f.calc_center_median() for f in fs), Vector()) / len(fs)
+    vol = sum((f.calc_center_median() - o).dot(f.normal) * f.calc_area() for f in fs)
+    if vol < 0:
+        bmesh.ops.reverse_faces(bm, faces=fs)
     return fs
 
 
@@ -313,18 +355,18 @@ def _prof(pairs):
 
 
 Y_TAIL, Y_NOSE = -2415.0, 2345.0
-ZTOP = _prof([(-2415, 640), (-2402, 840), (-2372, 985), (-2330, 1052), (-2240, 1086), (-1950, 1092), (-1700, 1124),
+ZTOP = _prof([(-2415, 985), (-2402, 1010), (-2372, 1035), (-2330, 1052), (-2240, 1086), (-1950, 1092), (-1700, 1124),
               (-1300, 1262), (-900, 1380), (-400, 1452), (-100, 1468), (250, 1440), (480, 1368), (820, 1180), (1170, 985),
-              (1450, 908), (1900, 812), (2160, 728), (2290, 640), (2330, 560), (2345, 470)])
-ZBELT = _prof([(-2415, 640), (-2402, 840), (-2372, 972), (-2330, 1030), (-2240, 1058), (-1950, 1070), (-1700, 1086),
-               (-1300, 1076), (-400, 1032), (400, 988), (1170, 940), (1450, 880), (1900, 788), (2160, 708), (2290, 622),
-               (2330, 545), (2345, 470)])
-ZBOT = _prof([(-2415, 640), (-2402, 430), (-2360, 300), (-2250, 245), (-1900, 188), (-1400, 172), (1400, 172), (2000, 188),
-              (2250, 235), (2330, 330), (2345, 470)])
-HW = _prof([(-2415, 40), (-2405, 430), (-2380, 640), (-2330, 765), (-2200, 858), (-1900, 912), (-1400, 934), (0, 925),
-            (1400, 930), (1900, 892), (2150, 790), (2280, 640), (2330, 460), (2345, 120)])
-HT = _prof([(-2415, 20), (-2400, 340), (-2330, 610), (-2200, 690), (-1950, 690), (-1700, 650), (-1300, 610), (-400, 600),
-            (300, 600), (480, 620), (820, 700), (1170, 780), (1450, 760), (1900, 700), (2150, 610), (2290, 480), (2345, 80)])
+              (1450, 908), (1900, 812), (2160, 728), (2290, 690), (2330, 660), (2345, 640)])
+ZBELT = _prof([(-2415, 970), (-2402, 995), (-2372, 1015), (-2330, 1030), (-2240, 1058), (-1950, 1070), (-1700, 1086),
+               (-1300, 1076), (-400, 1032), (400, 988), (1170, 940), (1450, 880), (1900, 788), (2160, 708), (2290, 672),
+               (2330, 645), (2345, 628)])
+ZBOT = _prof([(-2415, 300), (-2402, 285), (-2360, 265), (-2250, 245), (-1900, 188), (-1400, 172), (1400, 172), (2000, 188),
+              (2250, 235), (2320, 280), (2345, 300)])
+HW = _prof([(-2415, 330), (-2405, 470), (-2380, 640), (-2330, 765), (-2200, 858), (-1900, 912), (-1400, 934), (0, 925),
+            (1400, 930), (1900, 892), (2150, 790), (2280, 640), (2330, 500), (2345, 340)])
+HT = _prof([(-2415, 230), (-2400, 380), (-2330, 610), (-2200, 690), (-1950, 690), (-1700, 650), (-1300, 610), (-400, 600),
+            (300, 600), (480, 620), (820, 700), (1170, 780), (1450, 760), (1900, 700), (2150, 610), (2290, 480), (2345, 250)])
 
 NSEG = 12
 
@@ -557,24 +599,40 @@ def band(bm, z0, z1, end, y_to, mi, push=2.5, rows=1, taper=0):
     for r in range(rows + 1):
         z = z0 + (z1 - z0) * r / rows
         lines.append((z, resample(contour(z, end, y_to, end), N)))
+    # 沿车身真实法线往外推：只在水平面里推的话，碰上发动机盖前沿这种几乎朝上的面，
+    # 推出去的距离接近 0，车身会从灯带底下顶出来，看起来像一圈白色锯齿
+    zp = [z0 + (z1 - z0) * r / rows for r in range(rows + 1)]
+    dz = max((z1 - z0) / rows, 4.0)
+    side_lines = [resample(contour(z, end, y_to, end), N) for z in (zp[0] - dz, zp[-1] + dz)]
     for sx in (1, -1):
         prev = None
         for i in range(N + 1):
             ring = []
-            for (z, L) in lines:
+            for j, (z, L) in enumerate(lines):
                 x, y = L[i]
                 a, b = L[max(i - 1, 0)], L[min(i + 1, N)]
                 tx, ty = b[0] - a[0], b[1] - a[1]
                 nx, ny = -ty * sgn, tx * sgn
                 k = math.hypot(nx, ny) or 1
                 nx, ny = nx / k, ny / k
+                # 上下相邻两条切片在水平法线方向差多少，就是这里车身的上下坡度
+                lo = lines[j - 1][1][i] if j > 0 else side_lines[0][i]
+                hi = lines[j + 1][1][i] if j < rows else side_lines[1][i]
+                zl = lines[j - 1][0] if j > 0 else zp[0] - dz
+                zh = lines[j + 1][0] if j < rows else zp[-1] + dz
+                dr = (hi[0] - lo[0]) * nx + (hi[1] - lo[1]) * ny
+                dzz = zh - zl
+                kk = math.hypot(dr, dzz) or 1
+                nh, nz = dzz / kk, -dr / kk
+                if nh < .2:
+                    nh, nz = .2, math.copysign(sqrt(1 - .04), nz)
                 zz = z
                 if taper:
                     t = i / N
                     if t > 1 - taper:
                         q = (t - (1 - taper)) / taper
                         zz = z + ((z0 + z1) / 2 - z) * q
-                ring.append(bm.verts.new((sx * (x + nx * push), y + ny * push, zz)))
+                ring.append(bm.verts.new((sx * (x + nx * nh * push), y + ny * nh * push, zz + nz * push)))
             if prev:
                 for j in range(len(ring) - 1):
                     q = (prev[j], prev[j + 1], ring[j + 1], ring[j])
@@ -582,6 +640,16 @@ def band(bm, z0, z1, end, y_to, mi, push=2.5, rows=1, taper=0):
                     f.material_index = mi
                     f.smooth = True
             prev = ring
+
+
+def face_out(bm):
+    """贴片（玻璃、缝线）是单层面，三角形绕向随 Delaunay 和左右镜像乱掉，一半朝里一半朝外。
+    网页里双面材质按正面算光照，朝里的那一半法线反了，玻璃会把环境光反成一片灰白。统一翻成朝外"""
+    bm.normal_update()
+    for f in bm.faces:
+        c = f.calc_center_median()
+        if f.normal.dot(Vector((c.x, 0, c.z - 620))) < 0:
+            f.normal_flip()
 
 
 M_IDX = dict(paint=0, trim=1, glass=2, seam=3)
@@ -626,93 +694,276 @@ def clamp_data():
         ADJ[b].append((a, w))
 
 
-def build_body(M):
-    grp('shell', '车身外壳', (0, 0, 1500, 0))
-    mats = [M['paint'], M['trim']]
-    bm = body_mesh(M_IDX)
-    # 轮拱：车身是封闭实体，圆柱切进去，留下的内壁就是轮罩
-    me = bpy.data.meshes.new('Body')
-    bm.to_mesh(me)
-    bm.free()
-    for m in mats:
-        me.materials.append(m)
-    ob = bpy.data.objects.new('Body', me)
-    collection('Car').objects.link(ob)
-    cut = bmesh.new()
-    for y in (WB, -WB):
-        for sx in (1, -1):
-            x0, x1 = 610 * sx, 1120 * sx
-            cyl(cut, (x0, y, R_TYRE), (x1, y, R_TYRE), R_ARCH, mi=1, seg=64, smooth=True)
-    cme = bpy.data.meshes.new('Cutter')
-    cut.to_mesh(cme)
-    cut.free()
-    cob = bpy.data.objects.new('Cutter', cme)
-    collection('Car').objects.link(cob)
-    bm2 = bmesh.new()
-    bm2.from_mesh(me)
-    bmesh.ops.remove_doubles(bm2, verts=bm2.verts, dist=.01)
-    bm2.to_mesh(me)
-    bm2.free()
-    mod = ob.modifiers.new('arch', 'BOOLEAN')
-    mod.operation = 'DIFFERENCE'
-    mod.solver = 'EXACT'
-    mod.object = cob
-    bpy.context.view_layer.objects.active = ob
-    ob.select_set(True)
-    bpy.ops.object.modifier_apply(modifier=mod.name)
-    bpy.data.objects.remove(cob, do_unlink=True)
-    bpy.data.meshes.remove(cme)
-    bm = bmesh.new()
-    bm.from_mesh(me)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    # 切出来的面全部算轮罩（黑）：落在任一圆柱内的面
-    for f in bm.faces:
-        c = f.calc_center_median()
-        for y in (WB, -WB):
-            if math.hypot(c.y - y, c.z - R_TYRE) < R_ARCH + 3 and abs(c.x) > 605:
-                f.material_index = 1
-    bpy.data.objects.remove(ob, do_unlink=True)
-    bpy.data.meshes.remove(me)
-    add('Body', bm, mats, 'shell', ang=38)
+# ================================================================ 车身：按造车顺序
+# 0 外皮基准面 = section_ctrl 定义的那张曲面（线束、盒子的位置也按它算，所以外形不动）
+# 1 布置：缝线、窗洞、柱子、车框走向，全部用曲面参数 (y, s) 写；s 是截面控制点序号
+#   s≈1 底板边，3.4 车门下沿，7.05 腰线，7.2~8.9 侧窗，9.6 车顶和侧围分界，12 车顶中线
+BELT, RAIL, SILL, UB = 7.05, 9.6, 3.4, 1.0
+L_DOOR_F = [(1112, BELT), (1085, 5.4), (1000, SILL)]                       # 前门前缝（上 → 下）
+L_DOOR_R = [(-1170, BELT), (-1060, 6.0), (-1010, 5.0), (-1000, SILL)]        # 后门后缝（上 → 下）
+L_HOOD = [(1178, 12), (1178, 9.1), (1172, 7.9), (1600, 7.45), (1980, 7.1), (2130, 7.1), (2150, 8.5), (2152, 12)]
+L_TRUNK = [(-1735, 12), (-1730, 9.0), (-1760, 7.6), (-2100, 7.3), (-2300, 7.2), (-2330, 8.2), (-2333, 12)]
+L_FASCIA_F = [(2130, 7.1), (2060, 5.0), (1960, 2.6), (1960, UB)]           # 前保险杠和翼子板的分缝
+L_FASCIA_R = [(-2100, 7.3), (-2040, 5.0), (-1960, 2.6), (-1960, UB)]
+L_WS_SIDE = [(1162, 7.7), (1040, 8.1), (850, 8.55), (600, 8.95), (300, 9.2)]  # 前挡侧边（下 → 上）
+# 前挡、后挡外轮廓（两端在车顶中线上）。前挡下角多给两个点，平滑以后角还是紧的，不会被削圆抬高
+WS_POLY = [(1166, 12), (1166, 9.0), (1165, 7.9), (1160, 7.73), (1145, 7.75)] + L_WS_SIDE[1:] + [(280, 9.7), (265, 10.8),
+                                                                                               (255, 12)]
+BACK_POLY = [(-950, 12), (-960, 10.4), (-1000, 9.5), (-1250, 9.42), (-1640, 9.45), (-1745, 9.4), (-1750, 10.5), (-1748, 12)]
+C_LINE = [(-1170, BELT), (-985, RAIL)]        # 后门后缘（腰线 → 车顶），侧围外板的 C 柱从这里往后
+B_Y, DIV_Y = 60.0, -850.0                     # 两门分缝；后门玻璃分隔条
+ARCH_R, ARCH_X = R_ARCH, 640.0
 
-    # 玻璃：一整块玻璃顶 + 侧窗
-    gm = bmesh.new()
-    canopy = [(1135, 9.28), (1090, 9.6), (1000, 12), (-1690, 12), (-1720, 10.2), (-1640, 9.52), (-1250, 9.3), (-800, 9.25), (-100, 9.22), (400, 9.25), (800, 9.3)]
-    canopy = chaikin(canopy, 2)
-    patch(gm, canopy, 0, off=2.5)
-    bmesh.ops.remove_doubles(gm, verts=gm.verts, dist=.8)
-    side = chaikin([(1060, 7.2), (720, 8.2), (400, 8.82), (-320, 8.9), (-880, 8.82), (-1200, 8.25), (-1500, 7.25), (-300, 7.22)], 2)
-    patch(gm, side, 0, off=2.0)
-    add('Glass', gm, [M['glass']], 'shell', ang=40)
-    # 缝、把手、B 柱
+SKIN = None
+CH = {}
+PARTS = []
+GH = {}
+
+
+def setup_skin():
+    global SKIN
+    SKIN = CK.Skin(section_ctrl, NSEG, Y_TAIL, Y_NOSE, smooth_y=40.0)
+    C = CK.Chart
+    # 按片展开：每片一张局部展开图，误差只在这一片里
+    CH.update(
+        side=C(SKIN, UB, 9.7, BELT, name='侧围'),
+        roof=C(SKIN, 9.0, 12, 12, -1300, 650, name='车顶'),
+        hood=C(SKIN, 7.0, 12, 12, 1100, 2200, name='前盖'),
+        ws=C(SKIN, 7.4, 12, 12, 200, 1240, name='前挡'),
+        back=C(SKIN, 9.0, 12, 12, -1800, -900, name='后挡'),
+        trunk=C(SKIN, 7.0, 12, 12, -2380, -1700, name='尾门'),
+        front=C(SKIN, UB, 12, 4.0, 1900, Y_NOSE, name='前保险杠'),
+        rear=C(SKIN, UB, 12, 4.0, Y_TAIL, -1900, name='后保险杠'),
+        under=C(SKIN, 0, 1.6, 0, name='底板'),
+    )
+
+
+def smooth_open(chain, it=2):
+    """两端在中线上的折线：只平滑中间，两端点不动（否则中线处会切出一个 V 口）"""
+    return CK.chaikin(chain, it, closed=False)
+
+
+def _cross_s(p, q, s0):
+    t = (s0 - p[1]) / (q[1] - p[1])
+    return (p[0] + (q[0] - p[0]) * t, s0)
+
+
+def setup_greenhouse():
+    """侧窗区：前挡 / 后挡的真实边（平滑后的那条线）+ 车门上缘 + 窗洞，全部 (y, s)。
+    车身色的侧围外板（A 柱、车顶边梁、C 柱、后翼子板一整张）沿前挡边、车顶分缝、后挡边、车门上缘围起来；
+    车门上半截是黑色窗框饰条，中间挖窗洞（布置方法见 carkit.greenhouse）"""
+    ws = smooth_open(WS_POLY)
+    k0 = min(range(len(ws)), key=lambda i: ws[i][1])
+    side = [ws[k0]]
+    for p, q in zip(ws[k0:], ws[k0 + 1:]):
+        if q[1] >= RAIL:
+            side.append(_cross_s(p, q, RAIL))
+            break
+        side.append(q)
+    back = smooth_open(BACK_POLY)
+    y_cut = -1730.0 - 5.0 * (9.42 - 9.0) / 3.0              # 尾门前缘那条线（(-1730, 9.0)→(-1735, 12)）
+    bs = []
+    for p, q in zip(back, back[1:]):
+        if p[1] >= RAIL > q[1]:                              # 从车顶下来
+            bs.append(_cross_s(p, q, RAIL))
+        if q[1] < RAIL and p[1] < RAIL and q[0] < y_cut <= p[0]:
+            t = (y_cut - p[0]) / (q[0] - p[0])
+            bs.append((y_cut, p[1] + (q[1] - p[1]) * t))
+            break
+        if q[1] < RAIL:
+            bs.append(q)
+    a_line = [p for p in side if p[1] <= 9.22]
+    lay = CK.greenhouse(CH['side'], BELT, a_line, RAIL, C_LINE, B_Y, div_y=DIV_Y, a_width=(60.0, 70.0))
+    GH.update(lay, ws=ws, back=back, ws_side=side, back_side=bs)
+
+
+# ---------------------------------------------------------------- 2 车框（白车身）
+def build_frame(M):
+    grp('frame', '车身骨架', (0, 0, 1100, 0))
+    mats = [M['biw'], M['biw2']]
+    bm = bmesh.new()
+
+    def mem(line, w, h, **k):
+        CK.member(bm, SKIN, line, w, h, mi=0, **k)
+    # 外皮上的件：帽形截面 + 两边点焊翻边。侧围一圈写成一根（真车的侧围外板就是一整张冲出来的），
+    # 截面按控制点给：门槛最粗，A 柱往上收细，C 柱往下放宽
+    ring = [(-1095, 2.5), (1020, 2.5), (1062, 2.9), (1082, 4.2), (1095, 5.6), (1112, 6.95), (1138, 7.4),
+            (1000, 7.97), (800, 8.42), (560, 8.84), (330, 9.27), (0, 9.33), (-600, 9.34), (-1000, 9.31),
+            (-1235, 9.2), (-1300, 8.55), (-1420, 7.8), (-1580, 7.1), (-1980, 7.2), (-2280, 7.2)]
+    ring_w = [140, 140, 132, 122, 112, 102, 90, 80, 70, 62, 56, 58, 58, 60, 64, 76, 96, 116, 70, 60]
+    ring_h = [110, 110, 106, 100, 94, 88, 75, 68, 60, 55, 50, 55, 55, 56, 58, 66, 82, 95, 58, 55]
+    mem(ring, ring_w, ring_h, inset=16)                                                     # 门槛 - A 柱 - 车顶边梁 - C 柱 - 后翼子板上沿
+    mem([(60, 2.8), (60, 7.05), (60, 9.33)], (130, 70), (110, 58), inset=16)                # B 柱
+    mem([(-1080, 2.8), (-1062, 5.0), (-1120, 6.2), (-1170, 7.05), (-1110, 7.9), (-1050, 8.7), (-1015, 9.2)],
+        [110, 104, 96, 88, 78, 70, 64], [100, 96, 90, 84, 72, 62, 58], inset=16)           # 后门锁柱：腰线以上顺着后门后缘往前上方并进车顶边梁
+    # 前翼子板上边梁（俗称“枪梁”）：不贴外皮走，从 A 柱根部斜着往前下方落到水箱框架，
+    # 在前盖缝的里侧、翼子板下面（这一段外皮是凹的，贴着外皮扫会从翼子板侧面顶出来）
+    gun = []
+    for y, s_, dx, dz in ((1112, 7.0, 95, 75), (1350, 7.2, 110, 85), (1600, 7.25, 115, 90), (1850, 7.2, 110, 90),
+                          (2075, 7.15, 100, 85)):
+        q = SKIN.p(y, s_, 1)
+        gun.append((q.x - dx, y, q.z - dz))
+    CK.beam(bm, gun, 50, 50, up=(0, 0, 1), mi=0, mirror=True, shape='hat', flange=10)
+    mem([(312, 9.3), (282, 10.6), (264, 12)], 70, 45)                                        # 前风挡上横梁
+    mem([(-1000, 9.3), (-976, 10.6), (-958, 12)], 70, 45)                                    # 后风挡上横梁
+    for y in (-180, -590):
+        mem([(y, 9.36), (y, 12)], 50, 30, flange=10)                                         # 车顶横梁
+    mem([(1140, 7.45), (1160, 9.5), (1166, 12)], 100, 80)                                    # 前围上横梁（雨刮下面）
+    mem([(-1745, 9.05), (-1745, 12)], 70, 55)                                                # 后风挡下横梁（衣帽架前沿）
+    mem([(-2285, 7.22), (-2318, 8.2), (-2322, 12)], 70, 55)                                  # 行李箱口下沿（尾板上横梁）
+    # 地板、前围板、后排背板（整张钣金）
+    rbox(bm, (0, 15, 335), (1500, 2330, 6), 3, 1, 1)
+    rbox(bm, (0, 1196, 630), (1520, 12, 580), 3, 1, 1)
+    rbox(bm, (0, -1186, 690), (1520, 12, 680), 3, 1, 1)
+    # 不贴外皮的件：纵梁、地板横梁、中央通道是帽形钣金；前后防撞梁是铝挤出方管
+    CK.beam(bm, [(470, 1190, 400), (470, 1700, 420), (470, 2130, 440)], 120, 80, up=(1, 0, 0), mi=0, mirror=True,
+            shape='hat')
+    CK.beam(bm, [(520, -1190, 360), (520, -1700, 390), (520, -2230, 420)], 120, 80, up=(1, 0, 0), mi=0, mirror=True,
+            shape='hat')
+    CK.beam(bm, [(-660, 2190, 440), (0, 2235, 448), (660, 2190, 440)], 60, 110, up=(0, 0, 1), mi=0)
+    CK.beam(bm, [(-660, -2280, 420), (0, -2318, 425), (660, -2280, 420)], 60, 110, up=(0, 0, 1), mi=0)
+    for y in (560, -320):
+        CK.beam(bm, [(-720, y, 364), (720, y, 364)], 70, 50, mi=0, shape='hat')
+    CK.beam(bm, [(0, 1180, 380), (0, 400, 360), (0, -300, 350)], 160, 60, mi=0, shape='hat', flange=20)  # 中央通道
+    # 前减震塔
+    for sx in (1, -1):
+        rbox(bm, (sx * 640, 1410, 690), (170, 220, 200), 30, 0, 2)
+    # 水箱框架：上横梁把两根枪梁的前端连起来，两根立柱落到纵梁头上
+    CK.beam(bm, [(-770, 2070, 690), (-420, 2110, 700), (0, 2122, 702), (420, 2110, 700), (770, 2070, 690)], 50, 70, mi=0,
+            shape='hat', up=(0, 1, 0), flange=12)
+    CK.beam(bm, [(470, 2112, 680), (470, 2132, 470)], 60, 45, up=(0, 1, 0), mi=0, mirror=True, shape='hat', flange=12)
+    # 尾板：后保险杠里面的一整张钣金，上沿接行李箱口下沿，下沿压在后防撞梁上
+    rbox(bm, (0, -2322, 715), (1420, 10, 590), 3, 1, 1)
+    # 自检：车框不能顶出外皮（留 3 毫米给车板）
+    bad = CK.poke_check(SKIN, [v.co for v in bm.verts], margin=3.0)
+    if bad:
+        worst = max(bad, key=lambda t: t[1])
+        print(f'[poke] 车框有 {len(bad)} 个点离外皮不到 3 mm，最多伸出 {worst[1]:.1f} mm @ '
+              f'({worst[0].x:.0f}, {worst[0].y:.0f}, {worst[0].z:.0f})')
+        for v, d in sorted(bad, key=lambda t: -t[1])[:12]:
+            print(f'   ({v.x:6.0f}, {v.y:6.0f}, {v.z:5.0f})  {d:+.1f}')
+    add('BIW', bm, mats, 'frame', ang=38)
+
+
+# ---------------------------------------------------------------- 3 车板
+def grow(chart, poly, d):
+    """在这片的展开图里把多边形外扩 d 毫米（负数内缩）"""
+    o2 = [chart.to2(*p) for p in poly]
+    g = CK.offset2(o2, d)
+    if CK.area2(o2) < 0:
+        g = g[::-1]
+    return [chart.from2(*q) for q in g]
+
+
+def build_panels(M):
+    grp('shell', '外板与玻璃', (0, 0, 1900, 0))
+    S = CH['side']
+    archF = CK.arch_cut(SKIN, WB, R_TYRE, ARCH_R, ARCH_X)
+    archR = CK.arch_cut(SKIN, -WB, R_TYRE, ARCH_R, ARCH_X)
+
+    def one(name, chart, poly, mat, holes=(), cuts=(), measure=True, **k):
+        bm = bmesh.new()
+        part = CK.panel(bm, chart, poly, holes, cuts, mi=0, name=name, **k)
+        if measure:
+            PARTS.append(part)
+        add(name, bm, [mat], 'shell', ang=40)
+    P, T, K = M['paint'], M['trim'], M['piano']
+    one('Panel_Hood', CH['hood'], L_HOOD, P, gap=5.0)
+    one('Panel_BumperF', CH['front'], [(2152, 12), (2150, 8.5)] + L_FASCIA_F + [(Y_NOSE, UB), (Y_NOSE, 12)], P, gap=2.0)
+    one('Panel_Fender', S, [(1172, 7.9), (1600, 7.45), (1980, 7.1)] + L_FASCIA_F + [(1000, UB)] + L_DOOR_F[::-1] + [(1150, 7.5)],
+        P, cuts=[archF])
+    one('Panel_DoorF', S, L_DOOR_F + [(60, SILL), (60, BELT)], P)
+    one('Panel_DoorR', S, [(60, BELT), (60, SILL)] + L_DOOR_R[::-1], P)
+    # 侧围外板：A 柱、车顶边梁、C 柱、后翼子板是一整张冲压件（车身色），围着两扇门的上半截
+    bso = (L_DOOR_R + [(-1000, UB)] + L_FASCIA_R[::-1] + [(-1760, 7.6), (-1730, 9.0)] + GH['back_side'][::-1]
+           + GH['ws_side'][::-1] + [(1150, 7.5), (1112, BELT)] + GH['door_top'][:-1])
+    one('Panel_SideOuter', S, bso, P, cuts=[archR])
+    one('Panel_Trunk', CH['trunk'], L_TRUNK, P, gap=5.0)
+    one('Panel_BumperR', CH['rear'], [(-2333, 12), (-2330, 8.2), (-2300, 7.2)] + L_FASCIA_R + [(Y_TAIL, UB), (Y_TAIL, 12)], P, gap=2.0)
+    one('Panel_Roof', CH['roof'], [(280, 12), (285, 10.5), (300, RAIL), (-1000, RAIL), (-990, 10.5), (-985, 12)], P)
+    one('Panel_Rocker', S, [(1000, UB), (-1000, UB), (-1000, SILL), (1000, SILL)], T, gap=3.0, hem=0)
+    # 车门上半截：窗框外面包黑色饰条（B 柱看到的黑色就是前后门窗框各一半），中间是窗洞
+    one('Panel_SashF', S, GH['sash_f'], K, holes=[GH['win_f']])
+    one('Panel_SashR', S, GH['sash_r'], K, holes=[GH['win_r'], GH['win_q']])
+    # B 柱上的黑色密封条 / 饰板：垫在两扇门中间那条缝下面，缝里看到的是黑的（不然是后面的灰色骨架）
+    dt = GH['door_top']
+
+    def s_top(y):
+        for p, q in zip(dt, dt[1:]):
+            if (p[0] - y) * (q[0] - y) <= 0 and p[0] != q[0]:
+                return p[1] + (q[1] - p[1]) * (y - p[0]) / (q[0] - p[0])
+        return RAIL
+    one('Panel_BPillar', S, [(B_Y + 40, SILL), (B_Y + 40, s_top(B_Y + 40) + .03), (B_Y - 40, s_top(B_Y - 40) + .03),
+                             (B_Y - 40, SILL)], K, gap=0, lift=-7, hem=0, measure=False)
+    # 车头车尾：外皮在 Y_NOSE / Y_TAIL 处收成一个圆角矩形，用一块平板盖上（保险杠正中间那块平面）
+    for nm, y, sgn in (('Panel_NoseCap', Y_NOSE, 1), ('Panel_TailCap', Y_TAIL, -1)):
+        cm = bmesh.new()
+        ss = [k / 16 for k in range(NSEG * 16 + 1)]
+        ring = [SKIN.p(y, q, 1) for q in ss] + [SKIN.p(y, q, -1) for q in ss[-2:0:-1]]
+        vs = [cm.verts.new(v) for v in ring]
+        c = cm.verts.new(sum(ring, Vector()) / len(ring))
+        for i in range(len(vs)):
+            try:
+                f = cm.faces.new([c, vs[i], vs[(i + 1) % len(vs)]])
+            except ValueError:
+                continue
+            f.normal_update()
+            if f.normal.y * sgn < 0:
+                f.normal_flip()
+        bmesh.ops.remove_doubles(cm, verts=cm.verts, dist=.05)
+        add(nm, cm, [P], 'shell', ang=20)
+    one('Panel_Under', CH['under'], [(Y_TAIL, 0), (Y_NOSE, 0), (Y_NOSE, UB), (Y_TAIL, UB)], T, measure=False)
+    # 雨刮下面的黑色导流板，垫在前盖后缘和前挡下沿之间
+    one('Cowl', CH['hood'], [(1128, 12), (1128, 8.8), (1145, 7.5), (1188, 7.5), (1188, 12)], T, gap=0, lift=-6, measure=False)
+    # 轮罩
+    bm = bmesh.new()
+    for yc in (WB, -WB):
+        CK.wheelhouse(bm, SKIN, yc, R_TYRE, ARCH_R, x_in=590, mi=0)
+    add('Wheelhouse', bm, [T], 'shell', ang=40)
+    # 下进气口、后扩散器、隐藏式门把手
     sm = bmesh.new()
-    ribbon(sm, [(60, 7.1), (60, 8.86)], 62, 0, off=3.0)       # B 柱（亮黑）
-    for line in (
-        [(1110, 7.0), (1085, 5.4), (1000, 3.5)],                # 前门前缝
-        [(60, 7.0), (60, 3.3)],                                 # 前后门之间
-        [(-1170, 7.1), (-1060, 6.0), (-1010, 5.0), (-1000, 3.3)],   # 后门后缝
-        [(1000, 3.32), (-1000, 3.32)],                          # 门槛
-        [(1178, 12), (1178, 9.1), (1172, 7.9), (1600, 7.45), (1980, 7.1), (2130, 7.1), (2150, 8.5), (2152, 12)],  # 前舱盖
-        [(-1735, 12), (-1730, 9.0), (-1760, 7.6), (-2100, 7.3), (-2300, 7.2), (-2330, 8.2), (-2333, 12)],   # 尾门
-    ):
-        ribbon(sm, line, 4.5, 0)
-    for yc in (560, -540):                                      # 隐藏式门把手
-        ribbon(sm, [(yc + 95, 6.98), (yc - 95, 6.98)], 22, 0, off=1.6)
-    band(sm, 290, 412, Y_NOSE, 1990, 0, push=2.0)               # 前下进气口
-    band(sm, 250, 440, Y_TAIL, -2120, 0, push=2.0)              # 后扩散器
+    for yc in (560, -540):
+        ribbon(sm, [(yc + 95, 6.9), (yc - 95, 6.9)], 22, 0, off=1.6)
+    band(sm, 290, 412, Y_NOSE, 1990, 0, push=2.0, rows=8)       # 前下进气口
+    band(sm, 250, 440, Y_TAIL, -2120, 0, push=2.0, rows=12)     # 后扩散器
     add('Seams', sm, [M['seam']], 'shell', ang=50)
     lm = bmesh.new()
     band(lm, 646, 668, Y_NOSE, 1960, 0, push=2.4, taper=.28)    # 贯穿头灯
-    add('HeadLamps', lm, [M['lamp']], 'shell', ang=70)
+    add('Lamp_Head', lm, [M['lamp']], 'shell', ang=70)
     tm = bmesh.new()
     band(tm, 962, 1000, Y_TAIL, -2130, 0, push=2.4, taper=.25)  # 贯穿尾灯
-    add('TailLamps', tm, [M['tail']], 'shell', ang=70)
-    # 后视镜
+    add('Lamp_Tail', tm, [M['tail']], 'shell', ang=70)
     mm = bmesh.new()
     for sx in (1, -1):
         ball(mm, (sx * 985, 955, 1022), 70, 0, seg=14, sc=(1.25, .6, .66))
         cyl(mm, (sx * 880, 972, 992), (sx * 950, 960, 1012), 12, 10, 1, seg=8)
-    add('Mirrors', mm, [M['paint'], M['trim']], 'shell', ang=45)
+    add('Mirrors', mm, [M['piano'], M['trim']], 'shell', ang=45)
+    # 在三维里量缝
+    gaps = CK.measure_gaps(PARTS)
+    rows = []
+    for (a, b), (n, lo, avg, hi, p5, p95) in sorted(gaps.items()):
+        rows.append(dict(a=a, b=b, n=n, min=round(lo, 2), avg=round(avg, 2), max=round(hi, 2), p5=round(p5, 2),
+                         p95=round(p95, 2)))
+        print(f'[gap] {a:>14s} | {b:<14s} n={n:4d}  min {lo:5.2f}  p5 {p5:5.2f}  avg {avg:5.2f}  p95 {p95:5.2f}'
+              f'  max {hi:5.2f} mm')
+    return rows
+
+
+# ---------------------------------------------------------------- 4 玻璃
+def build_glass(M):
+    """玻璃：外表面比外皮低 1 mm，内侧黑釉边；下面是聚氨酯胶条压在车身开口的翻边上（萨博维修手册 / US4650240）。
+    侧窗是降下式门玻璃，在窗框饰条里面再往里 5 mm"""
+    bm = bmesh.new()
+    bond = bmesh.new()
+    S = CH['side']
+    for ch, poly in ((CH['ws'], GH['ws']), (CH['back'], GH['back'])):
+        CK.glass(bm, ch, poly, lift=-1.0, frit=26, mi=0, mi_frit=1)
+        CK.glass_bond(bond, ch, poly, lift=-1.0, inset=12, mi_bead=0, mi_flange=1)
+    # 门玻璃比窗洞大一圈，四边插进窗框的导槽里（从外面看不见边）；后门分隔条后面的小三角窗是固定的，也装在门框里
+    for k in ('win_f', 'win_r', 'win_q'):
+        CK.glass(bm, S, grow(S, GH[k], 16), lift=-6.0, frit=0, mi=0, mi_frit=1)
+    add('Glass', bm, [M['glass'], M['piano']], 'shell', ang=40)
+    add('GlassBond', bond, [M['urethane'], M['biw']], 'shell', ang=40)
 
 
 def build_wheels(M):
@@ -743,7 +994,8 @@ def build_wheels(M):
         else:
             bmesh.ops.scale(bm, vec=(-1, 1, 1), verts=bm.verts)
             bmesh.ops.reverse_faces(bm, faces=bm.faces)
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        # 各零件建的时候朝向已经对了（回转体按体积、圆柱由 create_cone 给出），这里不再整体重算：
+        # 轮胎、轮毂、辐条互相插着，整体重算会把轮毂盘面翻到里面
         add(f'Wheel_{tag}', bm, mats, 'wheels', loc=(sx * TRACK, y, R_TYRE), ang=30, coll='Chassis', extras=dict(ex=sx))
         d = bmesh.new()
         lathe(d, [(0, -13), (168, -13), (168, 13), (0, 13)], (0, 0, 0), 'X', 40, 0)
@@ -804,33 +1056,21 @@ def build_chassis(M):
 def build_cabin(M):
     grp('cabin', '座舱', (0, 0, 620, 0))
     bm = bmesh.new()
-    # 地板和防火墙
+    # 座舱地板（前围板、后排背板在车框里，这里不再重复）
     rbox(bm, (0, -60, 338), (1540, 2500, 16), 6, 0, 1)
-    rbox(bm, (0, 1190, 620), (1560, 22, 560), 6, 0, 1)
-    rbox(bm, (0, -1180, 700), (1560, 22, 700), 6, 0, 1, rot=None)
     add('Floor', bm, [M['dash']], 'cabin', coll='Cabin')
-
-    def seat(c, w=500):
-        cx, cy, cz = c
-        s = bmesh.new()
-        rbox(s, (0, 40, 40), (w, 500, 110), 44, 0, 3, rot=(Vector((1, 0, 0)), 6))
-        rbox(s, (0, -210, 330), (w * .98, 120, 620), 46, 0, 3, rot=(Vector((1, 0, 0)), -16))
-        rbox(s, (0, -300, 700), (240, 100, 170), 40, 1, 3, rot=(Vector((1, 0, 0)), -12))
-        rbox(s, (0, 20, -50), (w * .8, 420, 60), 14, 1, 1)
-        for sx in (1, -1):
-            rbox(s, (sx * (w / 2 - 34), 60, 66), (56, 460, 90), 26, 1, 2, rot=(Vector((1, 0, 0)), 6))
-            rbox(s, (sx * (w / 2 - 30), -190, 300), (58, 110, 520), 26, 1, 2, rot=(Vector((1, 0, 0)), -16))
-        return s, c
-
-    for tag, c in (('SeatFL', (-370, 200, 480)), ('SeatFR', (370, 200, 480))):
-        s, loc = seat(c)
-        add(tag, s, [M['fabric'], M['fabric2']], 'cabin', loc=loc, coll='Cabin', ang=45)
-    s = bmesh.new()
-    rbox(s, (0, -740, 470), (1400, 500, 120), 46, 0, 3, rot=(Vector((1, 0, 0)), 8))
-    rbox(s, (0, -1010, 770), (1400, 120, 560), 44, 0, 3, rot=(Vector((1, 0, 0)), -18))
-    for x in (-460, 0, 460):
-        rbox(s, (x, -1110, 1060), (230, 90, 140), 36, 1, 3, rot=(Vector((1, 0, 0)), -14))
-    add('SeatRear', s, [M['fabric'], M['fabric2']], 'cabin', coll='Cabin', ang=45)
+    # 座椅：按专利里的层次，从地板往上搭（carkit.front_seat / bench）
+    FLOOR_TOP = 346.0
+    for tag, hp in (('SeatFL', (-370, 150, 620)), ('SeatFR', (370, 150, 620))):
+        pad, frame, rail = bmesh.new(), bmesh.new(), bmesh.new()
+        CK.front_seat(pad, frame, rail, hp, FLOOR_TOP, mi_pad=0, mi_hr=1)
+        add(tag + '_Pad', pad, [M['fabric'], M['fabric2']], 'cabin', coll='Cabin', ang=45)
+        add(tag + '_Frame', frame, [M['seatframe']], 'cabin', coll='Cabin', ang=40)
+        add(tag + '_Rail', rail, [M['seatframe']], 'cabin', coll='Cabin', ang=40)
+    pad, frame = bmesh.new(), bmesh.new()
+    CK.bench(pad, frame, (0, -760, 600), FLOOR_TOP, w=1240, back_h=560, back_angle=22, mi_pad=0, mi_hr=1)
+    add('SeatRear_Pad', pad, [M['fabric'], M['fabric2']], 'cabin', coll='Cabin', ang=45)
+    add('SeatRear_Frame', frame, [M['seatframe']], 'cabin', coll='Cabin', ang=40)
     # 仪表台：沿 X 的截面拉伸，再收两端
     d = bmesh.new()
     prof = [(1170, 620), (1170, 940), (980, 980), (760, 945), (620, 860), (640, 760), (780, 700), (900, 620)]
@@ -1282,7 +1522,9 @@ def setup_render():
         d = Vector((0, .2, .5)) - Vector(loc_)
         ob.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
 
-    light('Key', (-2.6, -3.6, 4.2), 1500, 5.0)
+    # 主灯放在镜头这一侧的左前上方。原来它在左后上方、5 米大：左侧窗（往里倾 37°）和前挡左半边（往两边包）
+    # 都像镜子一样把它反出来，窗是一片白、看不见车里。从左前方看，玻璃反射的方向全朝后（y < 0），灯在前面就反不进来
+    light('Key', (-2.8, 3.8, 5.0), 1800, 4.0)
     light('Rim', (3.8, 3.2, 2.2), 900, 5.0)
     light('Fill', (-4.6, 2.6, 1.8), 500, 5.0)
     # 地面
@@ -1307,12 +1549,39 @@ def setup_render():
     return cam
 
 
+def thin_glass():
+    """渲图用的薄玻璃。车窗是单层面片，用真折射（Transmission）的话：光进了玻璃找不到出口，
+    车里一片黑；Cycles 的阴影光线也穿不过折射面，车里照不到灯。所以改成建筑渲染常用的做法：
+    透明（带一点灰绿）+ 菲涅尔反射（IOR 1.52：正着看反射 4%，越斜越亮）。透明部分阴影光线能穿过去"""
+    m = bpy.data.materials.get('GlassRender')
+    if m:
+        return m
+    m = bpy.data.materials.new('GlassRender')
+    m.use_nodes = True
+    nt = m.node_tree
+    for n in list(nt.nodes):
+        nt.nodes.remove(n)
+    out = nt.nodes.new('ShaderNodeOutputMaterial')
+    tr = nt.nodes.new('ShaderNodeBsdfTransparent')
+    tr.inputs['Color'].default_value = (*hexcol('#dbe6e8'), 1)     # 约 75% 透光
+    gl = nt.nodes.new('ShaderNodeBsdfGlossy')
+    gl.inputs['Roughness'].default_value = .02
+    fr = nt.nodes.new('ShaderNodeFresnel')
+    fr.inputs['IOR'].default_value = 1.52
+    mix = nt.nodes.new('ShaderNodeMixShader')
+    nt.links.new(fr.outputs[0], mix.inputs[0])
+    nt.links.new(tr.outputs[0], mix.inputs[1])
+    nt.links.new(gl.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs['Surface'])
+    return m
+
+
 def aim(cam, pos, tgt):
     cam.location = Vector(pos)
     cam.rotation_euler = (Vector(tgt) - cam.location).to_track_quat('-Z', 'Y').to_euler()
 
 
-def render(cam, name, pos, tgt, hide=(), frame=1):
+def render(cam, name, pos, tgt, hide=(), frame=1, show=None):
     sc = bpy.context.scene
     sc.render.engine = 'CYCLES'
     sc.cycles.samples = ARGS.samples
@@ -1326,11 +1595,21 @@ def render(cam, name, pos, tgt, hide=(), frame=1):
     items = [i.identifier for i in sc.view_settings.bl_rna.properties['view_transform'].enum_items]
     sc.view_settings.view_transform = 'AgX' if 'AgX' in items else 'Filmic'
     aim(cam, pos, tgt)
+    # 网页用 alpha 半透明玻璃；渲图时临时换成 thin_glass（GLB 已经导出了，不受影响）
+    gm, tg = bpy.data.materials.get('Glass'), thin_glass()
+    swapped = []
     for ob, _ in OBJS:
-        ob.hide_render = any(ob.name.startswith(h) for h in hide)
+        for sl in ob.material_slots:
+            if sl.material is gm:
+                sl.material = tg
+                swapped.append(sl)
+    for ob, _ in OBJS:
+        ob.hide_render = any(ob.name.startswith(h) for h in hide) or (show is not None and not any(ob.name.startswith(h) for h in show))
     sc.render.filepath = os.path.join(OUT, name)
     bpy.ops.render.render(write_still=True)
     print('[OK] rendered', name)
+    for sl in swapped:
+        sl.material = gm
     for ob, _ in OBJS:
         ob.hide_render = False
 
@@ -1366,7 +1645,11 @@ def main():
     reset()
     clamp_data()
     M = make_materials()
-    build_body(M)
+    setup_skin()
+    setup_greenhouse()
+    build_frame(M)
+    gaps = build_panels(M)
+    build_glass(M)
     build_wheels(M)
     build_chassis(M)
     build_cabin(M)
@@ -1391,7 +1674,7 @@ def main():
         domains=D.DOMAINS, suppliers=D.SUPPLIERS, ecus=D.ECUS, pdu=D.PDU, buses=D.BUSES, eth=D.ETH,
         functions=D.FUNCTIONS, endpoints=D.ENDPOINTS, features=D.FEATURES, stats=stats, nets=nets,
         groups=GROUPS, explode={k: list(v) for k, v in EX.items()}, objects={o.name: g for o, g in OBJS},
-        detail_x=DETAIL_X, sizes=SIZES, tris=tris,
+        detail_x=DETAIL_X, sizes=SIZES, tris=tris, gaps=gaps,
     )
     with open(os.path.join(OUT, 'spec.json'), 'w', encoding='utf-8') as f:
         json.dump(spec, f, ensure_ascii=False, separators=(',', ':'))
@@ -1401,11 +1684,25 @@ def main():
     aim(cam, (-5.4, 6.2, 2.1), (0, .1, .62))
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'sdv.blend'), compress=True)
     print('[OK] saved sdv.blend')
+    if ARGS.stage:
+        base = ['BIW', 'Wheel_', 'Brake_', 'Battery', 'RearDrive', 'Subframes', 'HVCable']
+        steps = dict(frame=base)
+        steps['panels'] = steps['frame'] + ['Panel_', 'Lamp', 'Mirrors', 'Seams', 'Wheelhouse', 'Cowl']
+        steps['glass'] = steps['panels'] + ['Glass']   # Glass 和 GlassBond
+        # 座椅、内饰在车里看不见：把门、车顶、窗框、玻璃拿掉，从斜上方看（剖开的样子）
+        cut = base + ['Panel_Hood', 'Panel_BumperF', 'Panel_Fender', 'Panel_SideOuter', 'Panel_Trunk', 'Panel_BumperR',
+                      'Panel_Rocker', 'Panel_Under', 'Panel_NoseCap', 'Panel_TailCap', 'Lamp', 'Wheelhouse', 'Cowl']
+        steps['seats'] = cut + ['Floor', 'Seat']
+        steps['interior'] = steps['seats'] + ['Trim_', 'Dash', 'SteeringWheel', 'Carpet', 'IP_']
+        views = dict(seats=((-3.7, 3.3, 3.2), (0, -.2, .55)), interior=((-3.7, 3.3, 3.2), (0, -.2, .55)))
+        if ARGS.stage in steps:
+            pos, tgt = views.get(ARGS.stage, ((-5.0, 5.5, 2.5), (0, -.05, .62)))
+            render(cam, f'stage_{ARGS.stage}.jpg', pos, tgt, show=steps[ARGS.stage])
     if ARGS.render:
         hide_ee = ['Harness_', 'ECU_', 'PDU_', 'EP_', 'FleetCar', 'Det_']
         render(cam, 'view_exterior.jpg', (-5.6, 6.3, 2.0), (0, .05, .6), hide=hide_ee)
         render(cam, 'view_exterior_rear.jpg', (5.2, -6.4, 2.1), (0, -.05, .6), hide=hide_ee)
-        shell = ['Body', 'Glass', 'Seams', 'HeadLamps', 'TailLamps', 'Mirrors', 'FleetCar', 'Det_', 'Floor', 'SeatFL', 'SeatFR', 'SeatRear']
+        shell = ['Panel_', 'Glass', 'Seams', 'Lamp_', 'Mirrors', 'Wheelhouse', 'Cowl', 'BIW', 'FleetCar', 'Det_', 'Floor', 'Seat']
         offA = [f'ECU_{k}' for k, e in D.ECUS.items() if 'A' not in e['arch']]
         offC = [f'ECU_{k}' for k, e in D.ECUS.items() if 'C' not in e['arch']]
         render(cam, 'view_arch_A.jpg', (-4.3, 4.9, 3.2), (0, .05, .5), hide=shell + offA + ['Harness_B', 'Harness_C'])
