@@ -356,35 +356,60 @@
   ]
  },
  "gas-reg": {
-  "page": "气体调压阀/index.html",
-  "colors": 48,
+  "page": "气体调压阀/pages/A-spring.html",
+  "colors": 56,
+  "loadWait": 5000,
   "steps": [
    [
     "scroll",
-    520
+    416
    ],
    [
     "wait",
-    1500
+    800
    ],
    [
-    "click",
-    "两级"
+    "mark"
    ],
    [
-    "wait",
-    3000
-   ],
-   [
-    "drag"
-   ],
-   [
-    "click",
-    "圆顶"
+    "jsclick",
+    "#gSkip"
    ],
    [
     "wait",
-    3000
+    1800
+   ],
+   [
+    "jsclick",
+    "#gStart"
+   ],
+   [
+    "wait",
+    2800
+   ],
+   [
+    "jsclick",
+    "#gNext"
+   ],
+   [
+    "wait",
+    2600
+   ],
+   [
+    "jsclick",
+    "#gNext"
+   ],
+   [
+    "wait",
+    2600
+   ],
+   [
+    "jsclick",
+    "#gNext"
+   ],
+   [
+    "wait",
+    2800
    ]
   ]
  },

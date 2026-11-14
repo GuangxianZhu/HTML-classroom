@@ -1,6 +1,6 @@
-// 检修台：上面的三维模型 + 右侧手册 + 下面的控制条。每种阀一台独立的仿真，只跑当前显示的那台。
+// 检修台：三维模型 + 右侧手册 + 下面的控制条。拆页以后每页只有一种阀、一台仿真。
 import * as C from './core.js';
-import { MODELS, ORDER } from './data.js';
+import { MODELS } from './data.js';
 import { cssColor } from './stage.js';
 
 const $ = (id) => document.getElementById(id);
@@ -16,7 +16,7 @@ function makeSim(name) {
       step: (dt) => m.step(dt), vis: () => m.vis(),
       read() {
         const r = m.read();
-        return [['出口压力', `${f1(r.P2)} kPa`], ['流量', `${f0(r.Q)} NL/min`], ['阀芯开度', `${(r.lift).toFixed(3)} mm`], ['弹簧压缩', `${f1(r.comp)} mm`]];
+        return [['出口压力', `${f1(r.P2)} kPa`], ['流量', `${f0(r.Q)} NL/min`], ['阀芯开度', `${(r.lift).toFixed(3)} mm`], ['弹簧压缩', `${r.comp.toFixed(2)} mm`]];
       },
     };
   }
@@ -86,67 +86,65 @@ function makeSim(name) {
   };
 }
 
-export function setupBench(stage, spec) {
-  const sims = {};
-  let cur = null, sim = null, pinIdx = -1;
-  const tabs = $('modeltabs');
-  tabs.innerHTML = ORDER.map((k) => `<button type="button" data-m="${k}" aria-pressed="false"><b>${MODELS[k].tag}</b>${MODELS[k].short}</button>`).join('');
-  tabs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => select(b.dataset.m)));
+export function setupBench(stage, spec, name) {
+  const meta = MODELS[name];
+  const sim = makeSim(name);
+  let onPinCb = null;
 
-  function pinsFor(name) {
-    const meta = MODELS[name];
+  function pins() {
     return spec.models[name].pins.filter((p) => meta.pins[p.key]).map((p) => ({ key: p.key, name: meta.pins[p.key][0], text: meta.pins[p.key][1], at: p.at }));
   }
-  function detail(name) {
-    const m = MODELS[name];
-    $('detail').innerHTML = `<p class="kicker">${m.tag} 型 · 共 8 种</p><h2>${m.name}</h2><p class="leadline">${m.lead}</p><p>${m.body}</p><p class="hint">点模型上的数字，看每个零件做什么。</p>`;
+  const pinList = pins();
+  function legend() {
+    $('zonelegend').innerHTML = Object.entries(meta.zones).map(([k, z]) => `<span data-z="${k}"><i></i>${z.n} <b>—</b></span>`).join('');
   }
-  function legend(name) {
-    const m = MODELS[name];
-    const zs = Object.entries(m.zones).map(([k, z]) => `<span data-z="${k}"><i></i>${z.n} <b>—</b></span>`).join('');
-    $('zonelegend').innerHTML = zs;
-  }
-  function controls(name) {
-    const m = MODELS[name];
+  // 控制条：滑块 + 勾选框。setControl / setToggle 给分步手册用
+  function controls() {
     const el = $('benchctl');
-    el.innerHTML = m.controls.map((c) => `<label>${c.label}<output id="o_${c.id}">${c.v} ${c.unit}</output><input type="range" id="c_${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')
-      + (m.toggles ? `<div class="toggles">${m.toggles.map((t) => `<label class="chk"><input type="checkbox" id="t_${t.id}">${t.label}</label>`).join('')}</div>` : '');
-    for (const c of m.controls) {
+    el.innerHTML = meta.controls.map((c) => `<label>${c.label}<output id="o_${c.id}">${c.v} ${c.unit}</output><input type="range" id="c_${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')
+      + (meta.toggles ? `<div class="toggles">${meta.toggles.map((t) => `<label class="chk"><input type="checkbox" id="t_${t.id}">${t.label}</label>`).join('')}</div>` : '');
+    for (const c of meta.controls) {
       const inp = $('c_' + c.id), out = $('o_' + c.id);
       const apply = () => { out.textContent = `${inp.value} ${c.unit}`; sim.set(c.id, +inp.value); };
       inp.addEventListener('input', apply);
       apply();
     }
-    for (const t of m.toggles || []) $('t_' + t.id).addEventListener('change', (e) => sim.set(t.id, e.target.checked));
+    for (const t of meta.toggles || []) $('t_' + t.id).addEventListener('change', (e) => sim.set(t.id, e.target.checked));
   }
-  function select(name) {
-    if (cur === name) return;
-    cur = name;
-    tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.m === name));
-    sim = sims[name] ||= makeSim(name);
-    detail(name); legend(name); controls(name);
-    stage.setModel(name, false);
-    stage.setPins(pinsFor(name));
-    pinIdx = -1;
-    // 先让仿真跑到稳态，再显示
-    for (let i = 0; i < 40; i++) sim.step(1 / 60);
+  function setControl(id, v) {
+    const inp = $('c_' + id);
+    if (!inp) return;
+    inp.value = v; inp.dispatchEvent(new Event('input'));
   }
-  function onPin(p, i) {
-    pinIdx = i;
+  function setToggle(id, on) {
+    const inp = $('t_' + id);
+    if (!inp || inp.checked === on) return;
+    inp.checked = on; inp.dispatchEvent(new Event('change'));
+  }
+  function reset() {
+    for (const c of meta.controls) setControl(c.id, c.v);
+    for (const t of meta.toggles || []) setToggle(t.id, false);
+  }
+  function focusPin(key) {
+    const i = pinList.findIndex((p) => p.key === key);
+    if (i < 0) { stage.activePin(-1); return null; }
     stage.activePin(i);
-    const m = MODELS[cur];
-    $('detail').innerHTML = `<p class="kicker">${m.tag} 型 · ${m.name}</p><h2>${p.name}</h2><p class="leadline">${p.text}</p><p><button type="button" class="link" id="backdesc">← 回到整体说明</button></p>`;
-    $('backdesc').addEventListener('click', () => { detail(cur); stage.activePin(-1); });
-    stage.focus(p.at, 11);
+    stage.focus(pinList[i].at);
+    return pinList[i];
   }
+
+  legend(); controls();
+  stage.setModel(name, true);
+  stage.setPins(pinList);
+  for (let i = 0; i < 40; i++) sim.step(1 / 60);   // 先跑到稳态再显示
+
   let readT = 0;
   stage.onTick((dt, visible) => {
-    if (!sim || !visible) return;
+    if (!visible) return;
     sim.step(dt);
     const v = sim.vis();
-    const meta = MODELS[cur];
-    stage.applyState(cur, v, meta);
-    stage.stepFlow(cur, dt, meta);
+    stage.applyState(name, v, meta);
+    stage.stepFlow(name, dt, meta);
     readT -= dt;
     if (readT <= 0) {
       readT = 0.12;
@@ -161,6 +159,10 @@ export function setupBench(stage, spec) {
   });
   $('tgGas').addEventListener('change', (e) => stage.setGas(e.target.checked));
   $('tgFlow').addEventListener('change', (e) => stage.setFlow(e.target.checked));
-  $('btnFrame').addEventListener('click', () => stage.reframe());
-  return { select, onPin, get cur() { return cur; } };
+  $('btnFrame').addEventListener('click', () => { stage.activePin(-1); stage.reframe(); });
+  return {
+    meta, sim, pins: pinList, setControl, setToggle, reset, focusPin,
+    onPin(p, i) { onPinCb && onPinCb(p, i); },
+    set onPinClick(fn) { onPinCb = fn; },
+  };
 }

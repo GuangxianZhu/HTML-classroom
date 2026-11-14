@@ -84,6 +84,10 @@ const SUB = 1e-4;   // 积分步长
 // 可视化：把物理开度换成模型里的厘米位移（放大很多倍，模型里才看得见）
 const visH = (X, hmax, vmax = 0.3) => (X > 0 ? X / hmax * vmax : 0);
 const visE = (X, emax, vmax = 0.14) => (X < 0 ? -X / emax * vmax : 0);
+// 手轮 / 弹簧预压缩：相对 300 kPa 那一档（Blender 里建模时的姿态）。真实压缩量按 0.3 倍画（1 mm → 0.3 mm），
+// 不然 600 kPa 时弹簧要被压掉一大半、手轮会钻进阀帽。阀芯 / 膜片则相反，放大约 7.5 倍才看得见。
+export const ADJ_SCALE = 0.03;   // 模型单位是 cm：每 1 mm 真实压缩 → 0.03 cm
+export const visAdj = (F, Fref, ks) => (F - Fref) / ks * 1e3 * ADJ_SCALE;
 
 // ======================= A 直动弹簧式 =======================
 export function simSpring() {
@@ -101,10 +105,10 @@ export function simSpring() {
       }
     },
     vis() {
-      return { ch: { h: visH(s.X, p.hmax), d: s.X > 0 ? -visH(s.X, p.hmax) : visE(s.X, p.emax), adj: (F / p.ks) * 1e3 * 0.03 },
+      return { ch: { h: visH(s.X, p.hmax), d: s.X > 0 ? -visH(s.X, p.hmax) : visE(s.X, p.emax), adj: visAdj(F, forceFor(p, 1000, 300), p.ks) },
         zones: { hi: u.P1g + PA, lo: s.P2g + PA }, flows: { main: s.qin } };
     },
-    read() { return { P1: u.P1g, P2: s.P2g, Q: s.qo, lift: Math.max(0, s.X) * 1e3, F, comp: F / p.ks * 1e3 }; },
+    read() { return { P1: u.P1g, P2: s.P2g, Q: s.qo, lift: Math.max(0, s.X) * 1e3, F, comp: (F / p.ks - Math.max(0, s.X)) * 1e3 }; },   // 阀芯开多少，弹簧就少压多少
   };
 }
 // 下游"用气量"：用流导表示，标定成在 300 kPa 时的流量
@@ -143,7 +147,7 @@ export function simTwoStage() {
     },
     vis() {
       return { ch: { h1: visH(s1.X, p1.hmax, 0.25), d1: -visH(s1.X, p1.hmax, 0.25), h2: visH(s2.X, p2.hmax), d2: -visH(s2.X, p2.hmax),
-        adj: (F2 / p2.ks) * 1e3 * 0.03, g1: u.cyl / 1000, g2: s2.P2g / 1000 },
+        adj: visAdj(F2, forceFor(p2, 1000, 300), p2.ks), g1: u.cyl / 1000, g2: s2.P2g / 1000 },
         zones: { hi: u.cyl + PA, mid: s1.P2g + PA, lo: s2.P2g + PA }, flows: { main: s2.q } };
     },
     read() { return { P1: u.cyl, Pm: s1.P2g, P2: s2.P2g, Q: s2.qo }; },
@@ -212,9 +216,21 @@ export function simPTFE() {
 }
 
 // ======================= E 背压阀 =======================
+export const ST_E = { A: 3.5e-4, k: 2e4, F0: 1.0, emax: 3e-4, C: 1.6 };
+// 背压阀稳态：来气量 src（NL/min）全部要从膜片下放走，求上游压力（二分）
+export function steadyBPR(dome, src, p = ST_E) {
+  let lo = dome, hi = dome + 3000;
+  for (let i = 0; i < 60; i++) {
+    const m = (lo + hi) / 2;
+    const e = clamp(((m - dome) * 1e3 * p.A - p.F0) / p.k, 0, p.emax);
+    if (gasQ(p.C * e / p.emax, m + PA, PA * 1.02) < src) lo = m; else hi = m;
+  }
+  const P1g = (lo + hi) / 2;
+  return { P1g, e: clamp(((P1g - dome) * 1e3 * p.A - p.F0) / p.k, 0, p.emax) };
+}
 export function simBPR() {
   const u = { dome: 250, src: 150 };
-  const p = { A: 3.5e-4, k: 6e3, F0: 1.0, emax: 3e-4, C: 0.35 };
+  const p = { ...ST_E };
   const s = { P1g: 250, e: 0, q: 0 };
   return {
     s, u,
