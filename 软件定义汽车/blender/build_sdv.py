@@ -131,6 +131,7 @@ def make_materials():
         paint=principled('Paint', '#26465f', metal=.55, rough=.32, coat=.8, coat_rough=.16),
         trim=principled('Trim', '#14171b', rough=.62),
         glass=principled('Glass', '#0b131b', rough=.04),
+        piano=principled('PianoBlack', '#040506', rough=.2, coat=.6, coat_rough=.12),
         seam=principled('Seam', '#050608', rough=.55),
         tyre=principled('Tyre', '#15171a', rough=.86),
         rim=principled('Rim', '#b9c1ca', metal=.92, rough=.3),
@@ -739,10 +740,13 @@ def build_body(M):
     side = chaikin([(1100, 7.22), (1030, 7.38), (870, 7.8), (690, 8.22), (400, 8.8), (-320, 8.9), (-880, 8.82), (-1200, 8.25),
                     (-1500, 7.25), (-300, 7.22)], 2)
     patch(gm, side, 0, off=2.0)
-    # B 柱（亮黑）用玻璃同一种材质：缝线材质偏哑，侧面看会被环境照成一根灰条
-    ribbon(gm, [(60, 7.1), (60, 8.86)], 62, 0, off=3.0)
+    # A 柱、车顶边梁、B 柱、侧窗包边做成亮黑（"悬浮车顶"，沃尔沃 EX90、多数新电动车都这样）：
+    # 整圈玻璃区读成一条完整的深色带，不再有车漆色的细条夹在玻璃中间
+    dlo = chaikin([(1170, 7.12), (1170, 9.7), (-1290, 9.7), (-1255, 8.45), (-1420, 7.75), (-1580, 7.12)], 1)
+    patch(gm, dlo, 1, off=1.4, grid=30)
+    ribbon(gm, [(60, 7.1), (60, 8.86)], 62, 1, off=3.0)   # B 柱
     face_out(gm)
-    add('Glass', gm, [M['glass']], 'shell', ang=40)
+    add('Glass', gm, [M['glass'], M['piano']], 'shell', ang=40)
     # 缝、把手、B 柱
     sm = bmesh.new()
     for line in (
