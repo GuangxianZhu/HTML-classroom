@@ -51,7 +51,8 @@
 | 想改 | 改哪里 |
 |---|---|
 | 盒子、外设、功能、需求、线路 | `blender/ee_data.py`，然后重新生成模型 |
-| 车身、内饰、控制器造型 | `blender/build_sdv.py`，车身轮廓在开头的 `ZTOP`、`ZBELT`、`ZBOT`、`HW`、`HT` |
+| 车身、内饰、控制器造型 | `blender/build_sdv.py`，车身轮廓在开头的 `ZTOP`、`ZBELT`、`ZBOT`、`HW`、`HT`；按造车顺序分成 `build_frame`（车框）→ `build_panels`（车板，侧围外板 / 车门窗框 / 窗洞由 `setup_greenhouse` 布置）→ `build_glass` → `build_cabin`（座椅、内饰） |
+| 车身用的共用函数 | `blender/carkit.py` 是仓库根目录 `汽车建模套件/carkit.py` 的副本，改了要回写母版（说明见 `汽车建模套件/README.md`） |
 | 文案、实验、来源 | `web/src/chapters.js` |
 | 模型 | `web/src/sim.js` |
 | 舞台和机位 | `web/src/stage.js` |

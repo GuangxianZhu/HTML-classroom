@@ -73,8 +73,9 @@ export class Stage {
       n.userData.g = g; n.userData.base = n.position.clone(); this.nodes.set(name, n);
     });
     // 车身类：准备一份透视用的幽灵网格，和实体叠着，靠 material.visible 切换
-    const STRUCT = { shell: ['#7fb6e6', .42, 2.0], cabin: ['#6d88a6', .17, 2.6], chassis: ['#6d88a6', .22, 2.4], wheels: ['#7d93ab', .34, 2.0] };
-    this.groupNodes = { shell: [], cabin: [], chassis: [], wheels: [] };
+    // frame = 白车身骨架（车框），在外板里面：透视时和外板一起变成幽灵，拆开时抬到外板和座舱中间
+    const STRUCT = { shell: ['#7fb6e6', .42, 2.0], frame: ['#9fb2c6', .2, 2.2], cabin: ['#6d88a6', .17, 2.6], chassis: ['#6d88a6', .22, 2.4], wheels: ['#7d93ab', .34, 2.0] };
+    this.groupNodes = { shell: [], frame: [], cabin: [], chassis: [], wheels: [] };
     this.gm = Object.fromEntries(Object.entries(STRUCT).map(([k, v]) => [k, ghostMat(...v)]));
     root.children.forEach((n) => {
       const g = n.userData.g;
@@ -84,9 +85,13 @@ export class Stage {
         n.traverse((o) => { if (o.isMesh) ms.push(o); });
         ms.forEach((o) => {
           o.material = o.material.clone();
-          // 实车时按不透明画：开着 transparent 会被丢进透明队列、关掉面排序，车身和贴在上面的玻璃、缝线
-          // 谁先画谁后画就看物体中心远近，边缘会闪、会互相吃掉。透视渐变时 _applyStruct 再打开
-          o.material.transparent = false;
+          // 实车时按不透明画：开着 transparent 会被丢进透明队列、关掉面排序，车身和贴在上面的缝线
+          // 谁先画谁后画就看物体中心远近，边缘会闪、会互相吃掉。透视渐变时 _applyStruct 再打开。
+          // 玻璃例外：要一直半透明才能看到车里，不写深度、最后画（renderOrder 2），盖在车里的东西上面
+          o.userData.glass = o.material.name === 'Glass';
+          o.userData.alpha = o.userData.glass ? o.material.opacity : 1;
+          o.material.transparent = o.userData.glass;
+          if (o.userData.glass) { o.material.depthWrite = false; o.renderOrder = 2; }
           o.userData.solid = o.material;
           const gh = new THREE.Mesh(o.geometry, this.gm[g]);
           gh.visible = false; gh.renderOrder = 3;
@@ -349,7 +354,7 @@ export class Stage {
     this.arch = a;
     for (const v of this.ecus.values()) v.tgt = v.e.arch.includes(a) ? 1 : 0;
     if (!animate) {
-      for (const v of this.ecus.values()) { v.k = v.tgt; v.n.scale.setScalar(Math.max(v.k, .0001)); v.n.visible = v.k > 0 && this.scene_ === 'car'; }
+      for (const v of this.ecus.values()) { v.k = v.tgt; v.n.scale.setScalar(Math.max(v.k, .0001)); v.n.visible = this._ecuVis(v); }
       for (const b of 'ABC') this.archFade[b] = b === a ? 1 : 0;
       this._applyHarness();
       this._slots(a, true); this.tokenAnim = 1; this._updateTokens();
@@ -371,7 +376,12 @@ export class Stage {
     }
     // 外设同理：车里的传感器、电机离外皮只有几厘米，实车时会从车身上冒出小白点。后视镜和镜上摄像头本来就在车外，照常画
     for (const [k, v] of this.eps) v.n.visible = this.scene_ === 'car' && (!shut || OUTSIDE.has(k));
+    // 盒子和配电盒也一样：真车里它们藏在饰板后面；现在玻璃是透明的，实车时不收起来会隔着玻璃看见
+    for (const v of this.ecus.values()) v.n.visible = this._ecuVis(v);
+    for (const n of this.pdus) n.visible = this.scene_ === 'car' && !shut;
   }
+
+  _ecuVis(v) { return v.k > .004 && this.scene_ === 'car' && !this._shut(); }
 
   // ------------------------------------------------------ 透视 / 拆开
   setShell(mode) { this.shellTarget = mode === 'solid' ? 0 : 1; this.shellHidden = mode === 'none'; }
@@ -381,16 +391,17 @@ export class Stage {
   _applyStruct() {
     const k = this.shellK;
     for (const { o, gh } of this.ghosts) {
-      gh.visible = k > .01;
+      const glass = o.userData.glass;
+      gh.visible = k > .01 && !glass;
       o.material.visible = k < .99;
-      o.material.transparent = k > .001;
-      o.material.opacity = 1 - k;
-      o.material.depthWrite = k < .5;
+      o.material.transparent = glass || k > .001;
+      o.material.opacity = o.userData.alpha * (1 - k);
+      o.material.depthWrite = !glass && k < .5;
     }
-    const a = { shell: .42, cabin: .17, chassis: .22, wheels: .34 };
-    for (const g in this.gm) this.gm[g].uniforms.uA.value = a[g] * k * (g === 'shell' && this.shellHidden ? .12 : 1);
+    const a = { shell: .42, frame: .2, cabin: .17, chassis: .22, wheels: .34 };
+    for (const g in this.gm) this.gm[g].uniforms.uA.value = a[g] * k * ((g === 'shell' || g === 'frame') && this.shellHidden ? .12 : 1);
     const e = this.explodeK;
-    const lift = { shell: 1.55, cabin: .62, chassis: -.82, wheels: -.82 };
+    const lift = { shell: 1.55, frame: 1.08, cabin: .62, chassis: -.82, wheels: -.82 };
     for (const g in this.groupNodes) {
       for (const n of this.groupNodes[g]) {
         n.position.y = n.userData.base.y + lift[g] * e;
@@ -490,7 +501,7 @@ export class Stage {
       if (Math.abs(v.k - v.tgt) > .002) {
         v.k += (v.tgt - v.k) * K; if (Math.abs(v.k - v.tgt) <= .002) v.k = v.tgt;
         v.n.scale.setScalar(Math.max(easeIO(v.k), .0001));
-        v.n.visible = v.k > .004 && this.scene_ === 'car';
+        v.n.visible = this._ecuVis(v);
       }
     }
     for (const a of 'ABC') {
