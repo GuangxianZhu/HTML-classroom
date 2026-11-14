@@ -87,7 +87,7 @@ def hexcol(h):
     return tuple(_lin(int(h[i:i + 2], 16) / 255) for i in (0, 2, 4))
 
 
-def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None):
+def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, coat_rough=0.03, emit=None, alpha=None):
     m = bpy.data.materials.new(name)
     try:
         m.use_nodes = True
@@ -109,6 +109,7 @@ def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None
     put(['Roughness'], rough)
     if coat > 0:
         put(['Coat Weight', 'Clearcoat'], coat)
+        put(['Coat Roughness', 'Clearcoat Roughness'], coat_rough)
     if emit:
         put(['Emission Color', 'Emission'], (*hexcol(emit[0]), 1))
         put(['Emission Strength'], emit[1])
@@ -126,9 +127,10 @@ def principled(name, hexc, metal=0.0, rough=0.5, coat=0.0, emit=None, alpha=None
 
 def make_materials():
     return dict(
-        paint=principled('Paint', '#26465f', metal=.55, rough=.32, coat=1.0),
+        # 清漆层默认粗糙度 0.03 近乎镜面，会把环境里的灯箱照成一条条刺眼的白线，0.16 让高光柔一点
+        paint=principled('Paint', '#26465f', metal=.55, rough=.32, coat=.8, coat_rough=.16),
         trim=principled('Trim', '#14171b', rough=.62),
-        glass=principled('Glass', '#090e13', rough=.14),
+        glass=principled('Glass', '#0b131b', rough=.04),
         seam=principled('Seam', '#050608', rough=.55),
         tyre=principled('Tyre', '#15171a', rough=.86),
         rim=principled('Rim', '#b9c1ca', metal=.92, rough=.3),
@@ -256,6 +258,12 @@ def lathe(bm, prof, c, axis='X', seg=48, mi=0, closed=False):
     rings = []
     for (r, a) in prof:
         ring = []
+        if r < 1e-6:
+            # 半径为 0 的一圈只放一个点、连成三角扇。原来放 seg 个重合点再封一个零面积的盖，
+            # recalc_face_normals 判断不了朝向，轮毂盘面整片朝里，网页里会发灰
+            p = (c[0] + a, c[1], c[2]) if axis == 'X' else (c[0], c[1] + a, c[2]) if axis == 'Y' else (c[0], c[1], c[2] + a)
+            rings.append([bm.verts.new(p)] * seg)
+            continue
         for k in range(seg):
             t = 2 * pi * k / seg
             u, v = r * cos(t), r * sin(t)
@@ -273,16 +281,31 @@ def lathe(bm, prof, c, axis='X', seg=48, mi=0, closed=False):
         pairs.append((rings[-1], rings[0]))
     for a, b in pairs:
         for k in range(seg):
-            f = bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+            q = []
+            for v in (a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]):
+                if v not in q:
+                    q.append(v)
+            if len(q) < 3:
+                continue
+            f = bm.faces.new(q)
             f.material_index = mi
             f.smooth = True
             fs.append(f)
     if not closed:
         for ring in (rings[0], rings[-1]):
+            if ring[0] is ring[1]:
+                continue
             f = bm.faces.new(ring)
             f.material_index = mi
             fs.append(f)
-    bmesh.ops.recalc_face_normals(bm, faces=fs)
+    # 回转体是封闭的：用有向体积判断朝向，体积为负就整体翻面。
+    # recalc_face_normals 碰上轮毂这种盘面贴着轴线的形状会猜反，盘面整片朝里
+    for f in fs:
+        f.normal_update()
+    o = sum((f.calc_center_median() for f in fs), Vector()) / len(fs)
+    vol = sum((f.calc_center_median() - o).dot(f.normal) * f.calc_area() for f in fs)
+    if vol < 0:
+        bmesh.ops.reverse_faces(bm, faces=fs)
     return fs
 
 
@@ -557,24 +580,40 @@ def band(bm, z0, z1, end, y_to, mi, push=2.5, rows=1, taper=0):
     for r in range(rows + 1):
         z = z0 + (z1 - z0) * r / rows
         lines.append((z, resample(contour(z, end, y_to, end), N)))
+    # 沿车身真实法线往外推：只在水平面里推的话，碰上发动机盖前沿这种几乎朝上的面，
+    # 推出去的距离接近 0，车身会从灯带底下顶出来，看起来像一圈白色锯齿
+    zp = [z0 + (z1 - z0) * r / rows for r in range(rows + 1)]
+    dz = max((z1 - z0) / rows, 4.0)
+    side_lines = [resample(contour(z, end, y_to, end), N) for z in (zp[0] - dz, zp[-1] + dz)]
     for sx in (1, -1):
         prev = None
         for i in range(N + 1):
             ring = []
-            for (z, L) in lines:
+            for j, (z, L) in enumerate(lines):
                 x, y = L[i]
                 a, b = L[max(i - 1, 0)], L[min(i + 1, N)]
                 tx, ty = b[0] - a[0], b[1] - a[1]
                 nx, ny = -ty * sgn, tx * sgn
                 k = math.hypot(nx, ny) or 1
                 nx, ny = nx / k, ny / k
+                # 上下相邻两条切片在水平法线方向差多少，就是这里车身的上下坡度
+                lo = lines[j - 1][1][i] if j > 0 else side_lines[0][i]
+                hi = lines[j + 1][1][i] if j < rows else side_lines[1][i]
+                zl = lines[j - 1][0] if j > 0 else zp[0] - dz
+                zh = lines[j + 1][0] if j < rows else zp[-1] + dz
+                dr = (hi[0] - lo[0]) * nx + (hi[1] - lo[1]) * ny
+                dzz = zh - zl
+                kk = math.hypot(dr, dzz) or 1
+                nh, nz = dzz / kk, -dr / kk
+                if nh < .2:
+                    nh, nz = .2, math.copysign(sqrt(1 - .04), nz)
                 zz = z
                 if taper:
                     t = i / N
                     if t > 1 - taper:
                         q = (t - (1 - taper)) / taper
                         zz = z + ((z0 + z1) / 2 - z) * q
-                ring.append(bm.verts.new((sx * (x + nx * push), y + ny * push, zz)))
+                ring.append(bm.verts.new((sx * (x + nx * nh * push), y + ny * nh * push, zz + nz * push)))
             if prev:
                 for j in range(len(ring) - 1):
                     q = (prev[j], prev[j + 1], ring[j + 1], ring[j])
@@ -582,6 +621,16 @@ def band(bm, z0, z1, end, y_to, mi, push=2.5, rows=1, taper=0):
                     f.material_index = mi
                     f.smooth = True
             prev = ring
+
+
+def face_out(bm):
+    """贴片（玻璃、缝线）是单层面，三角形绕向随 Delaunay 和左右镜像乱掉，一半朝里一半朝外。
+    网页里双面材质按正面算光照，朝里的那一半法线反了，玻璃会把环境光反成一片灰白。统一翻成朝外"""
+    bm.normal_update()
+    for f in bm.faces:
+        c = f.calc_center_median()
+        if f.normal.dot(Vector((c.x, 0, c.z - 620))) < 0:
+            f.normal_flip()
 
 
 M_IDX = dict(paint=0, trim=1, glass=2, seam=3)
@@ -669,7 +718,8 @@ def build_body(M):
     for f in bm.faces:
         c = f.calc_center_median()
         for y in (WB, -WB):
-            if math.hypot(c.y - y, c.z - R_TYRE) < R_ARCH + 3 and abs(c.x) > 605:
+            # 只认切出来的内壁（法线基本不朝外侧）；按面心判断会把轮拱外缘的侧围面也涂黑，边缘成锯齿
+            if math.hypot(c.y - y, c.z - R_TYRE) < R_ARCH + 3 and abs(c.x) > 605 and abs(f.normal.x) < .6:
                 f.material_index = 1
     bpy.data.objects.remove(ob, do_unlink=True)
     bpy.data.meshes.remove(me)
@@ -683,6 +733,7 @@ def build_body(M):
     bmesh.ops.remove_doubles(gm, verts=gm.verts, dist=.8)
     side = chaikin([(1060, 7.2), (720, 8.2), (400, 8.82), (-320, 8.9), (-880, 8.82), (-1200, 8.25), (-1500, 7.25), (-300, 7.22)], 2)
     patch(gm, side, 0, off=2.0)
+    face_out(gm)
     add('Glass', gm, [M['glass']], 'shell', ang=40)
     # 缝、把手、B 柱
     sm = bmesh.new()
@@ -698,8 +749,10 @@ def build_body(M):
         ribbon(sm, line, 4.5, 0)
     for yc in (560, -540):                                      # 隐藏式门把手
         ribbon(sm, [(yc + 95, 6.98), (yc - 95, 6.98)], 22, 0, off=1.6)
-    band(sm, 290, 412, Y_NOSE, 1990, 0, push=2.0)               # 前下进气口
-    band(sm, 250, 440, Y_TAIL, -2120, 0, push=2.0)              # 后扩散器
+    face_out(sm)
+    # 进气口、扩散器跨度大，车身在上下沿之间是鼓的：只用上下两条线连成平面，中间会被车身顶穿，只剩两道断断续续的黑边
+    band(sm, 290, 412, Y_NOSE, 1990, 0, push=2.0, rows=8)       # 前下进气口
+    band(sm, 250, 440, Y_TAIL, -2120, 0, push=2.0, rows=12)     # 后扩散器
     add('Seams', sm, [M['seam']], 'shell', ang=50)
     lm = bmesh.new()
     band(lm, 646, 668, Y_NOSE, 1960, 0, push=2.4, taper=.28)    # 贯穿头灯
@@ -743,7 +796,8 @@ def build_wheels(M):
         else:
             bmesh.ops.scale(bm, vec=(-1, 1, 1), verts=bm.verts)
             bmesh.ops.reverse_faces(bm, faces=bm.faces)
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        # 各零件建的时候朝向已经对了（回转体按体积、圆柱由 create_cone 给出），这里不再整体重算：
+        # 轮胎、轮毂、辐条互相插着，整体重算会把轮毂盘面翻到里面
         add(f'Wheel_{tag}', bm, mats, 'wheels', loc=(sx * TRACK, y, R_TYRE), ang=30, coll='Chassis', extras=dict(ex=sx))
         d = bmesh.new()
         lathe(d, [(0, -13), (168, -13), (168, 13), (0, 13)], (0, 0, 0), 'X', 40, 0)

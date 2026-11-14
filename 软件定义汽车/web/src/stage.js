@@ -20,6 +20,7 @@ const ghostMat = (hex, a, p = 2.2) => new THREE.ShaderMaterial({
 });
 
 export const WIRE = { sig: '#ff9d3c', bus: '#ffd166', eth: '#4cc9f0', pwr: '#ff5a5f' };
+const OUTSIDE = new Set(['MirL', 'MirR', 'CamSL', 'CamSR']);   // 装在车身外面的外设
 const STATE_COL = ['#3a4656', '#4cc9f0', '#ffb347', '#ff4d4f', '#ffffff'];   // 旧版 / 新版 / 已回滚 / 趴窝 / 正在装
 
 export class Stage {
@@ -83,7 +84,9 @@ export class Stage {
         n.traverse((o) => { if (o.isMesh) ms.push(o); });
         ms.forEach((o) => {
           o.material = o.material.clone();
-          o.material.transparent = true;
+          // 实车时按不透明画：开着 transparent 会被丢进透明队列、关掉面排序，车身和贴在上面的玻璃、缝线
+          // 谁先画谁后画就看物体中心远近，边缘会闪、会互相吃掉。透视渐变时 _applyStruct 再打开
+          o.material.transparent = false;
           o.userData.solid = o.material;
           const gh = new THREE.Mesh(o.geometry, this.gm[g]);
           gh.visible = false; gh.renderOrder = 3;
@@ -310,7 +313,6 @@ export class Stage {
       if (n.name.startsWith('Det_') || n.name === 'FleetCar') continue;
       n.visible = car;
     }
-    for (const a of 'ABC') for (const h of this.harness[a]) h.n.visible = car && this.archFade[a] > .005 && this.classOn[h.cls] > .005;
     this.floor.visible = mode !== 'detail'; this.shadow.visible = car;
     this.floor.scale.setScalar(mode === 'fleet' ? 9 : 1);
     this.details.forEach((n) => { n.visible = mode === 'detail'; });
@@ -318,6 +320,7 @@ export class Stage {
     this.tokenMesh.visible = car && this.tokenK > .01;
     this.routeGroup.visible = car;
     this.pulseMesh.visible = car;
+    this._applyHarness();
   }
 
   /** 拆开控制器：盖子和散热器抬起来 */
@@ -359,12 +362,15 @@ export class Stage {
   setClass(cls, on) { this.classOn[cls] = on ? 1 : 0; this._applyHarness(); }
 
   _applyHarness() {
+    const shut = this._shut();
     const dim = this.touch ? .16 : 1;
     for (const a of 'ABC') for (const h of this.harness[a]) {
       const op = this.archFade[a] * this.classOn[h.cls] * dim;
-      h.n.visible = this.scene_ === 'car' && op > .005;
+      h.n.visible = this.scene_ === 'car' && op > .005 && !shut;
       h.mats.forEach((m) => { m.opacity = op; m.depthWrite = op > .9; });
     }
+    // 外设同理：车里的传感器、电机离外皮只有几厘米，实车时会从车身上冒出小白点。后视镜和镜上摄像头本来就在车外，照常画
+    for (const [k, v] of this.eps) v.n.visible = this.scene_ === 'car' && (!shut || OUTSIDE.has(k));
   }
 
   // ------------------------------------------------------ 透视 / 拆开
@@ -377,6 +383,7 @@ export class Stage {
     for (const { o, gh } of this.ghosts) {
       gh.visible = k > .01;
       o.material.visible = k < .99;
+      o.material.transparent = k > .001;
       o.material.opacity = 1 - k;
       o.material.depthWrite = k < .5;
     }
@@ -392,7 +399,11 @@ export class Stage {
     }
     this.floor.material.opacity = 1 - e * .8;
     this.shadow.material.opacity = .6 * (1 - e);
+    this._applyHarness();
   }
+
+  /** 实车外观（不透明、没拆开）：线束本来就被车身挡住，只剩贴着外皮的几段会戳出来变成橙色小点，干脆不画 */
+  _shut() { return this.shellK < .01 && this.explodeK < .01; }
 
   // ------------------------------------------------------ 配色 / 高亮
   setColorMode(mode) { this.colorMode = mode; this._paintEcus(); }
