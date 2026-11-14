@@ -48,6 +48,7 @@ async function recordOne(base, name, cfg, tmp) {
       else if (k === 'wait') await pg.waitForTimeout(v);
       else if (k === 'click') await pg.getByText(v, { exact: false }).filter({ visible: true }).first().click({ timeout: 8000 });
       else if (k === 'sel') await pg.locator(v).first().click({ timeout: 8000 });
+      else if (k === 'jsclick') await pg.evaluate(s => document.querySelector(s).click(), v);   // 用脚本点，页面不会为了露出按钮而滚动
       else if (k === 'selopt') await pg.locator(v[0]).selectOption({ label: v[1] });
       else if (k === 'into') await pg.evaluate(s => { document.querySelector(s).scrollIntoView({ block: 'end' }); window.scrollBy(0, 40); }, v);
       else if (k === 'scroll') await scrollMain(pg, v);

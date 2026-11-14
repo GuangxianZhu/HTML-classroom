@@ -1,4 +1,4 @@
-// 四个原理实验：力的账本 + 流量曲线、两级 vs 单级、气控 vs 弹簧、开环 vs 闭环
+// 原理实验：力的账本 + 流量曲线（A）、两级 vs 单级（B）、圆顶 vs 弹簧（C）、药液（D）、背压（E）、开环 vs 闭环（F G H）
 import * as C from './core.js';
 import { css, fit, bind, set, onTheme, whenVisible, plot } from './ui.js';
 
@@ -131,55 +131,91 @@ export function setupTwo() {
   onTheme(() => started && draw()); window.addEventListener('resize', () => started && draw());
 }
 
-// ---------------- 实验三：气控 vs 弹簧，以及药液调压阀 ----------------
-export function setupGas() {
-  const pA = { ...C.ST_A }, pC = { ...C.ST_C }, pD = { ...C.ST_D };
-  const s = { set: 300, P1: 400, open: 50 };
-  const cvD = document.getElementById('cvDroop'), cvL = document.getElementById('cvLiq');
+// ---------------- 实验三：圆顶 vs 弹簧（C 页） ----------------
+const lazy = (cv, draw) => {
+  let started = false;
+  whenVisible(cv, (v) => { if (v && !started) { started = true; draw(); } });
+  onTheme(() => started && draw()); window.addEventListener('resize', () => started && draw());
+  return () => started;
+};
+const rows = (arr) => arr.map(([x, y]) => `<div><span>${x}</span><b>${y}</b></div>`).join('');
+const nearest = (arr, x) => arr.reduce((b, q) => (Math.abs(q[0] - x) < Math.abs(b[0] - x) ? q : b));
+
+export function setupDroop() {
+  const pA = { ...C.ST_A }, pC = { ...C.ST_C };
+  const s = { set: 300, P1: 1000 };
+  const cvD = document.getElementById('cvDroop');
   function draw() {
-    {
-      const { c, w, h } = fit(cvD);
-      c.clearRect(0, 0, w, h);
-      const FA = C.forceFor(pA, 1000, s.set), FC = C.forceFor(pC, 1000, s.set);
-      const ca = [], cc = [];
-      for (let q = 0; q <= 900; q += q < 60 ? 3 : 12) {
-        const a = C.steadyStage(pA, 1000, FA, C.demandC(q)); ca.push([a.Q, a.P2g]);
-        const b = C.steadyStage(pC, 1000, FC, C.demandC(q)); cc.push([b.Q, b.P2g]);
-      }
-      const P = plot(c, w, h, { x: [0, 420], y: [s.set - 40, s.set + 10], xt: [0, 100, 200, 300, 400], yt: [s.set - 30, s.set - 15, s.set], xl: '流量 NL/min', yl: '出口压力 kPa', L: 50 });
-      P.ln(ca, css('--s1'), 2.4); P.ln(cc, css('--s2'), 2.4);
-      const at = (arr, x) => arr.reduce((b, q) => (Math.abs(q[0] - x) < Math.abs(b[0] - x) ? q : b));
-      const a = at(ca, 230), b = at(cc, 230);
-      P.label(a[0], a[1], '弹簧加载', css('--s1'), 'left', 12); P.label(b[0], b[1], '圆顶加载', css('--s2'), 'left', -12);
-      const a2 = at(ca, 250), b2 = at(cc, 250), a0 = ca[0], b0 = cc[0];
-      set('l3_read', [['弹簧式 0→250 NL/min 掉', `${f1(a0[1] - a2[1])} kPa`], ['圆顶式 0→250 NL/min 掉', `${f1(b0[1] - b2[1])} kPa`]].map(([x, y]) => `<div><span>${x}</span><b>${y}</b></div>`).join(''));
+    const { c, w, h } = fit(cvD);
+    c.clearRect(0, 0, w, h);
+    const FA = C.forceFor(pA, 1000, s.set), FC = C.forceFor(pC, 1000, s.set);
+    const ca = [], cc = [];
+    for (let q = 0; q <= 900; q += q < 60 ? 3 : 12) {
+      const a = C.steadyStage(pA, s.P1, FA, C.demandC(q)); ca.push([a.Q, a.P2g]);
+      const b = C.steadyStage(pC, s.P1, FC, C.demandC(q)); cc.push([b.Q, b.P2g]);
     }
-    {
-      const { c, w, h } = fit(cvL);
-      c.clearRect(0, 0, w, h);
-      const P = plot(c, w, h, { x: [0, 380], y: [0, 400], xt: [0, 100, 200, 300], yt: [0, 100, 200, 300, 400], xl: '控制气压力 kPa', yl: '药液出口压力 kPa', L: 46 });
-      P.ln([[0, 0], [380, 380]], css('--ink3'), 1, [3, 4]);
-      P.label(330, 345, '1 : 1', css('--ink3'), 'right');
-      P.ln([[0, s.P1], [380, s.P1]], css('--no'), 1, [2, 3]);
-      P.label(6, s.P1, `供液压力 ${s.P1}`, css('--no'), 'left', -9);
-      const cols = ['--s3', '--s2', '--s1'];
-      [20, s.open, 95].forEach((op, i) => {
-        const pts = [];
-        for (let a = 0; a <= 380; a += 5) pts.push([a, C.steadyPTFE(pD, s.P1, a, op / 100 * 0.6).P2]);
-        P.ln(pts, css(cols[i]), i === 1 ? 2.6 : 1.6, i === 1 ? null : [5, 4]);
-        const q = pts[Math.round(pts.length * (0.38 + 0.12 * i))];
-        P.label(q[0], q[1], `下游开 ${op}%`, css(cols[i]), 'left', 12);
-      });
-      const r = C.steadyPTFE(pD, s.P1, 200, s.open / 100 * 0.6);
-      set('l3_read2', [['控制气 200 kPa 时药液', `${f1(r.P2)} kPa`], ['药液流量', `${f1(r.Q)} L/min`]].map(([x, y]) => `<div><span>${x}</span><b>${y}</b></div>`).join(''));
-    }
+    const P = plot(c, w, h, { x: [0, 420], y: [s.set - 40, s.set + 10], xt: [0, 100, 200, 300, 400], yt: [s.set - 30, s.set - 15, s.set], xl: '流量 NL/min', yl: '出口压力 kPa', L: 50 });
+    P.ln(ca, css('--s1'), 2.4); P.ln(cc, css('--s2'), 2.4);
+    const a = nearest(ca, 230), b = nearest(cc, 230);
+    P.label(a[0], a[1], '弹簧加载（A 型）', css('--s1'), 'left', 12); P.label(b[0], b[1], '圆顶加载（C 型）', css('--s2'), 'left', -12);
+    const a2 = nearest(ca, 250), b2 = nearest(cc, 250);
+    set('l3_read', rows([['弹簧式 0→250 NL/min 掉', `${f1(ca[0][1] - a2[1])} kPa`], ['圆顶式 0→250 NL/min 掉', `${f1(cc[0][1] - b2[1])} kPa`]]));
   }
   bind('l3_set', (v) => { s.set = v; draw(); }, (v) => `${v} kPa`);
   bind('l3_p1', (v) => { s.P1 = v; draw(); }, (v) => `${v} kPa`);
+  lazy(cvD, draw);
+}
+
+// ---------------- 实验三 b：药液调压阀（D 页） ----------------
+export function setupLiq() {
+  const pD = { ...C.ST_D };
+  const s = { P1: 400, open: 50 };
+  const cvL = document.getElementById('cvLiq');
+  function draw() {
+    const { c, w, h } = fit(cvL);
+    c.clearRect(0, 0, w, h);
+    const P = plot(c, w, h, { x: [0, 380], y: [0, 400], xt: [0, 100, 200, 300], yt: [0, 100, 200, 300, 400], xl: '控制气压力 kPa', yl: '药液出口压力 kPa', L: 46 });
+    P.ln([[0, 0], [380, 380]], css('--ink3'), 1, [3, 4]);
+    P.label(330, 345, '1 : 1', css('--ink3'), 'right');
+    P.ln([[0, s.P1], [380, s.P1]], css('--no'), 1, [2, 3]);
+    P.label(6, s.P1, `供液压力 ${s.P1}`, css('--no'), 'left', -9);
+    const cols = ['--s3', '--s2', '--s1'];
+    [20, s.open, 95].forEach((op, i) => {
+      const pts = [];
+      for (let a = 0; a <= 380; a += 5) pts.push([a, C.steadyPTFE(pD, s.P1, a, op / 100 * 0.6).P2]);
+      P.ln(pts, css(cols[i]), i === 1 ? 2.6 : 1.6, i === 1 ? null : [5, 4]);
+      const q = pts[Math.round(pts.length * (0.38 + 0.12 * i))];
+      P.label(q[0], q[1], `下游开 ${op}%`, css(cols[i]), 'left', 12);
+    });
+    const r = C.steadyPTFE(pD, s.P1, 200, s.open / 100 * 0.6);
+    set('l3_read2', rows([['控制气 200 kPa 时药液', `${f1(r.P2)} kPa`], ['药液流量', `${f1(r.Q)} L/min`]]));
+  }
+  bind('l3_p1', (v) => { s.P1 = v; draw(); }, (v) => `${v} kPa`);
   bind('l3_open', (v) => { s.open = v; draw(); }, (v) => `${v} %`);
-  let started = false;
-  whenVisible(cvD, (v) => { if (v && !started) { started = true; draw(); } });
-  onTheme(() => started && draw()); window.addEventListener('resize', () => started && draw());
+  lazy(cvL, draw);
+}
+
+// ---------------- 背压阀：来气量 vs 上游压力（E 页） ----------------
+export function setupBPR() {
+  const s = { dome: 250 };
+  const cv = document.getElementById('cvBpr');
+  function draw() {
+    const { c, w, h } = fit(cv);
+    c.clearRect(0, 0, w, h);
+    const P = plot(c, w, h, { x: [0, 600], y: [0, 600], xt: [0, 150, 300, 450, 600], yt: [0, 150, 300, 450, 600], xl: '上游来气量 NL/min', yl: '上游压力 kPa', L: 46 });
+    const cols = ['--s3', '--s2', '--s1'];
+    [s.dome - 100, s.dome, s.dome + 150].forEach((d, i) => {
+      if (d < 20 || d > 560) return;
+      const pts = [];
+      for (let q = 0; q <= 600; q += q < 20 ? 1 : 10) pts.push([q, C.steadyBPR(d, q).P1g]);
+      P.ln(pts, css(cols[i]), i === 1 ? 2.6 : 1.6, i === 1 ? null : [5, 4]);
+      P.label(480, pts[pts.length - 12][1], `圆顶 ${d} kPa`, css(cols[i]), 'left', -10);
+    });
+    const r0 = C.steadyBPR(s.dome, 10), r1 = C.steadyBPR(s.dome, 400);
+    set('l5_read', rows([['来气 10 NL/min', `${f1(r0.P1g)} kPa`], ['来气 400 NL/min', `${f1(r1.P1g)} kPa`], ['多来 390 NL/min 只涨', `${f1(r1.P1g - r0.P1g)} kPa`], ['膜片抬起', `${(r1.e * 1e3).toFixed(2)} mm`]]));
+  }
+  bind('l5_dome', (v) => { s.dome = v; draw(); }, (v) => `${v} kPa`);
+  lazy(cv, draw);
 }
 
 // ---------------- 实验四：开环 vs 闭环 ----------------
@@ -197,7 +233,7 @@ const NOTES = {
   limitOff: '关掉了压电式的"防冲过头"：积分一直累加。把设定从低往高跳一下，看它冲过头多少。',
   limitOn: '打开"防冲过头"：偏差大时积分放慢，输出饱和时积分停住。再跳一次设定对比。',
 };
-export function setupArena() {
+export function setupArena(focus = -1) {
   const A = C.makeArena(500);
   const env = A.env;
   for (const u of A.units) u.s.P2g = 0;
@@ -225,7 +261,7 @@ export function setupArena() {
   });
   note('start');
   const NAMES = [['开环电气比例阀（F）', '--s1'], ['闭环电气比例阀（G）', '--s2'], ['压电数字式（H）', '--s3']];
-  set('arenaLegend', `<span><i style="border-top:2px dashed var(--ink3);background:none"></i>设定</span>` + NAMES.map(([n, c]) => `<span><i style="background:var(${c})"></i>${n}</span>`).join(''));
+  set('arenaLegend', `<span><i style="border-top:2px dashed var(--ink3);background:none"></i>设定</span>` + NAMES.map(([n, c], i) => `<span><i style="background:var(${c})"></i>${i === focus ? `<b>${n}（本页）</b>` : n}</span>`).join(''));
   function draw() {
     const hist = A.st.hist;
     if (!hist.length) return;
@@ -237,7 +273,7 @@ export function setupArena() {
       const yt = vmax > 600 ? [0, 200, 400, 600, 800] : [0, 100, 200, 300, 400, 500];
       const P = plot(c, w, h, { x: [t0, t1], y: [0, vmax], xt: [], yt, xl: '最近 12 秒', yl: '真实出口压力 kPa', L: 46, B: 26 });
       P.ln(hist.map((r) => [r[0], r[1]]), css('--ink3'), 1.2, [4, 4]);
-      [2, 3, 4].forEach((k, i) => P.ln(hist.map((r) => [r[0], r[k]]), css(NAMES[i][1]), 2.2));
+      [2, 3, 4].forEach((k, i) => P.ln(hist.map((r) => [r[0], r[k]]), css(NAMES[i][1]), focus < 0 ? 2.2 : i === focus ? 3.2 : 1.4, focus < 0 || i === focus ? null : [5, 3]));
     }
     {
       const { c, w, h } = fit(cvP);
