@@ -84,26 +84,34 @@ export function createStage({ canvas, glb, spec, pinsEl, onPin }) {
     const sp = spec.models[name];
     const R = { movers: [], zones: {}, parts: {}, paths: [], ch: {}, flows: {}, box: new THREE.Box3() };
     root.updateMatrixWorld(true);
+    // 注意：剖切过的零件有两种材质（外表面 + 切面），GLTFLoader 会把它变成一个 Group 下挂两个 Mesh，
+    // 零件信息（extras → userData）只在 Group 上。所以这里按"带 part 的节点"收集，而不是只看 Mesh；
+    // 以前只看 Mesh，结果所有剖切零件（手轮、弹簧、膜片、阀芯）都找不到，整台阀一动不动。
     root.traverse((o) => {
-      if (!o.isMesh) return;
       const ud = o.userData;
-      if (ud.kind === 'gas') { (R.zones[ud.zone] ||= []).push(o); return; }
+      if (!ud || !ud.part) return;
+      if (ud.kind === 'gas') { if (o.isMesh) (R.zones[ud.zone] ||= []).push(o); return; }
       (R.parts[ud.part] ||= []).push(o);
       if (!/glass/.test(ud.part)) R.box.expandByObject(o);
     });
     for (const m of sp.movers) {
-      for (const o of R.parts[m.part] || []) {
-        const rec = { m, o, y0: o.position.y, s0: o.scale.y, r0: o.rotation.z };
+      for (const node of R.parts[m.part] || []) {
         if (m.kind === 'dia') {
-          const pos = o.geometry.attributes.position;
-          const w = new Float32Array(pos.count);
-          for (let i = 0; i < pos.count; i++) {
-            const r = Math.hypot(pos.getX(i) - m.cx, pos.getZ(i));
-            w[i] = r <= m.r_in ? 1 : r >= m.r_out ? 0 : ease(1 - (r - m.r_in) / (m.r_out - m.r_in));
+          // 膜片：按半径给每个顶点一个权重，中间跟着走、边缘夹住不动
+          const meshes = [];
+          node.traverse((o) => { if (o.isMesh) meshes.push(o); });
+          for (const o of meshes) {
+            const pos = o.geometry.attributes.position;
+            const w = new Float32Array(pos.count);
+            for (let i = 0; i < pos.count; i++) {
+              const r = Math.hypot(pos.getX(i) - m.cx, pos.getZ(i));
+              w[i] = r <= m.r_in ? 1 : r >= m.r_out ? 0 : ease(1 - (r - m.r_in) / (m.r_out - m.r_in));
+            }
+            R.movers.push({ m, o, base: Float32Array.from(pos.array), w, last: 0 });
           }
-          rec.base = Float32Array.from(pos.array); rec.w = w; rec.last = 0;
+          continue;
         }
-        R.movers.push(rec);
+        R.movers.push({ m, o: node, y0: node.position.y, s0: node.scale.y, r0: node.rotation.z });
       }
     }
     // 气流点
@@ -191,8 +199,9 @@ export function createStage({ canvas, glb, spec, pinsEl, onPin }) {
       const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
       const nx = -dz / l, nz = dx / l;
       const x = a[0] + dx * u + nx * q.j * p.w, z = a[1] + dz * u + nz * q.j * p.w;
-      pos[3 * i] = x; pos[3 * i + 1] = z; pos[3 * i + 2] = 0.06;
       const on = rate > 0.004 ? Math.min(1, 0.35 + rate) : 0;
+      // 没有流量的通道：把点挪走（以前是涂成黑色，落在浅色压力区上会变成一片黑点）
+      pos[3 * i] = x; pos[3 * i + 1] = on ? z : -999; pos[3 * i + 2] = 0.06;
       const c = fc[p.ch] || [0.92, 0.97, 1];
       col[3 * i] = c[0] * on; col[3 * i + 1] = c[1] * on; col[3 * i + 2] = c[2] * on;
     }
@@ -217,10 +226,14 @@ export function createStage({ canvas, glb, spec, pinsEl, onPin }) {
   }
   function reframe() { if (state.model) { const v = viewFor(state.model); fly(v.pos, v.at, 600); } }
   function fly(p, t, ms = 900) { state.fly = { p0: cam.position.clone(), p1: p.clone(), t0: ctl.target.clone(), t1: t.clone(), s: performance.now(), ms }; }
-  function focus(at, dist = 9) {
-    const t = V(...at);
+  // 镜头对准某个零件：目标点往零件那边挪一大半，但距离只拉近到整台视图的 0.72 倍，
+  // 这样零件在画面中间、周围的弹簧 / 膜片 / 阀芯也还看得见（以前拉得太近，只剩一个零件）
+  function focus(at, dist) {
+    const v = viewFor(state.model);
+    const t = v.at.clone().lerp(V(...at), 0.65);
+    const d = dist ?? v.pos.distanceTo(v.at) * 0.72;
     const dir = cam.position.clone().sub(ctl.target).normalize();
-    fly(t.clone().addScaledVector(dir, dist), t, 700);
+    fly(t.clone().addScaledVector(dir, d), t, 700);
   }
 
   // ---- 标注针 ----

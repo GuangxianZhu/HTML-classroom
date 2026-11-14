@@ -2,7 +2,7 @@
 rem Rebuild the Blender models with the local Blender.
 rem Output goes to blender\out: regulators.blend, regulators.glb, spec.json
 rem Pass --render as the first argument to also render the preview images (slow on CPU).
-rem After rebuilding the models, rebuild the web page: cd web, npm install, node build.mjs
+rem After rebuilding the models it repacks index.html and pages\*.html (needs Node.js).
 setlocal
 cd /d "%~dp0"
 title Rebuild Blender models
@@ -46,12 +46,12 @@ if errorlevel 1 (
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo [INFO] Node.js not found. Models rebuilt, but index.html was not repacked.
+  echo [INFO] Node.js not found. Models rebuilt, but the pages were not repacked.
   goto done
 )
-echo Repacking index.html...
+echo Repacking index.html and pages\*.html...
 pushd web
-if not exist node_modules call npm install
+if not exist node_modules\@gltf-transform\core call npm install
 call node build.mjs
 popd
 
