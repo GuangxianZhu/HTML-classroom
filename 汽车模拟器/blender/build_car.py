@@ -935,9 +935,15 @@ def skin_top_z(y, x):
 
 
 def build_cabin(M):
-    """座舱：地板 → 座椅 → 仪表台 / 中控 / 方向盘 → 贴在车身上的内饰板（门板、柱子饰板、顶棚、后隔板）。
-    座椅、仪表台、中控是从软件定义汽车那辆车沿用的（平直的仪表台、中控屏 + 方向盘后面的仪表屏）：
-    模拟器要在仪表屏上显示转速和车速，所以没有换成老式的指针表盘。贴在车身上的内饰板跟着新外形重新生成"""
+    """座舱：地板 → 座椅 → 仪表台 / 中控 / 方向盘 / 挡杆 / 踏板 → 贴在车身上的内饰板（门板、柱子饰板、顶棚、后隔板）。
+    座椅和仪表台的大形是从软件定义汽车那辆车沿用的；仪表、中控、挡杆、踏板按老车的样子重做：
+    方向盘后面一个带遮光罩的仪表盒（网页在表盘上实时画转速表和车速表），中间凸出来的中控台上是出风口、收音机、
+    三个空调旋钮，中央通道上是 P-R-N-D 挡位面板。方向盘、挡杆、两个踏板各是一个物体，原点在转轴上。
+    驾驶员的 H 点、眼点、踏板行程、挡杆倾角都读 params.json 的 cockpit。返回给网页的驾驶位数据（spec.cockpit）"""
+    CP = PT.P['cockpit']
+    HP = Vector(CP['h_point'])
+    EYE = HP + Vector((0, CP['eye_offset'][0], CP['eye_offset'][1]))
+    ck = dict(h_point=list(HP), eye=[round(v, 1) for v in EYE])
     grp('cabin', '座舱', (0, 0, 620, 0))
     grp('trim', '内饰板', (0, 0, 1500, 0))
     S = CH['side']
@@ -950,9 +956,9 @@ def build_cabin(M):
     # H 点离地 588（离地板 242）：电池在地板下面，地板比燃油车高，H 点到地板只能做矮，靠背更躺（电动轿车的通病）
     FLOOR_TOP = 346.0
     seat_m = [M['leather'], M['leather2']]
-    for tag, hx in (('SeatFL', -370), ('SeatFR', 370)):
+    for tag, hx in (('SeatFL', HP.x), ('SeatFR', -HP.x)):
         pad, frame, rail = bmesh.new(), bmesh.new(), bmesh.new()
-        CK.front_seat(pad, frame, rail, (hx, 150, 588), FLOOR_TOP, mi_pad=0, mi_hr=0, mi_insert=1)
+        CK.front_seat(pad, frame, rail, (hx, HP.y, HP.z), FLOOR_TOP, mi_pad=0, mi_hr=0, mi_insert=1)
         add(tag + '_Pad', pad, seat_m, 'cabin', coll='Cabin', ang=45)
         add(tag + '_Frame', frame, [M['seatframe']], 'cabin', coll='Cabin', ang=40)
         add(tag + '_Rail', rail, [M['seatframe']], 'cabin', coll='Cabin', ang=40)
@@ -972,24 +978,29 @@ def build_cabin(M):
     CK.xloft(d, [(900, 930), (776, 930), (756, 926), (746, 906), (746, 868), (758, 852), (790, 848), (900, 848)], xs, 1, ends)
     CK.xloft(d, [(1165, 850), (790, 850), (764, 846), (768, 800), (802, 742), (858, 700), (960, 672), (1165, 660)], xs, 2,
              ends)
-    rbox(d, (0, 744, 909), (1380, 6, 13), 2, 3, 1)                # 贯穿出风口
-    rbox(d, (0, 744.5, 872), (1430, 4, 4), 1, 5, 1)               # 氛围灯条
-    # 中控屏 15.6 吋横屏（约 345 × 195 的显示区）悬浮在仪表台前面，往上仰 10°；后面一个支座
-    rbox(d, (0, 722, 1012), (392, 14, 238), 8, 3, 2, rot=(X, -10))
-    rbox(d, (0, 722 - 7.9, 1012 + 1.4), (372, 3, 218), 1, 4, 1, rot=(X, -10))
-    rbox(d, (0, 742, 915), (80, 30, 70), 8, 3, 1)
-    # 仪表屏 10 吋，方向盘后面，仰 14°（从驾驶员眼点看过去正好在方向盘上缘的上面）
-    rbox(d, (-370, 800, 1032), (270, 12, 96), 6, 3, 2, rot=(X, -14))
-    rbox(d, (-370, 800 - 6.8, 1032 + 1.7), (252, 3, 80), 1, 4, 1, rot=(X, -14))
-    rbox(d, (-370, 820, 986), (60, 24, 40), 6, 3, 1)
+    # 两头各一个出风口，压在木纹饰板上
+    for sx in (-1, 1):
+        rbox(d, (sx * 640, 743, 890), (112, 6, 40), 4, 3, 1)
+    # 中控台：仪表台中间往后凸出来的一块。上面两个出风口、收音机（带一条小显示窗和两个旋钮）、三个空调旋钮
+    rbox(d, (0, 752, 790), (250, 40, 270), 10, 0, 2)
+    for sx in (-1, 1):
+        rbox(d, (sx * 58, 731, 888), (92, 4, 34), 3, 3, 1)
+        for dz in (-8, 0, 8):
+            rbox(d, (sx * 58, 729.5, 888 + dz), (86, 2, 2.4), .8, 2, 1)       # 出风口的横叶片
+        cyl(d, (sx * 72, 730, 818), (sx * 72, 717, 818), 10, mi=2, seg=16)     # 收音机旋钮
+    rbox(d, (0, 730.5, 826), (186, 4, 54), 3, 3, 1)
+    rbox(d, (0, 728.6, 838), (100, 1.5, 15), 1, 4, 1)
+    rbox(d, (0, 731, 742), (222, 3, 70), 3, 3, 1)
+    for x in (-72, 0, 72):
+        cyl(d, (x, 730, 742), (x, 711, 742), 21, 19, mi=2, seg=24)            # 空调：风量、温度、出风位置
+        rbox(d, (x, 710.6, 752), (3, 1.2, 14), .5, 4, 1)                       # 旋钮上的指示线
     # 仪表台上表面是平的，前挡下沿两头却跟着前盖的拱度往下掉：不压一下的话，仪表台两个角会从玻璃里戳出来
     for v in d.verts:
         if v.co.y > 880:
             zs = skin_top_z(v.co.y, abs(v.co.x))
             if zs is not None and v.co.z > zs - 14:
                 v.co.z = zs - 14
-    add('Dash', d, [M['softdark'], M['woodtrim'], M['softlight'], M['piano'], M['screen'], M['ambient']], 'cabin',
-        coll='Cabin', ang=42)
+    add('Dash', d, [M['softdark'], M['woodtrim'], M['softlight'], M['piano'], M['screen']], 'cabin', coll='Cabin', ang=42)
     # 仪表台横梁（Cross Car Beam）：一根钢管横在两根 A 柱之间，仪表台、转向管柱、气囊都挂在它上面
     # （专利 US5934744 / US6554352）。平时被仪表台包着看不见，网页里透视 / 拆开时能看到
     b = bmesh.new()
@@ -1000,9 +1011,53 @@ def build_cabin(M):
     for x in (-60, 60):
         cyl(b, (x, 1010, 885), (x, 1040, 360), 16, mi=0, seg=10)       # 中间两根落地支撑
     add('IP_Beam', b, [M['steel']], 'cabin', coll='Cabin', ang=40)
+    # ---- 仪表盒。从眼点看仪表，视线要从方向盘的气囊盖和轮圈之间那道缝里穿过去：
+    # 先定方向盘（中心、往前倒 22°），再在 y = 735 这个深度上找表盘中心的高度，让视线正好穿过缝的中间，表盘正对眼睛
+    WC = Vector((HP.x, 585.0, 925.0))
+    T_ = radians(22)
+    WN = Vector((0, cos(T_), -sin(T_)))       # 方向盘平面的法线 = 转向管柱的轴线（朝车头）
+    WU = Vector((0, sin(T_), cos(T_)))        # 方向盘平面里的“上”
+    R_, r_ = 178.0, 15.0                      # 轮圈中心半径、轮圈粗细的一半
+    WIN = (50.0, R_ - r_ - 6)                 # 视线能穿过的缝：气囊盖上沿（44）留 6 mm 到轮圈内沿留 6 mm
+
+    def through_wheel(P):
+        """从眼点看 P，视线穿过方向盘平面的那一点在方向盘自己坐标里的高度"""
+        dv = P - EYE
+        t = WN.dot(WC - EYE) / WN.dot(dv)
+        return WU.dot(EYE + dv * t - WC)
+    lo_, hi_ = 800.0, 1300.0
+    for _ in range(60):
+        mid = (lo_ + hi_) / 2
+        if through_wheel(Vector((HP.x, 735.0, mid))) < sum(WIN) / 2:
+            lo_ = mid
+        else:
+            hi_ = mid
+    CC = Vector((HP.x, 735.0, (lo_ + hi_) / 2))
+    CN = (EYE - CC)
+    CN = Vector((0, CN.y, CN.z)).normalized()            # 表盘法线：朝着眼睛
+    CU = Vector((0, CN.z, -CN.y))                        # 表盘里的“上”
+    CW, CHT = 330.0, 116.0
+    tilt = math.degrees(math.atan2(CN.z, -CN.y))         # 表盘往后仰的角度
+    k = bmesh.new()
+
+    def fr(a_, b_, x_=0.0):
+        return CC + CU * a_ + CN * b_ + Vector((x_, 0, 0))
+    rbox(k, fr(0, -26), (CW + 34, 50, CHT + 34), 8, 0, 2, rot=(X, -tilt))              # 盒子
+    rbox(k, fr(0, -1.5), (CW + 4, 3, CHT + 4), 1, 1, 1, rot=(X, -tilt))                # 表盘（网页在上面画表）
+    rbox(k, fr(CHT / 2 + 24, 22), (CW + 40, 64, 10), 4, 0, 2, rot=(X, -tilt))          # 遮光罩
+    rbox(k, fr(-CHT / 2 - 14, 8), (CW + 36, 22, 12), 3, 0, 1, rot=(X, -tilt))          # 下沿
+    for sx in (-1, 1):
+        rbox(k, fr(8, 24, sx * (CW / 2 + 15)), (10, 56, CHT + 40), 3, 0, 1, rot=(X, -tilt))
+    add('Dash_Cluster', k, [M['softdark'], M['piano']], 'cabin', coll='Cabin', ang=40)
+    top_, bot_ = through_wheel(CC + CU * CHT / 2), through_wheel(CC - CU * CHT / 2)
+    ck['cluster'] = dict(c=[round(v, 2) for v in CC], n=[round(v, 5) for v in CN], u=[round(v, 5) for v in CU], w=CW, h=CHT,
+                         tilt=round(tilt, 2), dist=round((EYE - CC).length, 1))
+    ck['sight'] = dict(window=[WIN[0], round(WIN[1], 1)], top=round(top_, 1), bottom=round(bot_, 1))
+    print(f'[cockpit] 仪表中心 y{CC.y:.0f} z{CC.z:.0f} 后仰 {tilt:.1f}°，视线穿过方向盘的高度 {bot_:.0f}…{top_:.0f}'
+          f'（缝 {WIN[0]:.0f}…{WIN[1]:.0f}）')
     # ---- 中央通道：从后排出风口到仪表台下面，一圈圈截面连起来。扶手箱盖、两个杯架、斜的手机无线充电板
     c = bmesh.new()
-    rings = []
+    rings = []                                  # （c 是中央通道；仪表盒用的 k 已经交出去了）
     for y, zt_ in ((-330, 640), (-322, 756), (-300, 770), (150, 770), (172, 700), (196, 688), (450, 688), (480, 700),
                    (700, 742), (800, 760)):
         w_ = 250 + 24 * min(1.0, max(0.0, (y - 150) / 500))
@@ -1012,22 +1067,40 @@ def build_cabin(M):
     rbox(c, (0, -75, 776), (232, 430, 26), 12, 1, 2)
     for sx in (-56, 56):
         cyl(c, (sx, 325, 684), (sx, 325, 690.5), 41, mi=2, seg=24)
-    rbox(c, (0, 590, 726), (190, 190, 5), 2, 2, 1, rot=(X, 10.6))
     rbox(c, (0, -332, 600), (150, 6, 56), 3, 2, 1)
-    add('Console', c, [M['softdark'], M['leather'], M['piano']], 'cabin', coll='Cabin', ang=45)
-    # ---- 方向盘（直径 356）、转向管柱护罩、两根拨杆。盘面往前倒 22°
-    w = bmesh.new()
-    R_, r_ = 178.0, 15.0
+    # 挡位面板：跟中央通道顶面一样往前抬 10.8°，中间一道槽。挡杆垂直于面板，轴心在面板下面 150 mm
+    GY, GZ, GA = 535.0, 711.0, 10.8
+    GU = Vector((0, cos(radians(GA)), sin(radians(GA))))      # 面板上朝车头的方向
+    GN = Vector((0, -sin(radians(GA)), cos(radians(GA))))     # 面板法线（往后上方）
+    rbox(c, (0, GY, GZ), (112, 172, 10), 6, 2, 2, rot=(X, GA))
+    rbox(c, Vector((0, GY, GZ)) + GN * 5.2, (15, 106, 2), 2, 3, 1, rot=(X, GA))
+    add('Console', c, [M['softdark'], M['leather'], M['piano'], M['rubber']], 'cabin', coll='Cabin', ang=45)
+    pivot = Vector((0, GY, GZ)) - GN * 150
+    sh = bmesh.new()
+    cyl(sh, (0, 0, 40), (0, 0, 268), 6.5, mi=0, seg=12)
+    ball(sh, (0, 0, 292), 24, mi=1, seg=20, sc=(1, 1.15, 1.35))
+    rbox(sh, (-23, 0, 300), (8, 18, 12), 3, 2, 1)                                  # 解锁按钮（朝驾驶员那边）
+    bmesh.ops.rotate(sh, verts=sh.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(radians(GA), 3, 'X'))
+    add('Shifter', sh, [M['steel'], M['leather2'], M['piano']], 'cabin', loc=pivot, coll='Cabin', ang=40,
+        extras=dict(kind='shifter'))
+    hs = 155.0                                    # 轴心到面板上表面的距离：挡杆转 θ，过面板的那一点沿面板挪 −hs·tanθ
+    ck['gate'] = dict(c=[round(v, 2) for v in Vector((-38, GY, GZ)) + GN * 5.4], u=[round(v, 5) for v in GU],
+                      n=[round(v, 5) for v in GN], w=26, h=104,
+                      at={g: round(-hs * math.tan(radians(a_)), 1) for g, a_ in CP['gate'].items()})
+    ck['shifter'] = dict(pivot=[round(v, 1) for v in pivot])
+    # ---- 方向盘（直径 356）：轮圈、气囊盖、三根辐条一个物体，原点在方向盘中心，绕转向管柱转。
+    # 转向管柱护罩和两根拨杆不跟着转，单独一个物体
+    w, col = bmesh.new(), bmesh.new()
     seg, m_ = 44, 12
     rings = []
-    for k in range(seg):
-        t = 2 * pi * k / seg
+    for kk in range(seg):
+        t = 2 * pi * kk / seg
         rings.append([w.verts.new(((R_ + r_ * cos(2 * pi * j / m_)) * cos(t), r_ * sin(2 * pi * j / m_),
                                    (R_ + r_ * cos(2 * pi * j / m_)) * sin(t))) for j in range(m_)])
     tf = []
-    for k in range(seg):
+    for kk in range(seg):
         for j in range(m_):
-            f = w.faces.new((rings[k][j], rings[k][(j + 1) % m_], rings[(k + 1) % seg][(j + 1) % m_], rings[(k + 1) % seg][j]))
+            f = w.faces.new((rings[kk][j], rings[kk][(j + 1) % m_], rings[(kk + 1) % seg][(j + 1) % m_], rings[(kk + 1) % seg][j]))
             f.smooth = True
             tf.append(f)
     bmesh.ops.recalc_face_normals(w, faces=tf)
@@ -1035,16 +1108,49 @@ def build_cabin(M):
     for sx in (-1, 1):
         cyl(w, (sx * 60, 30, 2), (sx * 170, 4, 4), 18, 13, 0, seg=10)            # 左右辐条
         cyl(w, (sx * 24, 34, -46), (sx * 44, 5, -170), 13, 11, 0, seg=10)        # 下面两根
-        cyl(w, (sx * 45, 112, 8), (sx * 168, 96, 28), 9, 7, 1, seg=8)            # 拨杆
-    cyl(w, (0, 52, 0), (0, 300, 0), 42, 48, 1, seg=20)                          # 管柱护罩
-    bmesh.ops.rotate(w, verts=w.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(radians(-22), 3, 'X'))
-    add('SteeringWheel', w, [M['softdark'], M['piano']], 'cabin', loc=(-370, 585, 925), coll='Cabin', ang=45)
-    # ---- 踏板：右边细长的是电门，左边宽的是刹车
-    pd = bmesh.new()
-    rbox(pd, (-292, 1085, 440), (48, 16, 120), 5, 0, 1, rot=(X, -28))
-    rbox(pd, (-405, 1075, 462), (86, 16, 56), 5, 0, 1, rot=(X, -28))
-    cyl(pd, (-405, 1082, 470), (-405, 1150, 640), 7, mi=0, seg=8)
-    add('Pedals', pd, [M['piano']], 'cabin', coll='Cabin', ang=40)
+        cyl(col, (sx * 45, 112, 8), (sx * 168, 96, 28), 9, 7, 1, seg=8)          # 拨杆
+    cyl(col, (0, 60, 0), (0, 300, 0), 42, 48, 1, seg=20)                        # 管柱护罩
+    for bm_ in (w, col):
+        bmesh.ops.rotate(bm_, verts=bm_.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(radians(-22), 3, 'X'))
+    add('SteeringWheel', w, [M['softdark'], M['piano']], 'cabin', loc=WC, coll='Cabin', ang=45,
+        extras=dict(kind='steer', axis=[0.0, round(WN.y, 5), round(WN.z, 5)]))
+    add('SteeringColumn', col, [M['softdark'], M['piano']], 'cabin', loc=WC, coll='Cabin', ang=45)
+    ck['wheel'] = dict(c=list(WC), axis=[0.0, round(WN.y, 5), round(WN.z, 5)], r=R_ + r_)
+    # ---- 踏板：吊在仪表台下面，各绕自己的铰链转。右边窄的是油门，左边宽的是刹车（自动挡没有离合）
+    ck['pedals'] = {}
+    for nm, piv, pad_c, pad_s, arm_r, trav in (('Pedal_Acc', (-292, 1120, 650), (0, -35, -210), (48, 16, 120), 6, CP['acc_travel']),
+                                                ('Pedal_Brake', (-412, 1116, 690), (0, -46, -228), (112, 16, 62), 8, CP['brake_travel'])):
+        pd = bmesh.new()
+        vs = rbox(pd, pad_c, pad_s, 5, 1, 1, rot=(X, -28))
+        top = Vector(pad_c) + Matrix.Rotation(radians(-28), 3, 'X') @ Vector((0, 0, pad_s[2] / 2 - 8))
+        cyl(pd, (0, 0, 8), top, arm_r, mi=0, seg=10)
+        cyl(pd, (-14, 0, 0), (14, 0, 0), 11, mi=0, seg=12)                    # 铰链套
+        # 踩到底时踏板最靠前的一点离前围板还有多远；松开时离地板多高
+        rot = Matrix.Rotation(radians(trav), 3, 'X')
+        y_max = max((rot @ v.co).y for v in vs) + piv[1]
+        z_min = min(v.co.z for v in vs) + piv[2]
+        ck['pedals'][nm] = dict(pivot=list(piv), travel=trav, firewall=round(SH.Y_FIREWALL - 6 - y_max, 1),
+                                floor=round(z_min - FLOOR_TOP, 1))
+        add(nm, pd, [M['steel'], M['rubber']], 'cabin', loc=piv, coll='Cabin', ang=40, extras=dict(kind='pedal', travel=trav))
+    pb = bmesh.new()
+    rbox(pb, (-352, 1150, 672), (176, 66, 74), 6, 0, 1)                         # 踏板支架，挂在前围板上
+    add('Pedal_Box', pb, [M['steel']], 'cabin', coll='Cabin', ang=40)
+    # ---- 坐在驾驶位能看到什么：头顶离顶棚多远；车头前面多远以内的地面被前盖挡住（沿驾驶员正前方）
+    ck['headroom'] = round(skin_top_z(EYE.y, abs(EYE.x)) - 40 - EYE.z, 1)
+    best = None
+    for yy in range(int(SH.Y_COWL) + 10, int(SH.Y_NOSE) - 4, 10):
+        zt = skin_top_z(yy, abs(EYE.x))
+        if zt is None:
+            continue
+        sl = (EYE.z - zt) / (yy - EYE.y)
+        if best is None or sl < best[0]:
+            best = (sl, yy, zt)
+    g_ = EYE.y + EYE.z / best[0]
+    ck['blind'] = dict(down_deg=round(math.degrees(math.atan(best[0])), 2), graze=[best[1], round(best[2], 1)],
+                       ground=round(g_, 0), ahead_of_nose=round(g_ - SH.Y_NOSE, 0))
+    ck['look'] = [EYE.x, EYE.y + 2600, EYE.z - 260]
+    print(f"[cockpit] 头顶到顶棚 {ck['headroom']:.0f} mm，车头前 {ck['blind']['ahead_of_nose'] / 1000:.1f} m 以内的地面看不见；"
+          f"踏板踩到底离前围板 {ck['pedals']['Pedal_Acc']['firewall']:.0f} / {ck['pedals']['Pedal_Brake']['firewall']:.0f} mm")
     # ================= 贴在车身上的内饰板：和车板用同一块区域，沿法线往车里收（carkit.inner），所以和车身严丝合缝
     # 顶棚：车顶那一片往里 40；前到前挡上沿，后到后挡上沿
     t = bmesh.new()
@@ -1091,6 +1197,7 @@ def build_cabin(M):
     rbox(t, (0, 742, 1336), (232, 22, 64), 12, 0, 2, rot=(X, -12))
     cyl(t, (0, 706, 1398), (0, 738, 1346), 9, mi=0, seg=10)
     add('Trim_RearMirror', t, [M['piano']], 'trim', coll='Cabin', ang=40)
+    return ck
 
 
 def setup_render():
@@ -1359,8 +1466,9 @@ def main():
     build_wheels(M)
     if 'chassis' not in skip:
         build_chassis(M)
+    ck = None
     if 'cabin' not in skip:
-        build_cabin(M)
+        ck = build_cabin(M)
     pt = None
     if 'powertrain' not in skip:
         from types import SimpleNamespace
@@ -1370,7 +1478,7 @@ def main():
         o.data.calc_loop_triangles()
         tris += len(o.data.loop_triangles)
     spec = dict(groups=GROUPS, explode={k: list(v) for k, v in EX.items()}, objects={o.name: g for o, g in OBJS}, tris=tris,
-                gaps=gaps, dims=dict(L=Y_NOSE - Y_TAIL, WB=2 * WB, track=2 * TRACK, r_tyre=R_TYRE), params=PT.P, powertrain=pt)
+                gaps=gaps, dims=dict(L=Y_NOSE - Y_TAIL, WB=2 * WB, track=2 * TRACK, r_tyre=R_TYRE), params=PT.P, powertrain=pt, cockpit=ck)
     cam = setup_render()
     if not ARGS.noexport:
         with open(os.path.join(OUT, 'spec.json'), 'w', encoding='utf-8') as f:
@@ -1390,6 +1498,7 @@ def main():
             front=((0, 16, .75), (0, 0, .72), 230, ()),
             rear=((0, -16, .75), (0, 0, .72), 230, ()),
             interior=((0, -.3, 1.17), (-.12, 1.0, .88), 16, ()),
+            driver=((-.37, -.01, 1.222), (-.37, 2.59, .962), 15, ()),      # 驾驶员的眼点（params.json 的 cockpit）
             cabin=((-3.3, -3.5, 3.4), (0, .25, .6), 58, CUT_HIDE),
             # 动力系统：打开前盖 / 只看动力总成 / 拿掉壳体看里面 / 拿掉车身看底盘
             bay=((-1.5, 4.3, 2.5), (0, 1.62, .62), 58, ('Panel_Hood',)),

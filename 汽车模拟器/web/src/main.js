@@ -6,7 +6,7 @@ import { makeCar, run, RPM, clamp, stroke, valveLift } from './core.js';
 import { Stage } from './stage.js';
 
 const $ = (id) => document.getElementById(id);
-const car = makeCar(P), S = P.sim, C = P.cvt, V = P.vehicle, E = P.engine;
+const car = makeCar(P), S = P.sim, C = P.cvt, V = P.vehicle, E = P.engine, CK = spec.cockpit;
 const H = 1 / 240;                                  // 仿真步长
 let s = car.initial();
 let o = car.step(s, { pedal: 0, brake: 0 }, H);
@@ -224,6 +224,62 @@ function energy() {
   for (const [id] of ESEG) { $(`e_${id}`).style.flexGrow = Math.max(0, val[id]); $(`el_${id}`).textContent = `${f1(val[id] / 1000)} kW`; }
 }
 
+// ------------------------------------------------------------------ 车里的仪表盘和挡位面板：画在三维模型的表面上
+const NUMF = css('--num') || 'sans-serif';
+function cDial(x, cx, cy, R, { max, major, minor, every = major, label, red, unit }, val) {
+  const a0 = 210, sweep = 240;                         // 从左下 210° 顺时针扫到右下 −30°
+  const ang = (v) => (a0 - sweep * Math.min(Math.max(v, 0), max) / max) * Math.PI / 180;
+  const P_ = (v, r) => [cx + r * Math.cos(ang(v)), cy - r * Math.sin(ang(v))];
+  x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fillStyle = '#0c0f12'; x.fill();
+  x.lineWidth = R * .025; x.strokeStyle = '#2b333b'; x.stroke();
+  if (red) { x.beginPath(); x.arc(cx, cy, R * .9, -ang(red[0]), -ang(red[1])); x.strokeStyle = '#e0412b'; x.lineWidth = R * .09; x.stroke(); }
+  for (let v = 0; v <= max + 1e-6; v += minor) {
+    const big = Math.abs(v / major - Math.round(v / major)) < 1e-6, [x0, y0] = P_(v, R * .95), [x1, y1] = P_(v, R * (big ? .78 : .86));
+    x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.strokeStyle = big ? '#f4efe4' : '#9aa3ab'; x.lineWidth = R * (big ? .04 : .022); x.stroke();
+    if (big && Math.abs(v / every - Math.round(v / every)) < 1e-6) { const [tx, ty] = P_(v, R * .6); x.fillStyle = '#f4efe4'; x.font = `600 ${R * .19}px ${NUMF}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(label(v), tx, ty); }
+  }
+  x.fillStyle = '#9aa3ab'; x.font = `${R * .12}px system-ui, sans-serif`; x.textAlign = 'center'; x.fillText(unit, cx, cy + R * .42);
+  const [nx, ny] = P_(val, R * .9), [bx, by] = P_(val, -R * .16);
+  x.save(); x.shadowColor = 'rgba(255,90,46,.8)'; x.shadowBlur = R * .08;
+  x.beginPath(); x.moveTo(bx, by); x.lineTo(nx, ny); x.strokeStyle = '#ff5a2e'; x.lineWidth = R * .05; x.lineCap = 'round'; x.stroke(); x.restore();
+  x.beginPath(); x.arc(cx, cy, R * .09, 0, 7); x.fillStyle = '#1d232a'; x.fill();
+}
+const TACH = { max: 7, major: 1, minor: .5, label: (v) => v, red: [S.limit / 1000, 7], unit: '×1000 r/min' };
+const SPEEDO = { max: 200, major: 20, minor: 10, every: 40, label: (v) => v, unit: 'km/h' };   // 表盘小，数字每 40 标一个，不然挤在一起
+function drawCluster() {
+  const { ctx: x, canvas: c, tex } = stage.cluster, W = c.width, Hh = c.height, k = W / CK.cluster.w;
+  x.fillStyle = '#050607'; x.fillRect(0, 0, W, Hh);
+  const R = 52 * k, cy = Hh / 2;
+  cDial(x, W / 2 - 90 * k, cy, R, TACH, o.n / 1000);
+  cDial(x, W / 2 + 90 * k, cy, R, SPEEDO, Math.abs(o.kmh));
+  // 中间一条：挡位（亮的是现在这个挡）和这一趟的里程
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  ['P', 'R', 'N', 'D'].forEach((g, i) => {
+    const on = g === s.gear;
+    x.font = `700 ${12 * k}px ${NUMF}`; x.fillStyle = on ? '#ffb23e' : '#3a434c';
+    if (on) { x.shadowColor = 'rgba(255,178,62,.9)'; x.shadowBlur = 3 * k; }
+    x.fillText(g, W / 2, cy - 33 * k + i * 15 * k); x.shadowBlur = 0;
+  });
+  x.fillStyle = '#10161b'; x.fillRect(W / 2 - 17 * k, cy + 28 * k, 34 * k, 13 * k);
+  x.fillStyle = '#9fd3a8'; x.font = `600 ${7.5 * k}px ${NUMF}`; x.fillText((s.dist / 1000).toFixed(2), W / 2, cy + 35 * k);
+  x.fillStyle = '#6c757e'; x.font = `${4.6 * k}px system-ui, sans-serif`; x.fillText('TRIP km', W / 2, cy + 47 * k);
+  tex.needsUpdate = true;
+}
+let gateDrawn = '';
+function drawGate() {
+  if (gateDrawn === s.gear) return;
+  gateDrawn = s.gear;
+  const { ctx: x, canvas: c, tex } = stage.gatePlate, k = c.height / CK.gate.h;
+  x.clearRect(0, 0, c.width, c.height); x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (const [g, at] of Object.entries(CK.gate.at)) {
+    const on = g === s.gear;
+    x.font = `700 ${12 * k}px ${NUMF}`; x.fillStyle = on ? '#ffb23e' : '#6f7880';
+    x.shadowColor = on ? 'rgba(255,178,62,.9)' : 'transparent'; x.shadowBlur = on ? 4 * k : 0;
+    x.fillText(g, c.width / 2, c.height / 2 - at * k);
+  }
+  tex.needsUpdate = true;
+}
+
 // ------------------------------------------------------------------ 点零件
 const order = Object.fromEntries(E.firing.map((c, k) => [String(c), k]));
 const cyc = (c) => stage.ang.crank * 180 / Math.PI - 180 * order[c];
@@ -263,6 +319,15 @@ const PARTS = [
   [/^Wheel_(FL|FR|RL|RR)$/, (m) => `${WHEEL[m[1]]}车轮`, (m) => `${rpm(o.nSec / car.final)}。${m[1][0] === 'F' ? '前轮是驱动轮。' : '后轮只是跟着转。'}`],
   [/^Brake_/, () => '制动盘和卡钳', () => ''],
   [/^Panel_Hood$/, () => '前盖', () => '在“整车”里点右下角的“开前盖”。'],
+  [/^SteeringWheel$/, () => '方向盘', () => '转向还没做，现在它只是摆着。转轴已经装在转向管柱的中心线上，下一步做转向时它会跟着打。'],
+  [/^SteeringColumn$/, () => '转向管柱护罩和拨杆', () => '两根拨杆一根管转向灯和大灯、一根管雨刮。方向盘转的时候它不动。'],
+  [/^Shifter$/, () => '挡杆', () => `现在在 ${s.gear} 挡。从前往后是 P、R、N、D。车在动的时候挂不进 P，也不能直接从前进换到倒车。`],
+  [/^Pedal_Acc$/, () => '油门踏板', () => `踩下 ${f0(o.pedal * 100)}%（踩到底绕铰链转 ${P.cockpit.acc_travel}°）。这台车的油门不直接拉节气门：踩多深代表想要多少功率，电脑再去定节气门和速比。`],
+  [/^Pedal_Brake$/, () => '刹车踏板', () => `踩下 ${f0(o.brake * 100)}%（踩到底绕铰链转 ${P.cockpit.brake_travel}°），踩到底大约 ${f1(V.brake_g)} g 的减速度。自动挡没有离合，所以刹车踏板做得宽。`],
+  [/^Pedal_Box$/, () => '踏板支架', () => '挂在前围板上，两个踏板的铰链都在它上面。'],
+  [/^Dash_Cluster$/, () => '仪表', () => `左边转速表，右边车速表，中间是挡位和这一趟的里程。位置是按视线定的：从驾驶员的眼睛看过去，正好从方向盘轮圈和气囊盖之间那道缝里露出来。`],
+  [/^Dash$/, () => '仪表台', () => '中间凸出来的是中控台：两个出风口、收音机、三个空调旋钮（风量、温度、出风位置）。这一版只是摆设。'],
+  [/^Console$/, () => '中央通道', () => '挡位面板、两个杯架、扶手箱。挡位面板上亮的字母是现在的挡。'],
 ];
 let tipName = '', tipT = 0;
 function tipText() {
@@ -331,13 +396,19 @@ window.addEventListener('blur', () => { keys.up = keys.down = false; });
 function setMode(m) {
   stage.setMode(m);
   document.querySelectorAll('#modes button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === m));
-  $('hood').hidden = m !== 'car'; $('camEng').hidden = $('camCvt').hidden = m === 'car';
+  const drive = m === 'drive';
+  $('hood').hidden = m !== 'car'; $('camEng').hidden = $('camCvt').hidden = m === 'car' || drive;
+  for (const id of ['camAhead', 'camGauge', 'camFeet']) $(id).hidden = !drive;
+  $('slowWrap').hidden = drive;                          // 坐在车里一切都是真实速度
   showTip('');
 }
 document.querySelectorAll('#modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $('hood').addEventListener('click', () => { const on = $('hood').getAttribute('aria-pressed') !== 'true'; $('hood').setAttribute('aria-pressed', on); $('hood').textContent = on ? '关前盖' : '开前盖'; stage.setHood(on); });
 $('camEng').addEventListener('click', () => stage.lookAt('engine'));
 $('camCvt').addEventListener('click', () => stage.lookAt('cvt'));
+$('camAhead').addEventListener('click', () => stage.lookAt('drive'));
+$('camGauge').addEventListener('click', () => stage.lookAt('gauges'));
+$('camFeet').addEventListener('click', () => stage.lookAt('feet'));
 $('slow').addEventListener('change', (e) => { slow = +e.target.value; });
 {
   let down = null;
@@ -370,7 +441,8 @@ function facts(r) {
     ['t2', '设定', `变矩器失速时把扭矩放大 ${S.tc_stall_ratio} 倍；车速过 ${S.lock_on_kmh} km/h 锁止离合器压紧，低于 ${S.lock_off_kmh} km/h 松开。`],
     ['t3', '估算', `油耗 = 缸内做的功 ÷ ${f0(S.eta_ind * 100)}% ÷ 汽油热值。摩擦和泵气损失按转速的直线估，算出来最好的有效热效率约 35%。`],
     ['t3', '估算', `钢带这一段的效率固定取 ${f0(S.eta_cvt * 100)}%、主减速 ${f0(S.eta_final * 100)}%。真的会随速比和扭矩变。上面三个性能数字是这套设定算出来的结果。`],
-    ['', '没算', `轮胎打滑（只把驱动力封顶在前轮抓地力上）、冷车、水温和风扇、钢带打滑、转向和悬架。坡度只算了重力的分力，画面不会倾斜。`],
+    ['t2', '设定', `驾驶员坐左边，眼点在 H 点后 ${-P.cockpit.eye_offset[0]} mm、上 ${P.cockpit.eye_offset[1]} mm。从这里往前看，车头前面约 ${f1(CK.blind.ahead_of_nose / 1000)} m 以内的地面被前盖挡住。仪表的高度按视线算：要从方向盘轮圈和气囊盖之间那道缝里露出来。`],
+    ['', '没算', `轮胎打滑（只把驱动力封顶在前轮抓地力上）、冷车、水温和风扇、钢带打滑、转向和悬架（方向盘还不能打）。坡度只算了重力的分力，画面不会倾斜，车身也不会因为加速、刹车前后点头。`],
   ];
   $('facts').innerHTML = li.map(([c, t, x]) => `<li><span class="tag ${c}">${t}</span>${x}</li>`).join('');
 }
@@ -413,11 +485,11 @@ function tick(dt) {
 function frame(now) {
   const dt = Math.min(.1, (now - last) / 1000); last = now;
   tick(dt);
-  stage.update(dt, o, slow);
+  stage.update(dt, o, slow, s.gear);
   tach.set(o.n, f0(Math.round(o.n / 10) * 10)); tach.target(o.dir ? o.nTarget : null);
   speedo.set(Math.abs(o.kmh), f0(Math.abs(o.kmh)));
   uiT += dt; plotT += dt;
-  if (plotT > .033) { plotT = 0; drawPulleys(); }
+  if (plotT > .033) { plotT = 0; drawPulleys(); drawCluster(); drawGate(); }
   if (uiT > .12) {
     uiT = 0; tiles(); explain(); energy(); drawVario();
     $('pr1').textContent = f1(stage.r1); $('pr2').textContent = f1(stage.r2); $('pratio').textContent = f2(o.ratio);
