@@ -1,0 +1,5 @@
+blender_path.txt
+*.blend1
+__pycache__/
+web/dist/
+web/node_modules/
