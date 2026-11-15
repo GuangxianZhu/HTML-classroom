@@ -5,7 +5,7 @@
 ## 在线演示（点链接直接打开）
 
 下面这些页面都是单个 html 文件，放在 GitHub Pages 上，手机和电脑点开就能用，不用装任何东西。动图是用无头浏览器实际打开页面、点几下录下来的（比实际播放快一些）。
-页面里嵌着三维模型，单页 0.2 ~ 6 MB，第一次打开要等几秒。
+页面里嵌着三维模型，单页 0.1 ~ 11 MB，第一次打开要等几秒。
 
 | 预览 | 项目 |
 | --- | --- |
@@ -26,6 +26,7 @@
 | <a href="https://guangxianzhu.github.io/HTML-classroom/%E7%94%B5%E6%B5%81%E6%80%8E%E4%B9%88%E8%BD%AC%E5%8A%A8%E7%A3%81%E5%9C%BA/index.html"><img src="docs/previews/current-field.gif" width="360" alt="电流怎么转动磁场"></a> | **[电流怎么转动磁场](https://guangxianzhu.github.io/HTML-classroom/%E7%94%B5%E6%B5%81%E6%80%8E%E4%B9%88%E8%BD%AC%E5%8A%A8%E7%A3%81%E5%9C%BA/index.html)** ▶ 点击打开<br><br>零基础电机课：不用公式，从指南针讲到三相电、扭矩转速和逆变器，九步都能动手（纯 2D 离线页）<br><br>源码和说明：[电流怎么转动磁场/](%E7%94%B5%E6%B5%81%E6%80%8E%E4%B9%88%E8%BD%AC%E5%8A%A8%E7%A3%81%E5%9C%BA/) |
 | <a href="https://guangxianzhu.github.io/HTML-classroom/%E7%94%B5%E5%8A%A8%E8%BD%A6%E7%94%B5%E6%9C%BA%E8%B0%83%E9%80%9F/index.html"><img src="docs/previews/ev-motor.gif" width="360" alt="电动车电机调速"></a> | **[电动车电机调速](https://guangxianzhu.github.io/HTML-classroom/%E7%94%B5%E5%8A%A8%E8%BD%A6%E7%94%B5%E6%9C%BA%E8%B0%83%E9%80%9F/index.html)** ▶ 点击打开<br><br>Blender 建模 + 实时 dq 仿真：电动车的电机怎么调扭矩、调转速，十章从旋转磁场讲到 FOC、弱磁、能量回收和试驾<br><br>源码和说明：[电动车电机调速/](%E7%94%B5%E5%8A%A8%E8%BD%A6%E7%94%B5%E6%9C%BA%E8%B0%83%E9%80%9F/) |
 | <a href="https://guangxianzhu.github.io/HTML-classroom/%E8%BD%AF%E4%BB%B6%E5%AE%9A%E4%B9%89%E6%B1%BD%E8%BD%A6/index.html"><img src="docs/previews/sdv.gif" width="360" alt="软件定义汽车"></a> | **[软件定义汽车](https://guangxianzhu.github.io/HTML-classroom/%E8%BD%AF%E4%BB%B6%E5%AE%9A%E4%B9%89%E6%B1%BD%E8%BD%A6/index.html)** ▶ 点击打开<br><br>Blender 建模的同一辆车、三代电子电气架构：线束和改动范围由模型算出来，八章讲清软件定义和经典研发的差别，从架构、V 模型、车队灰度讲到组织、成本和路线选择<br><br>源码和说明：[软件定义汽车/](%E8%BD%AF%E4%BB%B6%E5%AE%9A%E4%B9%89%E6%B1%BD%E8%BD%A6/) |
+| <a href="https://guangxianzhu.github.io/HTML-classroom/%E6%B1%BD%E8%BD%A6%E6%A8%A1%E6%8B%9F%E5%99%A8/index.html"><img src="docs/previews/carsim.gif" width="360" alt="汽车模拟器"></a> | **[汽车模拟器](https://guangxianzhu.github.io/HTML-classroom/%E6%B1%BD%E8%BD%A6%E6%A8%A1%E6%8B%9F%E5%99%A8/index.html)** ▶ 点击打开<br><br>一辆虚构的直板老式三厢车，Blender 建模的 1.5 L 四缸 + 液力变矩器 + 钢带 CVT：挂 D 拖油门，曲轴、活塞、气门、锥轮、钢带按算出来的转速转，看转速、速比、车速、油耗怎么变，带蠕行、失速、断油滑行和 0→100 计时<br><br>源码和说明：[汽车模拟器/](%E6%B1%BD%E8%BD%A6%E6%A8%A1%E6%8B%9F%E5%99%A8/) |
 | <a href="https://guangxianzhu.github.io/HTML-classroom/%E6%97%A0%E8%BD%AC%E7%9B%98%E5%BE%AE%E6%B3%A2%E7%82%89/index.html"><img src="docs/previews/microwave.gif" width="360" alt="无转盘微波炉"></a> | **[无转盘微波炉](https://guangxianzhu.github.io/HTML-classroom/%E6%97%A0%E8%BD%AC%E7%9B%98%E5%BE%AE%E6%B3%A2%E7%82%89/index.html)** ▶ 点击打开<br><br>Blender 建模 + 三维电磁仿真：地板下的回转天线怎么让热点轮换，和转盘比谁更匀<br><br>源码和说明：[无转盘微波炉/](%E6%97%A0%E8%BD%AC%E7%9B%98%E5%BE%AE%E6%B3%A2%E7%82%89/) |
 | <a href="https://guangxianzhu.github.io/HTML-classroom/%E6%8C%89D%E5%88%B0%E9%97%AA%E7%8E%B0/index.html"><img src="docs/previews/flash.gif" width="360" alt="按D到闪现"></a> | **[按D到闪现](https://guangxianzhu.github.io/HTML-classroom/%E6%8C%89D%E5%88%B0%E9%97%AA%E7%8E%B0/index.html)** ▶ 点击打开<br><br>通信原理：从在英雄联盟里按下 D 到屏幕上看到闪现，一次按键往返的 12 站、延迟预算和服务器权威判定（纯 2D 离线页）<br><br>源码和说明：[按D到闪现/](%E6%8C%89D%E5%88%B0%E9%97%AA%E7%8E%B0/) |
 

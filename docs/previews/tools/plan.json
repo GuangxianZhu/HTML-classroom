@@ -712,5 +712,39 @@
     3000
    ]
   ]
+ },
+ "carsim": {
+  "page": "汽车模拟器/index.html",
+  "colors": 64,
+  "loadWait": 14000,
+  "steps": [
+   [
+    "mark"
+   ],
+   [
+    "jsclick",
+    "#try button:nth-child(4)"
+   ],
+   [
+    "wait",
+    8000
+   ],
+   [
+    "jsclick",
+    "#modes [data-mode=inside]"
+   ],
+   [
+    "wait",
+    8000
+   ],
+   [
+    "jsclick",
+    "#camCvt"
+   ],
+   [
+    "wait",
+    12000
+   ]
+  ]
  }
 }

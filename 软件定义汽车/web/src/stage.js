@@ -74,8 +74,9 @@ export class Stage {
     });
     // 车身类：准备一份透视用的幽灵网格，和实体叠着，靠 material.visible 切换
     // frame = 白车身骨架（车框），在外板里面：透视时和外板一起变成幽灵，拆开时抬到外板和座舱中间
-    const STRUCT = { shell: ['#7fb6e6', .42, 2.0], frame: ['#9fb2c6', .2, 2.2], cabin: ['#6d88a6', .17, 2.6], chassis: ['#6d88a6', .22, 2.4], wheels: ['#7d93ab', .34, 2.0] };
-    this.groupNodes = { shell: [], frame: [], cabin: [], chassis: [], wheels: [] };
+    // trim = 贴在车身上的内饰板（顶棚、柱子饰板、门板、后隔板）：透视时很淡，拆开时停在骨架和外板之间
+    const STRUCT = { shell: ['#7fb6e6', .42, 2.0], frame: ['#9fb2c6', .2, 2.2], trim: ['#8aa0b8', .08, 2.8], cabin: ['#6d88a6', .17, 2.6], chassis: ['#6d88a6', .22, 2.4], wheels: ['#7d93ab', .34, 2.0] };
+    this.groupNodes = { shell: [], frame: [], trim: [], cabin: [], chassis: [], wheels: [] };
     this.gm = Object.fromEntries(Object.entries(STRUCT).map(([k, v]) => [k, ghostMat(...v)]));
     root.children.forEach((n) => {
       const g = n.userData.g;
@@ -88,7 +89,7 @@ export class Stage {
           // 实车时按不透明画：开着 transparent 会被丢进透明队列、关掉面排序，车身和贴在上面的缝线
           // 谁先画谁后画就看物体中心远近，边缘会闪、会互相吃掉。透视渐变时 _applyStruct 再打开。
           // 玻璃例外：要一直半透明才能看到车里，不写深度、最后画（renderOrder 2），盖在车里的东西上面
-          o.userData.glass = o.material.name === 'Glass';
+          o.userData.glass = /^Glass/.test(o.material.name);   // Glass 和后排的隐私玻璃 GlassTint
           o.userData.alpha = o.userData.glass ? o.material.opacity : 1;
           o.material.transparent = o.userData.glass;
           if (o.userData.glass) { o.material.depthWrite = false; o.renderOrder = 2; }
@@ -398,10 +399,10 @@ export class Stage {
       o.material.opacity = o.userData.alpha * (1 - k);
       o.material.depthWrite = !glass && k < .5;
     }
-    const a = { shell: .42, frame: .2, cabin: .17, chassis: .22, wheels: .34 };
-    for (const g in this.gm) this.gm[g].uniforms.uA.value = a[g] * k * ((g === 'shell' || g === 'frame') && this.shellHidden ? .12 : 1);
+    const a = { shell: .42, frame: .2, trim: .08, cabin: .17, chassis: .22, wheels: .34 };
+    for (const g in this.gm) this.gm[g].uniforms.uA.value = a[g] * k * ((g === 'shell' || g === 'frame' || g === 'trim') && this.shellHidden ? .12 : 1);
     const e = this.explodeK;
-    const lift = { shell: 1.55, frame: 1.08, cabin: .62, chassis: -.82, wheels: -.82 };
+    const lift = { shell: 1.55, frame: 1.08, trim: 1.3, cabin: .62, chassis: -.82, wheels: -.82 };
     for (const g in this.groupNodes) {
       for (const n of this.groupNodes[g]) {
         n.position.y = n.userData.base.y + lift[g] * e;

@@ -2,7 +2,7 @@
 """
 carkit · 脚本化汽车建模套件（Blender bmesh，单位毫米，+X 车右 / +Y 车头 / +Z 朝上）
 
-版本 1.0（2026-11-14）
+版本 1.1（2026-11-15）
 母版在仓库根目录 汽车建模套件/carkit.py。用到它的项目在自己的 blender/ 里放一份副本，
 这样项目文件夹单独拷走也能跑；改了副本记得回写母版，再同步到其他项目。
 
@@ -40,7 +40,7 @@ import bmesh
 from mathutils import Vector
 from mathutils.geometry import delaunay_2d_cdt
 
-VERSION = '1.0'
+VERSION = '1.1'
 
 
 # ======================================================================== 外皮
@@ -822,6 +822,149 @@ def greenhouse(chart, belt, ws_edge, rail, c_line, b_y, div_y=None, a_width=70.0
     return res
 
 
+# ======================================================================== 内饰：沿车门走的凸条、沿车宽拉伸的型材
+def door_ridge(bm, skin, y0, y1, z_top, z_bot, d0, d1, mi=0, step=40.0, mirror=True, s_lo=3.0, s_hi=7.3, taper=60.0):
+    """沿车门内侧走的一根横条（扶手、腰线上的窗台盖板）：在高度 z_bot ~ z_top 之间，
+    离外皮（水平方向）d0 ~ d1 毫米（z_top / z_bot 可以给函数 z(y)，比如跟着腰线走）。跟着外皮的弯度走，所以和 inner() 做的门板贴得上。两头在 taper 毫米里收进门板"""
+    n = max(2, int(abs(y1 - y0) / step))
+    for side in ((1, -1) if mirror else (1,)):
+        rings = []
+        for i in range(n + 1):
+            y = y0 + (y1 - y0) * i / n
+            e = min(1.0, (min(abs(y - y0), abs(y - y1)) + 1.0) / max(taper, 1.0))
+            e = .12 + .88 * (e * e * (3 - 2 * e))
+            ring = []
+            zt = z_top(y) if callable(z_top) else z_top
+            zb = z_bot(y) if callable(z_bot) else z_bot
+            for z, d in ((zt, d0), (zt, d0 + (d1 - d0) * e), (zb, d0 + (d1 - d0) * e), (zb, d0)):
+                s = skin.s_at_z(y, z, s_lo, s_hi)
+                q = skin.p(y, s, side)
+                nn = skin.n(y, s, side)
+                nh = Vector((nn.x, nn.y, 0.0))
+                if nh.length < 1e-6:
+                    nh = Vector((side, 0, 0))
+                nh.normalize()
+                ring.append(q - nh * d)
+            rings.append(ring)
+        loft(bm, rings, mi, smooth=False)
+
+
+def xloft(bm, prof, xs, mi=0, scale=None, smooth=True):
+    """沿车宽 X 拉伸一个 (y, z) 闭合截面（仪表台、后隔板）。scale(x) 给每个站位的缩放（绕截面中心），两头封口"""
+    cy = sum(q[0] for q in prof) / len(prof)
+    cz = sum(q[1] for q in prof) / len(prof)
+    rings = []
+    for x in xs:
+        k = scale(x) if scale else 1.0
+        rings.append([Vector((x, cy + (y - cy) * k, cz + (z - cz) * k)) for y, z in prof])
+    return loft(bm, rings, mi, smooth=smooth)
+
+
+# ======================================================================== 正视投影：灯、格栅、车牌
+def half_width(skin, y, z, ns=4):
+    """截面在高度 z 处最外侧的 x；这个高度上没有截面（比车顶高、比底板低）返回 None"""
+    x = None
+    a = skin.xz(y, 0.0)
+    for k in range(1, skin.nseg * ns + 1):
+        b = skin.xz(y, k / ns)
+        if (a[1] - z) * (b[1] - z) <= 0 and a[1] != b[1]:
+            xi = a[0] + (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1])
+            x = xi if x is None else max(x, xi)
+        a = b
+    return x
+
+
+def face_y(skin, x, z, end, depth=900.0, tol=.4):
+    """正对着车头（end = skin.y1）或车尾（end = skin.y0）看过去，视线 (x, z) 碰到外皮那一点的 y。
+    车头车尾的截面是一圈套一圈往里收的，所以“这一圈包不包得住 (x, z)”沿 y 单调，二分就行。碰不到返回 None"""
+    sgn = 1.0 if end > (skin.y0 + skin.y1) / 2 else -1.0
+    lo, hi = end - sgn * depth, end
+
+    def inside(y):
+        w = half_width(skin, round(y, 1), z)
+        return w is not None and abs(x) <= w
+    if not inside(lo):
+        return None
+    if inside(hi):
+        return hi
+    while abs(hi - lo) > tol:
+        m = (lo + hi) / 2
+        if inside(m):
+            lo = m
+        else:
+            hi = m
+    return (lo + hi) / 2
+
+
+def face_patch(bm, skin, outline, end, mi=0, off=2.0, grid=30.0, mirror=True, depth=900.0):
+    """在正视图 (x, z) 里画一个闭合多边形（毫米，x ≥ 0 的右半边；跨中线的件把一条边放在 x = 0 上），
+    沿车长方向投到车头 / 车尾的外皮上，再沿外法线抬高 off。大灯、尾灯、格栅、车牌这类
+    “从正面看是什么形状”的件用它：在 (y, s) 展开图里画的话，车头车尾那一段截面挤在一起，形状不好控制"""
+    sgn = 1.0 if end > (skin.y0 + skin.y1) / 2 else -1.0
+    P = []
+    n = len(outline)
+    for i in range(n):
+        a, b = outline[i], outline[(i + 1) % n]
+        k = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / grid))
+        for j in range(k):
+            P.append((a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k))
+    pts = [Vector(q) for q in P]
+    edges = [(i, (i + 1) % len(pts)) for i in range(len(pts))]
+    x0, x1 = min(q[0] for q in P), max(q[0] for q in P)
+    z0, z1 = min(q[1] for q in P), max(q[1] for q in P)
+    u = x0 + grid / 2
+    while u < x1:
+        v = z0 + grid / 2
+        while v < z1:
+            if inside((u, v), P) and min(_seg_dist(Vector((u, v)), pts[i], pts[(i + 1) % len(P)]) for i in range(len(P))) > grid * .35:
+                pts.append(Vector((u, v)))
+            v += grid
+        u += grid
+    vs, _e, faces, _a, _b, _c = delaunay_2d_cdt(pts, edges, [], 0, 1e-5)
+    keep = [f for f in faces if len(f) == 3 and inside((sum(vs[i].x for i in f) / 3, sum(vs[i].y for i in f) / 3), P)]
+    P3 = {}
+    h = 5.0
+
+    def p3(i):
+        if i not in P3:
+            x, z = max(vs[i].x, 0.0), vs[i].y
+            y = face_y(skin, x, z, end, depth)
+            if y is None:
+                P3[i] = None
+            else:
+                ya, yb = face_y(skin, x + h, z, end, depth), face_y(skin, max(x - h, 0.0), z, end, depth)
+                yc, yd = face_y(skin, x, z + h, end, depth), face_y(skin, x, z - h, end, depth)
+                fx = ((ya if ya is not None else y) - (yb if yb is not None else y)) / (h + min(x, h))
+                fz = ((yc if yc is not None else y) - (yd if yd is not None else y)) / (2 * h)
+                nrm = Vector((-fx * sgn, 1.0, -fz * sgn)) * sgn
+                if x < 1e-6:
+                    nrm.x = 0.0
+                nrm.normalize()
+                P3[i] = (Vector((x, y, z)) + nrm * off, nrm)
+        return P3[i]
+    for side in ((1, -1) if mirror else (1,)):
+        V = {}
+        for f in keep:
+            q = [p3(i) for i in f]
+            if any(t is None for t in q):
+                continue
+            fv = []
+            for i, t in zip(f, q):
+                if i not in V:
+                    V[i] = bm.verts.new((side * t[0].x, t[0].y, t[0].z))
+                fv.append(V[i])
+            try:
+                nf = bm.faces.new(fv)
+            except ValueError:
+                continue
+            nf.material_index = mi
+            nf.smooth = True
+            nf.normal_update()
+            nn = sum((t[1] for t in q), Vector()) / 3
+            if nf.normal.dot(Vector((side * nn.x, nn.y, nn.z))) < 0:
+                nf.normal_flip()
+
+
 # ======================================================================== 车板 / 玻璃 / 内饰
 class Part:
     """一次 panel / glass / inner 的结果：faces 是生成的面，edges 是外露边（三维，毫米），量缝用"""
@@ -1437,7 +1580,17 @@ def tube(bm, pts, d, up=(0, 0, 1), mi=0, cap=True):
     return sweep(bm, P, U, d, d, d / 2 - .3, mi, cap=cap)
 
 
-def _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolster, mi, headrests, hr_mi):
+def _paint_insert(fs, hx, half, axis, mi):
+    """坐垫 / 靠背正面中间那一块换一种面料（打孔皮 / 织物拼色）：法线朝 axis、横向在 ±half 以内的面"""
+    for f in fs:
+        if not f.is_valid:
+            continue
+        f.normal_update()
+        if f.normal.dot(axis) > .55 and all(abs(v.co.x - hx) < half for v in f.verts):
+            f.material_index = mi
+
+
+def _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolster, mi, headrests, hr_mi, mi_insert=None):
     """泡沫 + 面套：坐垫、靠背、头枕（只是外形，里面的骨架另外做）。返回靠背坐标系 (base, up, fwd)"""
     hx, hy, hz = hp
     prof = _cushion_profile(w, 95, bolster * .7, min(105, w * .2))
@@ -1451,7 +1604,9 @@ def _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolst
         z0 = hz - 125 + dy * math.tan(ca)
         rings.append([Vector((hx + x * (sc if w < 700 else (1 - (1 - sc) * .3)), hy + dy, z0 + z * (.75 + .25 * sc)))
                       for x, z in prof])
-    loft(pad, rings, mi)
+    fs = loft(pad, rings, mi)
+    if mi_insert is not None:
+        _paint_insert(fs, hx, w / 2 - min(105, w * .2) - 6, Vector((0, 0, 1)), mi_insert)
     prof = _cushion_profile(w * .96, 90, bolster, min(110, w * .2))
     ba = math.radians(back_angle)
     up = Vector((0, -math.sin(ba), math.cos(ba)))
@@ -1465,7 +1620,9 @@ def _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolst
             sc = 1 - (1 - sc) * .3
         o = base + up * (back_h * t)
         rings.append([o + Vector((x * sc, 0, 0)) + fwd * z for x, z in prof])
-    loft(pad, rings, mi)
+    fs = loft(pad, rings, mi)
+    if mi_insert is not None:
+        _paint_insert(fs, hx, w * .48 - min(110, w * .2) - 6, fwd, mi_insert)
     top = base + up * (back_h + 125)
     for hx_ in headrests:
         hr = []
@@ -1480,14 +1637,14 @@ def _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolst
 
 
 def front_seat(pad, frame, rail, hp, floor_z, w=520, cushion_len=500, back_h=640, back_angle=24, cushion_angle=12,
-               bolster=55, mi_pad=0, mi_hr=1, mi_frame=0, mi_rail=0):
+               bolster=55, mi_pad=0, mi_hr=1, mi_frame=0, mi_rail=0, mi_insert=None):
     """一把前排座椅，按专利 US5439271 / US4509796 的层次从地板往上搭：
     地板支脚 → 固定滑轨（下轨）→ 滑动滑轨（上轨）→ 坐垫骨架（两块 U 形冲压侧板 + 前后横管 + 中间钣金座盆）
     → 坐垫泡沫和面套；靠背骨架（倒 U 形圆管 + 下横梁）靠两侧调角器和坐垫骨架铰接，顶上两根头枕杆插头枕。
     hp 是 H 点（胯点），floor_z 是地板上表面。pad / frame / rail 是三个 bmesh（材质分开）"""
     hx, hy, hz = hp
     base, up, fwd, top = _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, bolster, mi_pad, [hx],
-                                    mi_hr)
+                                    mi_hr, mi_insert)
     ca = math.tan(math.radians(cushion_angle))
     # 滑轨：支脚 → 下轨 → 上轨
     zr = floor_z + 22
@@ -1535,12 +1692,12 @@ def front_seat(pad, frame, rail, hp, floor_z, w=520, cushion_len=500, back_h=640
 
 
 def bench(pad, frame, hp, floor_z, w=1360, cushion_len=480, back_h=600, back_angle=26, cushion_angle=13, seats=3,
-          mi_pad=0, mi_hr=1, mi_frame=0):
+          mi_pad=0, mi_hr=1, mi_frame=0, mi_insert=None):
     """后排长座椅：没有滑轨。坐垫骨架是一圈钢丝框 + 座盆，前沿两个挂钩挂在地板上，后面压在座盆支架上；
     靠背骨架是一圈管子 + 中间一根竖管，上沿挂在后排背板上。seats 个头枕"""
     hx, hy, hz = hp
     hrs = [hx + (k - (seats - 1) / 2) * (w / seats) for k in range(seats)]
-    base, up, fwd, top = _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, 30, mi_pad, hrs, mi_hr)
+    base, up, fwd, top = _seat_pads(pad, hp, w, cushion_len, back_h, back_angle, cushion_angle, 30, mi_pad, hrs, mi_hr, mi_insert)
     ca = math.tan(math.radians(cushion_angle))
     zb = hz - 150
     # 座盆支架（地板上冲起来的台）+ 钢丝框
