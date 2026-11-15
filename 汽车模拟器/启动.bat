@@ -1,6 +1,6 @@
 @echo off
-rem One-click launcher: car simulator (body + engine + CVT models; simulation and web page come later)
-rem   1) git pull main   2) menu: open preview images / rebuild the model with Blender
+rem One-click launcher: car simulator (drivable web page + Blender model of body, engine and CVT)
+rem   1) git pull main   2) menu: open the simulator page / open preview images / rebuild the model with Blender
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
@@ -22,13 +22,24 @@ if errorlevel 1 echo [WARN] Update failed ^(offline or local changes^). Using cu
 
 :menu
 echo.
-echo   [1] Open the preview images (renders + front bay layout)
-echo   [2] Rebuild the model with Blender, then open car.blend
-echo   [3] Exit
-choice /c 123 /n /m "Choose 1 / 2 / 3: "
-if errorlevel 3 exit /b 0
-if errorlevel 2 goto build
+echo   [1] Open the simulator page (index.html, works offline)
+echo   [2] Open the preview images (renders + front bay layout)
+echo   [3] Rebuild the model with Blender, re-pack index.html, then open car.blend
+echo   [4] Exit
+choice /c 1234 /n /m "Choose 1 / 2 / 3 / 4: "
+if errorlevel 4 exit /b 0
+if errorlevel 3 goto build
+if errorlevel 2 goto images
 
+if not exist "index.html" (
+    echo [ERROR] index.html not found next to this bat.
+    pause
+    exit /b 1
+)
+start "" "index.html"
+exit /b 0
+
+:images
 if not exist "blender\out\view_exterior.jpg" (
     echo [ERROR] blender\out\view_exterior.jpg not found.
     pause
@@ -74,5 +85,21 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+rem ---- the page embeds the model, so pack it again (needs Node.js) ----
+where node >nul 2>nul
+if errorlevel 1 (
+    echo [INFO] Node.js not found: index.html still contains the previous model.
+    goto openblend
+)
+pushd web
+if not exist "node_modules" call npm install --no-audit --no-fund
+call node test_core.mjs
+if errorlevel 1 echo [WARN] The self-check reported failures. See messages above.
+call node build.mjs
+if errorlevel 1 echo [WARN] Packing index.html failed. See messages above.
+popd
+
+:openblend
 echo Done. Opening car.blend (press Space in Blender to play the exploded view)...
 start "" "%BL%" "blender\out\car.blend"

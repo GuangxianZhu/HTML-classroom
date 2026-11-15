@@ -309,7 +309,9 @@ def build(M, H):
         b = bmesh.new()
         cyl(b, (-160, 0, 0), (182, 0, 0), 12, mi=0, seg=16)
         for i, xc in enumerate(CYL_X):
-            ph = radians(90 * order[i + 1] + (55 if sy > 0 else -55))
+            # 凸轮尖的初始朝向：让它在这个缸的气门开到最大时（进气在循环的 470°、排气在 250°）正好压着气门。
+            # 凸轮轴转速是曲轴的一半、转向相同，所以初始角 = 气门打开方向的角度 + 那一刻曲轴转角的一半
+            ph = radians(90 * order[i + 1] + (127 if sy > 0 else 53))
             for dx in (-17, 17):
                 cyl(b, (xc + dx - 6, 5 * cos(ph), 5 * sin(ph)), (xc + dx + 6, 5 * cos(ph), 5 * sin(ph)), 17, mi=0, seg=18)   # 凸轮
         gear(b, 182, 196, 40, 2.9, 1)                                                           # 凸轮轴链轮（齿数是曲轴链轮的两倍）
