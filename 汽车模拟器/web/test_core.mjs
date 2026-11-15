@@ -17,7 +17,7 @@ const at = (log, t) => log.find((q) => q.t >= t) || log.at(-1);
 const cruiseState = (kmh, ratio = 1) => { const s = car.initial(); s.gear = 'D'; s.v = kmh / 3.6; s.lock = 1; s.lockOn = true; s.ratio = ratio; s.we = Math.max(S.idle, kmh * car.rpmPerKmh * ratio) / RPM; return s; };
 
 console.log('— 几何：和 Blender 建的模型是不是同一套数');
-ok('三维模型是按现在这份 params.json 建的（改了参数要重新跑 build_car.py）', ['place', 'engine', 'cvt'].every((k) => JSON.stringify(spec.params[k]) === JSON.stringify(P[k])));
+ok('三维模型是按现在这份 params.json 建的（改了参数要重新跑 build_car.py）', ['place', 'engine', 'cvt', 'cockpit'].every((k) => JSON.stringify(spec.params[k]) === JSON.stringify(P[k])));
 near('最低挡速比', car.ratioLow, D.ratio_low, 0.002);
 near('最高挡速比', car.ratioHigh, D.ratio_high, 0.002);
 near('主减速比', car.final, D.final, 0.002);
@@ -48,6 +48,18 @@ near('活塞销在上止点的高度 = 连杆 + 曲柄半径', pistonHeight(D.r_
 near('活塞行程', pistonHeight(D.r_crank, E.rod, 0) - pistonHeight(D.r_crank, E.rod, Math.PI), E.stroke, 1e-9);
 ok('连杆最大摆角不到 20°', Math.abs(rodAngle(D.r_crank, E.rod, Math.PI / 2)) * 180 / Math.PI < 20);
 ok('气门：做功冲程两个都关着，进气冲程中间进气门全开', valveLift('in', 90) === 0 && valveLift('ex', 90) === 0 && valveLift('in', 470) > 0.999 && valveLift('ex', 250) > 0.999);
+
+console.log('— 驾驶位');
+{
+  const K = spec.cockpit, w = K.sight.window;
+  ok('从眼点看仪表：上沿和下沿的视线都从方向盘的缝里穿过去', K.sight.bottom >= w[0] && K.sight.top <= w[1], `穿过 ${K.sight.bottom}…${K.sight.top}，缝 ${w[0]}…${w[1]} mm`);
+  within('表盘到眼睛的距离', K.cluster.dist, 650, 900, ' mm');
+  within('头顶到顶棚（眼点往上）', K.headroom, 120, 260, ' mm');
+  within('车头前面被前盖挡住看不见的地面', K.blind.ahead_of_nose / 1000, 3, 12, ' m');
+  for (const [nm, p] of Object.entries(K.pedals)) ok(`${nm} 踩到底不碰前围板、松开时离地板够高`, p.firewall > 15 && p.floor > 30, `前围板 ${p.firewall} mm，地板 ${p.floor} mm`);
+  const at = K.gate.at;
+  ok('挡位面板上从前往后是 P R N D，都在槽里', at.P > at.R && at.R > at.N && at.N > at.D && Math.max(...Object.values(at).map(Math.abs)) < K.gate.h / 2 - 6, JSON.stringify(at));
+}
 
 console.log('— 发动机');
 {

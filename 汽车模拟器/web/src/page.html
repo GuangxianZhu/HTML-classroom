@@ -171,6 +171,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
           <button data-mode="xray" aria-pressed="true">透视</button>
           <button data-mode="pt" aria-pressed="false">动力总成</button>
           <button data-mode="inside" aria-pressed="false">内部</button>
+          <button data-mode="drive" aria-pressed="false">驾驶位</button>
         </div>
       </div>
       <div class="float" id="slowWrap">
@@ -186,6 +187,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
         <button class="chipbtn" id="hood" aria-pressed="false" hidden>开前盖</button>
         <button class="chipbtn" id="camEng" hidden>看发动机</button>
         <button class="chipbtn" id="camCvt" hidden>看 CVT</button>
+        <button class="chipbtn" id="camAhead" hidden>看前方</button>
+        <button class="chipbtn" id="camGauge" hidden>看仪表</button>
+        <button class="chipbtn" id="camFeet" hidden>看脚下</button>
       </div>
       <div class="float" id="tip" hidden></div>
       <div id="loading">正在把车搬进来…</div>
@@ -267,6 +271,6 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
       </select>
       <button class="chipbtn" id="reset">复位</button>
     </div>
-    <div class="keys">键盘：按住 ↑ 或 W 踩油门，按住空格或 ↓ 踩刹车，P / R / N / D 换挡。拖动画面转视角，点零件看名字和它现在的转速。</div>
+    <div class="keys">键盘：按住 ↑ 或 W 踩油门，按住空格或 ↓ 踩刹车，P / R / N / D 换挡。拖动画面转视角（驾驶位里是转头），点零件看名字和它现在的转速。</div>
   </footer>
 </div>

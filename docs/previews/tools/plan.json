@@ -723,11 +723,11 @@
    ],
    [
     "jsclick",
-    "#try button:nth-child(4)"
+    "#try button:nth-child(3)"
    ],
    [
     "wait",
-    8000
+    6000
    ],
    [
     "jsclick",
@@ -735,15 +735,15 @@
    ],
    [
     "wait",
-    8000
+    7000
    ],
    [
     "jsclick",
-    "#camCvt"
+    "#modes [data-mode=drive]"
    ],
    [
     "wait",
-    12000
+    14000
    ]
   ]
  }
