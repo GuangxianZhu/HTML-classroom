@@ -28,7 +28,7 @@ import math
 import os
 import sys
 from bisect import bisect_right
-from math import cos, pi, radians, sin, sqrt
+from math import tanh, cos, pi, radians, sin, sqrt
 
 import bpy  # 必须排在 bmesh 前面：pip 版 bpy 导入后才注册 bmesh / mathutils
 import bmesh
@@ -449,9 +449,12 @@ def section_ctrl(y):
     k = min(k, kv * 1.6)
     ht = min(ht, hw - 40 * k)
     gh = max(zt - zbl, .5)
-    t = min(1.0, max(0.0, (gh - 100.0) / 180.0))
+    # 两种截面的过渡压在前挡下沿往上 180 mm 以内（A 柱根被翼子板和后视镜挡住的那一段）：
+    # 过渡拖得长，A 柱下面三分之一会落在“还没变完”的截面上，看上去柱子中间折了一下
+    t = min(1.0, max(0.0, (gh - 60.0) / 110.0))
     t = t * t * (3 - 2 * t)
-    ed = (1 - t) * .56 * gh + t * min(72.0, .22 * gh + 3)
+    # 车顶边比车顶中线低多少：随 gh 单调、平滑地涨到 72（原来分两段拼，中间鼓一个 10 mm 的包）
+    ed = 72.0 * tanh(.56 * gh / 72.0)
     # 乘员舱：车顶边的圆角收紧（p10 靠近 p9），侧窗那一段就基本是直的，柱子不会一路弯上去
     x10, x11 = .66 + .21 * t, .33 + .13 * t
     f10, f11 = .44 - .22 * t, .11 - .055 * t
@@ -861,10 +864,10 @@ def setup_greenhouse():
     global L_WS_SIDE, WS_POLY, BACK_POLY
     # A 柱（前挡侧边）和 C 柱（后挡侧边）在三维里拉直
     a0, a1 = (1145, 7.75), (300, 9.2)
-    L_WS_SIDE = [(1162, 7.7)] + straight_on_skin(a0, a1, (1040, 900, 760, 620, 460), 7.3, 10.2) + [a1]
+    L_WS_SIDE = [(1162, 7.7)] + straight_on_skin(a0, a1, range(1110, 310, -40), 7.3, 10.2) + [a1]
     WS_POLY = [(1166, 12), (1166, 9.0), (1165, 7.9), (1160, 7.73), a0] + L_WS_SIDE[1:] + [(280, 9.7), (265, 10.8), (255, 12)]
     c0, c1 = (-1000, 9.5), (-1932, 9.42)
-    BACK_POLY = ([(-950, 12), (-960, 10.4), c0] + straight_on_skin(c0, c1, (-1150, -1300, -1450, -1600, -1750, -1860), 8.6, 10.6)
+    BACK_POLY = ([(-950, 12), (-960, 10.4), c0] + straight_on_skin(c0, c1, range(-1060, -1920, -60), 8.6, 10.6)
                  + [c1, (-1938, 10.5), (-1936, 12)])
     ws = smooth_open(WS_POLY)
     k0 = min(range(len(ws)), key=lambda i: ws[i][1])
@@ -1048,12 +1051,21 @@ def build_panels(M):
     # 黑色底护板只铺到前后保险杠蒙皮为止：再往前 / 往后，底面是跟着收口翘起来的，从正面能看见，应该是车身色的保险杠下沿
     one('Panel_Under', CH['under'], [(-Y_UNDER, 0), (Y_UNDER, 0), (Y_UNDER, UB), (-Y_UNDER, UB)], T, measure=False)
     # 雨刮下面的黑色导流板，垫在前盖后缘和前挡下沿之间
-    one('Cowl', CH['hood'], [(1128, 12), (1128, 8.8), (1145, 7.5), (1188, 7.5), (1188, 12)], T, gap=0, lift=-6, measure=False)
+    # 盖住前挡下面那根浅色的车框横梁（露出来像一块碎片）；两头伸到翼子板后角下面
+    one('Cowl', CH['hood'], [(1112, 12), (1112, 8.3), (1118, 7.62), (1184, 7.62), (1186, 12)], T, gap=0, lift=-2.5, measure=False)
     # 轮罩
     bm = bmesh.new()
     for yc in (WB, -WB):
         CK.wheelhouse(bm, SKIN, yc, R_TYRE, ARCH_R, x_in=590, mi=0)
     add('Wheelhouse', bm, [T], 'shell', ang=40)
+    # 板缝底下的黑色密封条：缝只有 3 ~ 5 mm 宽，不垫的话从缝里看到的是后面浅色的白车身和翻边，缝是亮的；
+    # 真车的缝里是黑胶条和阴影，看上去是一条暗线
+    sl = bmesh.new()
+    for line in (L_DOOR_F, L_DOOR_R, [(60, SILL), (60, BELT)], [(1000, SILL), (-1000, SILL)], L_HOOD, L_TRUNK, L_FASCIA_F,
+                 L_FASCIA_R, [(1172, 7.9), (1150, 7.5), (1112, BELT)], [(1112, BELT), (-1170, BELT)],
+                 [(300, RAIL), (-1000, RAIL)]):
+        ribbon(sl, line, 13, 0, off=-3.0)
+    add('Seals', sl, [M['seam']], 'shell', ang=50)
     # 隐藏式门把手
     sm = bmesh.new()
     for yc in (560, -540):
@@ -1145,12 +1157,13 @@ def build_glass(M):
     bond = bmesh.new()
     S = CH['side']
     for ch, poly, mi in ((CH['ws'], GH['ws'], 0), (CH['back'], GH['back'], 2)):
-        CK.glass(bm, ch, poly, lift=-1.0, frit=26, mi=mi, mi_frit=1)
+        CK.glass(bm, ch, poly, lift=-1.0, frit=34, mi=mi, mi_frit=1)
         CK.glass_bond(bond, ch, poly, lift=-1.0, inset=12, mi_bead=0, mi_flange=1)
     # 门玻璃比窗洞大一圈，四边插进窗框的导槽里（从外面看不见边）；后门分隔条后面的小三角窗是固定的，也装在门框里
     for k, mi in (('win_f', 0), ('win_r', 2), ('win_q', 2)):
         CK.glass(bm, S, grow(S, GH[k], 16), lift=-6.0, frit=0, mi=mi, mi_frit=1)
-    add('Glass', bm, [M['glass'], M['piano'], M['glasstint']], 'shell', ang=40)
+    # 玻璃四周的黑边（陶瓷釉）是哑光的：用亮面钢琴黑的话，斜着看会映出一条灰白的天空，像柱子旁边多了一根浅色的条
+    add('Glass', bm, [M['glass'], M['seam'], M['glasstint']], 'shell', ang=40)
     add('GlassBond', bond, [M['urethane'], M['biw']], 'shell', ang=40)
 
 
@@ -1255,6 +1268,21 @@ def build_chassis(M):
     add('HVCable', bm, [M['hv']], 'chassis', coll='Chassis')
 
 
+def skin_top_z(y, x):
+    """外皮上表面（腰线以上）在 (x, y) 处的高度；x 比这一圈截面的肩部还靠外就返回 None"""
+    y = min(max(y, Y_TAIL + 1), Y_NOSE - 1)
+    lo, hi = 7.0, float(NSEG)
+    if x >= SKIN.xz(y, lo)[0]:
+        return None
+    for _ in range(26):
+        m = (lo + hi) / 2
+        if SKIN.xz(y, m)[0] > x:
+            lo = m
+        else:
+            hi = m
+    return SKIN.xz(y, (lo + hi) / 2)[1]
+
+
 def build_cabin(M):
     """座舱：地板 → 座椅 → 仪表台 / 中控 / 方向盘 → 贴在车身上的内饰板（门板、柱子饰板、顶棚、后隔板）。
     布局照 2025 年主流电动轿车：平直的矮仪表台、贯穿的细出风口和氛围灯条、悬浮中控屏 + 方向盘后面的小仪表屏、
@@ -1302,6 +1330,12 @@ def build_cabin(M):
     rbox(d, (-370, 800, 1032), (270, 12, 96), 6, 3, 2, rot=(X, -14))
     rbox(d, (-370, 800 - 6.8, 1032 + 1.7), (252, 3, 80), 1, 4, 1, rot=(X, -14))
     rbox(d, (-370, 820, 986), (60, 24, 40), 6, 3, 1)
+    # 仪表台上表面是平的，前挡下沿两头却跟着前盖的拱度往下掉：不压一下的话，仪表台两个角会从玻璃里戳出来
+    for v in d.verts:
+        if v.co.y > 880:
+            zs = skin_top_z(v.co.y, abs(v.co.x))
+            if zs is not None and v.co.z > zs - 14:
+                v.co.z = zs - 14
     add('Dash', d, [M['softdark'], M['woodtrim'], M['softlight'], M['piano'], M['screen'], M['ambient']], 'cabin',
         coll='Cabin', ang=42)
     # 仪表台横梁（Cross Car Beam）：一根钢管横在两根 A 柱之间，仪表台、转向管柱、气囊都挂在它上面
@@ -1369,7 +1403,9 @@ def build_cabin(M):
     t = bmesh.new()
     ws, bs = GH['ws_side'], GH['back_side']
     y_a, y_c = int(ws[-1][0]) - 40, int(bs[0][0]) + 40
-    outline = ([(1100, BELT + .03)] + ws + [(y, RAIL) for y in range(y_a, y_c, -100)] + bs + [(bs[-1][0], BELT + .03)])
+    # A 柱饰板的下端收在仪表台两头的高度（y < 1090）：再往下是前挡下角，浅色饰板的尖角隔着玻璃看像一块碎片
+    outline = ([(1050, BELT + .03)] + [q for q in ws if q[0] < 1090] + [(y, RAIL) for y in range(y_a, y_c, -100)] + bs
+               + [(bs[-1][0], BELT + .03)])
     CK.inner(t, S, outline, holes=[grow(S, GH[k], 5) for k in ('win_f', 'win_r', 'win_q')], depth=46, grid=50)
     add('Trim_Pillars', t, [M['headliner']], 'trim', coll='Cabin', ang=40)
     # 门板：车门那块区域往里 118（车门厚度），上面压一条腰线窗台，中间一根扶手，下面一个储物槽，前门下角一只喇叭
@@ -1976,6 +2012,8 @@ CHECK_VIEWS = dict(
     cutr=((-3.3, -3.5, 3.4), (0, .25, .6), 58, CUT_HIDE),
     cuttop=((0, -.25, 7.5), (0, -.2, 0), 70, CUT_HIDE),
     wheel=((-2.9, 2.5, .62), (-.9, 1.4, .36), 62, ()),
+    apillar=((-3.3, 3.9, 1.75), (-.78, .95, 1.08), 230, ()),
+    abase=((-2.6, 2.6, 1.5), (-.86, 1.1, .95), 260, ()),
     dash=((0, -.55, 1.13), (0, 1.0, .86), 17, ()),
     driver=((-.37, -.02, 1.14), (-.25, 1.0, .84), 15, ()),
     rearseat=((0, .45, 1.16), (0, -1.0, .72), 17, ()),
@@ -2074,7 +2112,7 @@ def main():
     if ARGS.stage:
         base = ['BIW', 'Wheel_', 'Brake_', 'Battery', 'RearDrive', 'Subframes', 'HVCable']
         steps = dict(frame=base)
-        steps['panels'] = steps['frame'] + ['Panel_', 'Lamp', 'Mirrors', 'Seams', 'Wheelhouse', 'Cowl', 'Plates']
+        steps['panels'] = steps['frame'] + ['Panel_', 'Lamp', 'Mirrors', 'Seams', 'Seals', 'Wheelhouse', 'Cowl', 'Plates']
         steps['glass'] = steps['panels'] + ['Glass']   # Glass 和 GlassBond
         # 座椅、内饰在车里看不见：把门、车顶、窗框、玻璃拿掉，从斜上方看（剖开的样子）
         cut = base + ['Panel_Hood', 'Panel_BumperF', 'Panel_Fender', 'Panel_SideOuter', 'Panel_Trunk', 'Panel_BumperR',
@@ -2092,7 +2130,7 @@ def main():
         render(cam, 'view_side.jpg', (-16, 0, .72), (0, 0, .72), hide=hide_ee, lens=105)
         render(cam, 'view_interior.jpg', (0, -.3, 1.17), (-.12, 1.0, .88), hide=hide_ee, lens=16)
         render(cam, 'view_cabin.jpg', (-3.3, -3.5, 3.4), (0, .25, .6), hide=hide_ee + list(CUT_HIDE))
-        shell = ['Panel_', 'Glass', 'Seams', 'Lamp_', 'Mirrors', 'Wheelhouse', 'Cowl', 'BIW', 'FleetCar', 'Det_', 'Floor', 'Seat',
+        shell = ['Panel_', 'Glass', 'Seams', 'Seals', 'Lamp_', 'Mirrors', 'Wheelhouse', 'Cowl', 'BIW', 'FleetCar', 'Det_', 'Floor', 'Seat',
                  'Plates', 'Trim_', 'Dash', 'Console', 'SteeringWheel', 'Pedals', 'IP_']
         offA = [f'ECU_{k}' for k, e in D.ECUS.items() if 'A' not in e['arch']]
         offC = [f'ECU_{k}' for k, e in D.ECUS.items() if 'C' not in e['arch']]
