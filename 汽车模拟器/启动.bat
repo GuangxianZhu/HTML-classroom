@@ -1,5 +1,5 @@
 @echo off
-rem One-click launcher: car simulator (stage 1: boxy body + front bay layout)
+rem One-click launcher: car simulator (body + engine + CVT models; simulation and web page come later)
 rem   1) git pull main   2) menu: open preview images / rebuild the model with Blender
 chcp 65001 >nul
 setlocal
@@ -37,6 +37,8 @@ if not exist "blender\out\view_exterior.jpg" (
 start "" "blender\out\view_exterior.jpg"
 start "" "blender\out\view_exterior_rear.jpg"
 start "" "blender\out\view_side.jpg"
+start "" "blender\out\view_bay.jpg"
+start "" "blender\out\view_internals.jpg"
 start "" "blender\out\layout_frontbay.png"
 exit /b 0
 

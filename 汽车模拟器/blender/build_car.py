@@ -38,6 +38,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import carkit as CK  # noqa: E402  汽车建模套件的副本，母版在仓库根目录 汽车建模套件/
 import shape as SH  # noqa: E402   外形：五条线 + 横截面配方（纯 Python）
+import powertrain as PT  # noqa: E402  发动机、CVT、半轴、进排气、冷却、油箱（尺寸读 ../params.json）
 
 _argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
 _ap = argparse.ArgumentParser()
@@ -47,8 +48,8 @@ _ap.add_argument('--samples', type=int, default=48)
 _ap.add_argument('--res', type=int, default=1400)
 _ap.add_argument('--check', default='', help='检查用的机位，逗号分隔，见 CHECK_VIEWS')
 _ap.add_argument('--only', default='', help='检查图里只显示名字以这些前缀开头的件，逗号分隔（找问题件时用）')
-_ap.add_argument('--skip', default='', help='跳过哪几步，逗号分隔：frame,chassis,cabin（调外形时省时间）')
-_ap.add_argument('--views', default='', help='--render 时只渲这几张，逗号分隔：exterior,exterior_rear,side,front,rear,interior,cabin')
+_ap.add_argument('--skip', default='', help='跳过哪几步，逗号分隔：frame,chassis,cabin,powertrain（调外形时省时间）')
+_ap.add_argument('--views', default='', help='--render 时只渲这几张，逗号分隔：exterior,exterior_rear,side,front,rear,interior,cabin,bay,powertrain,internals,chassis')
 _ap.add_argument('--noexport', action='store_true', help='只建模渲图，不写 glb / blend / spec（调外形时用）')
 ARGS, _ = _ap.parse_known_args(_argv)
 OUT = os.path.abspath(ARGS.out)
@@ -149,6 +150,22 @@ def make_materials():
         lamp=principled('Lamp', '#eaf3ff', metal=.1, rough=.15, emit=('#dcebff', 3.0)),
         tail=principled('TailLamp', '#a00d18', rough=.2, emit=('#ff1a2c', 2.2)),
         amber=principled('Amber', '#d9801a', rough=.2, emit=('#ff9a1f', 1.2)),
+        # 动力系统
+        castalu=principled('CastAlu', '#9aa3ad', metal=.8, rough=.55),
+        castalu2=principled('CastAlu2', '#7d858e', metal=.8, rough=.5),
+        castiron=principled('CastIron', '#4a4744', metal=.7, rough=.7),
+        plastic=principled('PlasticBlack', '#17191c', rough=.6),
+        rubber=principled('Rubber', '#0d0e10', rough=.85),
+        pan=principled('OilPan', '#1c1e21', metal=.4, rough=.5),
+        filter=principled('OilFilter', '#2c5a8a', metal=.3, rough=.45),
+        exh=principled('Exhaust', '#8b8378', metal=.85, rough=.5),
+        exh2=principled('Muffler', '#6f6a63', metal=.8, rough=.55),
+        gear=principled('GearSteel', '#a8adb3', metal=.95, rough=.32),
+        belt=principled('SteelBelt', '#3b4046', metal=.9, rough=.38),
+        spring=principled('Spring', '#3a6fa8', metal=.6, rough=.4),
+        tank=principled('FuelTank', '#23262a', rough=.75),
+        coolant=principled('Coolant', '#d9e2e6', rough=.4),
+        battery=principled('Battery', '#20242a', rough=.5),
         fabric=principled('Fabric', '#3a4048', rough=.9),
         fabric2=principled('Fabric2', '#2a2f36', rough=.92),
         dash=principled('Dash', '#22262c', rough=.65),
@@ -878,23 +895,27 @@ def build_wheels(M):
 
 def build_chassis(M):
     grp('chassis', '底盘', (0, 0, -900, 0))
-    # 动力系统（发动机、CVT、半轴、排气、油箱）下一步再装：现在前舱和地板下面是空的，只有副车架、悬架和转向机
     bm = bmesh.new()
-    # 前后副车架、转向机、悬架摆臂
+    # 前副车架：后横梁 + 两根边梁 + 前横梁，围着动力总成一圈。后横梁中间留一个口子给排气管，
+    # 转向机压在后横梁上面、差速器的后面（原来在轴线后面一点，那里现在是差速器）
+    rbox(bm, (-262, 1236, 235), (636, 90, 64), 16, 0, 2)
+    rbox(bm, (402, 1236, 235), (356, 90, 64), 16, 0, 2)
+    rbox(bm, (0, 1800, 235), (1160, 90, 64), 16, 0, 2)
+    for sx in (1, -1):
+        rbox(bm, (sx * 560, 1518, 235), (60, 654, 56), 14, 0, 2)
+    # 后副车架：一根横梁
+    rbox(bm, (0, -1510, 235), (1160, 90, 64), 16, 0, 2)
     for (y0, wy) in ((1400, 1), (-1400, -1)):
-        rbox(bm, (0, y0 - wy * 40 + (0 if wy > 0 else -150), 235), (1160, 90, 64), 16, 0, 2)
         for sx in (1, -1):
             cyl(bm, (sx * 560, y0 + 120, 240), (sx * (TRACK - 110), y0, 300), 20, 16, 0, seg=10)
             cyl(bm, (sx * 560, y0 - 120, 240), (sx * (TRACK - 110), y0, 300), 20, 16, 0, seg=10)
             cyl(bm, (sx * 600, y0, 500), (sx * (TRACK - 100), y0, 460), 13, 13, 0, seg=10)
-            cyl(bm, (sx * (TRACK - 125), y0 + wy * 10, 330), (sx * 520, y0 + wy * 10, 760), 32, 32, 0, seg=14)   # 减震：上端往里斜，进减震塔
-    cyl(bm, (-640, 1335, 320), (640, 1335, 320), 26, mi=0, seg=14)   # 转向机
-    cyl(bm, (-370, 1300, 340), (-370, 880, 760), 18, 16, 0, seg=10)  # 转向管柱
-    # 前舱：冷凝器、12V、水壶
-    rbox(bm, (0, SH.Y_CONDENSER, 560), (1120, 44, 380), 10, 2, 1)
-    rbox(bm, (350, 1520, 560), (240, 170, 180), 12, 3, 2)
-    cyl(bm, (-260, 1720, 440), (-260, 1720, 540), 60, mi=0, seg=16)
-    cyl(bm, (260, 1730, 380), (260, 1730, 500), 74, mi=1, seg=18)
+            # 减震：上端往里斜，进减震塔。前轮的减震下端装在转向节上、半轴的上面
+            z_lo = 425 if wy > 0 else 330
+            cyl(bm, (sx * (TRACK - 125), y0 + wy * 10, z_lo), (sx * 520, y0 + wy * 10, 760), 32, 32, 0, seg=14)
+    cyl(bm, (-640, 1232, 300), (640, 1232, 300), 26, mi=0, seg=14)   # 转向机
+    cyl(bm, (-370, 1232, 300), (-370, 880, 760), 18, 16, 0, seg=10)  # 转向管柱
+    rbox(bm, (0, SH.Y_CONDENSER, 560), (1120, 44, 380), 10, 2, 1)    # 冷凝器
     add('Subframes', bm, [M['susp'], M['alu'], M['pack'], M['conn']], 'chassis', coll='Chassis', ang=40)
 
 
@@ -1247,6 +1268,9 @@ def render(cam, name, pos, tgt, hide=(), frame=1, show=None, lens=58):
 
 
 HIDE_EE = []
+PT_SHOW = ('Eng_', 'Cvt_', 'Drv_', 'PT_', 'Bay_', 'Exh_', 'Fuel_')          # 动力系统的全部件
+PT_INSIDE = ('Eng_Crank', 'Eng_Piston', 'Eng_Rod', 'Eng_Cam', 'Eng_Valve', 'Eng_Chain', 'Cvt_Turbine', 'Cvt_FwdRev', 'Cvt_Pri',
+             'Cvt_Sec', 'Cvt_OutGear', 'Cvt_Idler', 'Cvt_Diff', 'Cvt_Belt', 'Drv_')   # 拿掉壳体以后剩下的：会动的件
 # 看座舱时拿掉的件：车顶、车门、窗框、玻璃、顶棚、门板（柱子和后翼子板留着）
 CUT_HIDE = ('Panel_Roof', 'Panel_Door', 'Panel_Sash', 'Panel_BPillar', 'Glass', 'Trim_Headliner', 'Trim_Door',
             'Trim_RearMirror', 'Mirrors')
@@ -1337,12 +1361,16 @@ def main():
         build_chassis(M)
     if 'cabin' not in skip:
         build_cabin(M)
+    pt = None
+    if 'powertrain' not in skip:
+        from types import SimpleNamespace
+        pt = PT.build(M, SimpleNamespace(add=add, rbox=rbox, cyl=cyl, lathe=lathe, grp=grp, skin_top_z=skin_top_z))
     tris = 0
     for o, _ in OBJS:
         o.data.calc_loop_triangles()
         tris += len(o.data.loop_triangles)
     spec = dict(groups=GROUPS, explode={k: list(v) for k, v in EX.items()}, objects={o.name: g for o, g in OBJS}, tris=tris,
-                gaps=gaps, dims=dict(L=Y_NOSE - Y_TAIL, WB=2 * WB, track=2 * TRACK, r_tyre=R_TYRE))
+                gaps=gaps, dims=dict(L=Y_NOSE - Y_TAIL, WB=2 * WB, track=2 * TRACK, r_tyre=R_TYRE), params=PT.P, powertrain=pt)
     cam = setup_render()
     if not ARGS.noexport:
         with open(os.path.join(OUT, 'spec.json'), 'w', encoding='utf-8') as f:
@@ -1363,11 +1391,17 @@ def main():
             rear=((0, -16, .75), (0, 0, .72), 230, ()),
             interior=((0, -.3, 1.17), (-.12, 1.0, .88), 16, ()),
             cabin=((-3.3, -3.5, 3.4), (0, .25, .6), 58, CUT_HIDE),
+            # 动力系统：打开前盖 / 只看动力总成 / 拿掉壳体看里面 / 拿掉车身看底盘
+            bay=((-1.5, 4.3, 2.5), (0, 1.62, .62), 58, ('Panel_Hood',)),
+            powertrain=((-1.9, 3.3, 1.45), (0, 1.5, .47), 58, None, ('Eng_', 'Cvt_', 'Drv_', 'PT_')),
+            internals=((-1.9, 3.3, 1.45), (0, 1.5, .47), 58, None, PT_INSIDE),
+            chassis=((-4.4, -3.6, 4.0), (0, -.1, .25), 58, None, ('Wheel_', 'Brake_', 'Subframes') + PT_SHOW),
         )
         want = [v for v in ARGS.views.split(',') if v] or list(views)
         for nm in want:
-            pos, tgt, lens, hide = views[nm]
-            render(cam, f'view_{nm}.jpg', pos, tgt, hide=list(hide), lens=lens)
+            pos, tgt, lens, hide = views[nm][:4]
+            show = views[nm][4] if len(views[nm]) > 4 else None
+            render(cam, f'view_{nm}.jpg', pos, tgt, hide=list(hide or ()), lens=lens, show=list(show) if show else None)
     print(f'[OK] {len(OBJS)} objects, {tris} triangles')
 
 
