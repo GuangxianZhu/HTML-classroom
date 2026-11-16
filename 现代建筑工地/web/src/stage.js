@@ -7,6 +7,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { coreFill, visible } from './core.js';
 import { Life } from './life.js';
+import { Works } from './works.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, z, -y);   // Blender 坐标 → three
 
@@ -118,6 +119,7 @@ export class Stage {
     this.cages = {};
     this.cageMat = new THREE.MeshBasicMaterial({ color: 0xb4602a, wireframe: true, transparent: true, opacity: 0.85 });
     this.mats.add(this.cageMat);
+    this.works = new Works(this);
     this.life = new Life(this, mg.scene);
     this.setCut(this.opts.cut);
   }
@@ -448,6 +450,8 @@ export class Stage {
       const meshOn = this.opts.mesh && !this.autoMeshOff;
       for (const o of this.meshObjs) o.visible = meshOn;
     }
+    const tNow = this.lifeT != null ? this.lifeT : now / 1000;
+    if (this.works && this.state) this.works.update(this.state, tNow);   // 楼层工序：不受“机械和人”开关影响
     if (this.life) {
       this.life.root.visible = this.opts.life !== false;
       if (this.state && this.opts.life !== false) this.life.update(this.state, this.lifeT != null ? this.lifeT : now / 1000);   // lifeT：调试用，把机械的时间钉住

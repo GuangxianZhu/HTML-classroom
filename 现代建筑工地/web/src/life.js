@@ -589,7 +589,7 @@ export class Life {
 
   // ---------------------------------------------------------------- 工人
   _workers() {
-    const N = 46;
+    const N = 64;
     this.wk = new Inst(this.proto.M_Worker, N, this.root, this.mats, (o) => (o.userData.kind === 'arm' || o.userData.kind === 'leg') ? o.name.slice(-4) : null);
     const cols = [0xf2c21b, 0xf2c21b, 0xf2c21b, 0xf2c21b, 0xf5f5f2, 0x2f6fd6, 0xff7a1a, 0xd83a2a];
     const helm = this.wk.parts.find((p) => (Array.isArray(p.mat) ? p.mat[0] : p.mat).name === 'helmet');
@@ -657,9 +657,11 @@ export class Life {
         }
       };
       ring(st.counts.steel, 4, 10);
-      ring(st.counts.deck, 4, 20);
-      ring(st.counts.slab + 1, 5, 30);
-      if (st.counts.curtain > 0 && st.counts.curtain < sch.N) ring(st.counts.curtain + 1, 3, 40);
+    }
+    // 楼承板、钢筋、浇筑、幕墙、地下室工序的人：站在各自的作业面上（works.js 给位置）
+    for (const [x, y, z, h, walk] of this.stage.works ? this.stage.works.crew : []) {
+      const sway = walk ? Math.sin(t * 0.4 + x) * 0.8 : 0;
+      put(x + Math.cos(h) * sway, y + Math.sin(h) * sway, z + 0.03, h + (walk && Math.cos(t * 0.4 + x) < 0 ? Math.PI : 0), walk);
     }
     if (pl.show && pl.build >= 1) {
       const z = pl.rootZ + pl.lift + this.spec.zaoloji.deck + 0.05;
@@ -771,7 +773,11 @@ export class Life {
         const lg = this.node(this.ptO, `_Leg${i}`);
         rot(lg, 'z', (i % 2 ? -1 : 1) * (i < 2 ? 0.75 : -0.75));
       }
-      const a = [Math.PI / 2 * -1 + Math.sin(t * 0.15) * 0.25, -1.0, 1.3, 0.9, 0.5, 0.4];
+      // 有浇筑点就转过去对准（泵车停在南边，车头朝西）
+      const pw = this.stage.works && this.stage.works.pour;
+      let sl = -Math.PI / 2 + Math.sin(t * 0.15) * 0.25;
+      if (pw) sl = clamp(Math.atan2(pw.y - (g.hy0 - 7), pw.x - 2) - Math.PI, -Math.PI / 2 - 1.25, -Math.PI / 2 + 1.25) + Math.sin(t * 0.3) * 0.04;
+      const a = [sl, -1.0, 1.3, 0.9, 0.5, 0.4];
       rot(this.node(this.ptO, '_Slew'), 'z', a[0]);
       for (let j = 1; j <= 5; j++) rot(this.node(this.ptO, `_Arm${j}`), 'y', a[j] + (j === 1 ? Math.sin(t * 0.2) * 0.04 : 0));
     }

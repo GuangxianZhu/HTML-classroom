@@ -101,6 +101,27 @@ const STEP_TEXT = [
   (n) => `第 ${n} 层的墙在模板里保湿养护（养护层），强度够了才能挂支座、承受平台的重量。`,
 ];
 
+// 楼层 / 基坑里正在做的工序（works.js 给进度）
+const WORK_NOTE = {
+  deck: '压型钢板铺在钢梁上，既是楼板的底模，又和混凝土一起受力，所以楼上不用搭支模架。',
+  rebar: '楼承板上绑钢筋网，交叉点一个个扎牢。',
+  pour: '地泵把混凝土顺着核心筒里的泵管打上来，软管拉到浇筑点，边浇边振捣；刚浇的那段颜色深。',
+  curtain: '单元板在工厂拼好，楼上两层挂一圈单轨吊，一块块放下来，楼里两个人对位挂到预埋件上。',
+  guard: '楼板浇好、幕墙还没装的楼层，楼边一圈栏杆 + 踢脚板，每 3 层一道外挑安全网；幕墙装到哪块，栏杆拆到哪块。',
+  raftReb: '筏板底面和顶面各一层钢筋网，塔楼底下更密更粗。',
+  raft: '泵车从西往东一段段浇，连续浇不停，免得出现冷缝。',
+  bslab: '地下室顶板没有楼承板：先搭满堂支模架、铺模板，再绑钢筋、浇混凝土，养护几天才拆架子。',
+};
+
+function renderWorks() {
+  const W = stage.works;
+  if (!W) return;
+  const rows = [...W.stat];
+  if (W.guardRange) rows.push({ key: 'guard', name: '临边防护', text: `第 ${W.guardRange[0]}–${W.guardRange[1]} 层楼边`, p: null });
+  $('#works').hidden = !rows.length;
+  setHTML('#worksList', rows.map((r) => `<div class="wk"><b>${r.name}</b><span class="t">${r.text}</span>${r.p == null ? '' : `<span class="bar"><i style="width:${(r.p * 100).toFixed(1)}%"></i></span>`}<span class="n">${WORK_NOTE[r.key] || ''}</span></div>`).join(''));
+}
+
 // 智能建造：点一下镜头跟过去
 const SMART = [
   { key: 'drone', name: '巡检无人机', text: `项目部屋顶上是<b>无人机机场</b>（关盖 0.64 × 0.745 × 0.77 m、约 55 kg）。到点自己开盖，无人机（轴距约 0.5 m、1.85 kg）起飞绕楼拍一圈，看外框、幕墙和临边防护有没有缺口，再回舱充电，全程没人操作。真实项目在城市里飞，要先报批空域。`, basis: '尺寸：DJI Dock 3 / Matrice 4D 公开参数，外形原创；航线是示意' },
@@ -391,8 +412,10 @@ function loop(now) {
     update();
   }
   stage.frame(now);
+  if (now - lastWorks > 400) { lastWorks = now; renderWorks(); }
   requestAnimationFrame(loop);
 }
+let lastWorks = 0;
 
 async function start() {
   buildChapters();

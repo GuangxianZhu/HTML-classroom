@@ -64,6 +64,13 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; min-height: 0
 #cycle .st.on { color: #1d1404; background: var(--amber); font-weight: 650; }
 #cycle .st.done { color: var(--ink); }
 #cycleText { font-size: 13px; line-height: 1.55; }
+#worksList { display: flex; flex-direction: column; gap: 7px; }
+.wk { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; align-items: baseline; }
+.wk b { font-size: 13px; }
+.wk .t { font-size: 12.5px; color: var(--ink); font-family: var(--num); text-align: right; }
+.wk .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(0, 0, 0, .3); overflow: hidden; }
+.wk .bar i { display: block; height: 100%; background: var(--amber); }
+.wk .n { grid-column: 1 / -1; font-size: 12px; color: var(--dim); line-height: 1.45; }
 #smart { display: flex; flex-wrap: wrap; gap: 5px; }
 #smart .chipbtn { padding: 5px 9px; font-size: 12.5px; background: rgba(0, 0, 0, .18); }
 #smartCard { margin-top: 8px; }
@@ -149,6 +156,10 @@ footer { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; ga
         <div class="steps"></div>
         <div id="cycleText"></div>
       </section>
+      <section class="card" id="works" hidden>
+        <h2>现在在干的工序</h2>
+        <div id="worksList"></div>
+      </section>
       <section>
         <h2>智能建造（点一下，镜头跟过去）</h2>
         <div id="smart"></div>
@@ -177,7 +188,7 @@ footer { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; ga
           <summary>简化了什么</summary>
           <ul>
             <li>楼和造楼机都是原创的，尺寸按公开资料的比例定，不对应任何真实项目。</li>
-            <li>塔吊吊的钢柱、钢梁会落到正在装的那层它该在的位置，那层装完才换成整层模型；但 48 秒一钩是示意，比真实快得多，楼板、幕墙不是一件件吊的。车辆不避让，偶尔会穿过彼此。</li>
+            <li>塔吊吊的钢柱、钢梁会落到正在装的那层它该在的位置，那层装完才换成整层模型；但 48 秒一钩是示意，比真实快得多。楼承板、钢筋、浇筑、幕墙按工期沿楼层一圈推进，顺序和速度也是示意；钢筋网画得比真实稀，不是设计配筋。车辆不避让，偶尔会穿过彼此。</li>
             <li>智能建造设备（无人机、机器狗、各种机器人）按公开参数的尺寸原创建模；大屏、监测屏上的数值是示意，不是实测。</li>
             <li>机械和车辆按公开产品参数的尺寸原创建模，不对应具体品牌；工人是低模。手机卡的话可以关掉“机械和人”。</li>
             <li>工期是按资料里的节奏排的示意：核心筒标准层 4 天一层；各工种落后几层是假设值，真实项目按工艺和塔吊台班排。</li>

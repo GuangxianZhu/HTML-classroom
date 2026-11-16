@@ -47,21 +47,7 @@ export class Smart {
 
     // ---- 钢筋绑扎机器人：楼承板铺好、楼板还没浇的那层（counts.slab + 1），南北各一台，网格是那片钢筋网
     this.rebar = [put('M_RebarBot', 0, 0), put('M_RebarBot', 0, 0)].map((o) => ({ o, car: N(o, '_Car'), gun: o.getObjectByName('M_RebarBot_Gun') }));
-    // 钢筋网：两层 Ø12 钢筋、间距 0.2 m（下层沿 x、上层沿 y），用细长方块实例化；南边那片绕竖轴转 180°
-    const rm = new THREE.MeshStandardMaterial({ color: 0x8a5a3a, roughness: 0.75, metalness: 0.4 });
-    this.mats.add(rm);
-    const X0 = -9.6, X1 = 9.6, Y0 = 14.0, Y1 = 22.4, d12 = 0.014;
-    const bars = [];
-    for (let y = Y0; y <= Y1 + 1e-6; y += 0.2) bars.push([(X0 + X1) / 2, y, -0.05, X1 - X0, d12, d12]);
-    for (let x = X0; x <= X1 + 1e-6; x += 0.2) bars.push([x, (Y0 + Y1) / 2, -0.036, d12, Y1 - Y0, d12]);
-    this.mesh = [0, 1].map((k) => {
-      const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), rm, bars.length);
-      const M = new THREE.Matrix4(), q = new THREE.Quaternion();
-      bars.forEach(([x, y, z, sx, sy, sz], i) => im.setMatrixAt(i, M.compose(V(x, y, z), q, new THREE.Vector3(sx, sz, sy))));
-      if (k) im.rotation.y = Math.PI;
-      life.root.add(im);
-      return im;
-    });
+    // 钢筋网本身在 works.js 里整层画
 
     // ---- 钢柱焊接机器人：最新一个钢柱对接节点（每三层一个），四根中柱各一台
     this.weldCols = [[0, 24], [24, 0], [0, -24], [-24, 0]];
@@ -286,11 +272,9 @@ export class Smart {
   _rebar(st, t) {
     const sch = this.sch, f = st.counts.slab + 1;
     const ok = f >= 1 && f <= sch.N && st.counts.deck >= f && st.day < sch.dismantle.t1 + 30;
-    this.mesh.forEach((m) => { m.visible = ok; });
     this.rebar.forEach((r) => { r.o.visible = ok; });
     if (!ok) return;
     const z = sch.z[f + 1] - 0.03;
-    this.mesh.forEach((m) => m.position.copy(V(0, 0, z + 0.03)));
     const rows = 10, stops = 96, tStop = 5.6, tRow = stops * tStop + 3;
     const offs = [-0.3, -0.1, 0.1, 0.3];
     this.rebar.forEach((r, i) => {
