@@ -6,3 +6,4 @@ logs*/
 *.waves
 sim3d/mw3d
 __pycache__/
+*.blend1
