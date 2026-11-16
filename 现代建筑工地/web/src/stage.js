@@ -49,7 +49,7 @@ export class Stage {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI * 0.495;
-    this.controls.minDistance = 4;
+    this.controls.minDistance = 1.5;
     this.controls.maxDistance = 1600;
     this.controls.target.set(10, 0, -6);
     this.clip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
@@ -190,7 +190,8 @@ export class Stage {
     site.add(this.fence);
     const blue = mat(0x2d66b0, 0.6), white = mat(0xe8eaec, 0.6);
     const gate = [cx - 7, cx + 7];
-    const fenceRuns = [[[fx0, fy1], [fx1, fy1]], [[fx0, fy0], [fx0, fy1]], [[fx1, fy0], [fx1, fy1]], [[fx0, fy0], [gate[0], fy0]], [[gate[1], fy0], [fx1, fy0]]];
+    const walk = [cx + 8.7, cx + 13.3];   // 大门东边留一个人行口，放实名制闸机
+    const fenceRuns = [[[fx0, fy1], [fx1, fy1]], [[fx0, fy0], [fx0, fy1]], [[fx1, fy0], [fx1, fy1]], [[fx0, fy0], [gate[0], fy0]], [[gate[1], fy0], [walk[0], fy0]], [[walk[1], fy0], [fx1, fy0]]];
     for (const [a, b] of fenceRuns) {
       const lo = [Math.min(a[0], b[0]) - 0.08, Math.min(a[1], b[1]) - 0.08], hi = [Math.max(a[0], b[0]) + 0.08, Math.max(a[1], b[1]) + 0.08];
       boxB([lo[0], lo[1], 0], [hi[0], hi[1], 2.2], blue, this.fence);
@@ -385,6 +386,22 @@ export class Stage {
     this.lastFocus = null;
   }
 
+  // 智能建造：镜头跟着某台设备走（设备动，镜头一起平移；用户还能自己转）
+  setTrack(key) {
+    const tg = this.life && this.life.smart.target(key);
+    if (!tg) return false;
+    const p = tg.get();
+    if (!p) return false;
+    this.view = 'track';
+    this.track = tg;
+    this.trackLast = p.clone();
+    this.autoMeshOff = false;
+    this.lastFocus = null;
+    const off = new THREE.Vector3(tg.off[0], tg.off[2], -tg.off[1]);
+    this.tween = { from: { t: this.controls.target.clone(), p: this.camera.position.clone() }, to: { t: p.clone(), p: p.clone().add(off) }, t0: performance.now(), dur: 1100 };
+    return true;
+  }
+
   setView(view, instant = false) {
     this.view = view;
     const f = this.focus(view);
@@ -433,7 +450,15 @@ export class Stage {
     }
     if (this.life) {
       this.life.root.visible = this.opts.life !== false;
-      if (this.state && this.opts.life !== false) this.life.update(this.state, now / 1000);
+      if (this.state && this.opts.life !== false) this.life.update(this.state, this.lifeT != null ? this.lifeT : now / 1000);   // lifeT：调试用，把机械的时间钉住
+    }
+    if (this.view === 'track' && this.track) {
+      const p = this.track.get();
+      if (p) {
+        const d = p.clone().sub(this.trackLast || p);
+        this.trackLast = p.clone();
+        if (this.tween) { this.tween.to.t.add(d); this.tween.to.p.add(d); } else { this.controls.target.add(d); this.camera.position.add(d); }
+      }
     }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);

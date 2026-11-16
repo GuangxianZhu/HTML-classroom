@@ -33,7 +33,7 @@ const PHASE = {
     view: 'pit', color: '#7a6650',
     text: (st) => `<p>围护墙圈好了才往下挖。现在挖到 <b class="num">${(-st.pit.depth).toFixed(1)} m</b>。</p>
       <p>坑越深，外面的土把墙往里推得越厉害，所以挖到第一层就要加<b>内支撑</b>：沿墙一圈围檩，四个角用斜撑顶住。真实项目常有好几道支撑，这里只画了一道。</p>
-      <p class="mach">现场：坑里两台 30 t 级挖机把土倒到坑边，北边坑沿上的<b>长臂挖机</b>（臂长约 20 m）一斗斗把土装进<b>纯电渣土车</b>，车装满就走，下一辆接着进。电动渣土车多是换电式，驾驶室后面那个箱子就是电池仓。</p>
+      <p class="mach">现场：坑里两台 30 t 级挖机把土倒到坑边，北边坑沿上的<b>长臂挖机</b>（臂长约 20 m）一斗斗把土装进<b>纯电渣土车</b>，车装满就走，下一辆接着进。电动渣土车多是换电式，驾驶室后面那个箱子就是电池仓。挖土扬尘大，门口监测站测到 PM10 超标，基坑两边的<b>雾炮</b>会自动开。</p>
       <p class="basis">〔坑底 -20.6 m = 地下 4 层 + 1.6 m 底板，见参数表〕</p>`,
   },
   raft: {
@@ -69,7 +69,7 @@ const PHASE = {
     text: (st) => `<p>超高层的施工顺序是<b>核心筒先行</b>：核心筒（混凝土）领先，钢柱、钢梁、楼承板、楼板、幕墙按顺序一层层跟在下面，每个工种都在不同的楼层同时干活，叫<b>竖向流水</b>。</p>
       <p>为什么核心筒先走？它是整栋楼抗风抗震的主心骨，造楼机和（之后要加的）塔吊都靠在它上面；外框钢结构安装时要以它为基准。</p>
       <p>造楼机罩住核心筒顶上 3.5 层，标准层 <b>${S.cycle} 天一层</b>。现在核心筒 <b class="num">${st.counts.core}F</b>，楼板 <b class="num">${st.counts.slab}F</b>。</p>
-      <p class="mach">现场：两台塔吊高低错开 8 m（回转时平衡臂才不会打架），一台管东北、一台管西南，从堆场吊钢柱、钢梁到正在装的那层，也往平台上吊钢筋；南立面的<b>双笼施工电梯</b>送人送料，每隔几层用附墙架拉在楼板边上。</p>
+      <p class="mach">现场：两台塔吊高低错开 8 m（回转时平衡臂才不会打架），一台管东北、一台管西南，从堆场吊钢柱、钢梁到正在装的那层，也往平台上吊钢筋。吊上去的钢柱、钢梁直接落到正在装的那层它该在的位置，松了钩就留在那儿，这层装完才算“长”出来。南立面的<b>双笼施工电梯</b>送人送料，每隔几层用附墙架拉在楼板边上。楼上还有钢筋绑扎机器人、钢柱焊接机器人、巡检机器狗，见下面“智能建造”。</p>
       <p class="basis">〔4 天一层：资料（武汉中心、泰康金融中心报道）；各工种落后的层数是假设：钢柱 ${S.lags.column}、钢梁 ${S.lags.steel}、楼承板 ${S.lags.deck}、楼板 ${S.lags.slab}、幕墙 ${S.lags.curtain}〕</p>`,
   },
   dismantle: {
@@ -99,6 +99,20 @@ const STEP_TEXT = [
   (n, h) => `拆掉下面那层的模板，12 个液压油缸同步把整个平台往上顶一层（${h.toFixed(1)} m）。油缸行程只有 ${Q.cyl.stroke} m，所以分 ${S.strokes} 次顶：伸缸顶起平台 → 立柱挂到附墙支座上 → 缩缸把油缸支架提上来，再顶下一次。切到“支点油缸”机位看。`,
   (n) => `大钢模跟着平台一起上来了，合模后布料机把从地面泵上来的混凝土浇进第 ${n} 层的墙模（浇筑层），墙从下往上“长”出来。`,
   (n) => `第 ${n} 层的墙在模板里保湿养护（养护层），强度够了才能挂支座、承受平台的重量。`,
+];
+
+// 智能建造：点一下镜头跟过去
+const SMART = [
+  { key: 'drone', name: '巡检无人机', text: `项目部屋顶上是<b>无人机机场</b>（关盖 0.64 × 0.745 × 0.77 m、约 55 kg）。到点自己开盖，无人机（轴距约 0.5 m、1.85 kg）起飞绕楼拍一圈，看外框、幕墙和临边防护有没有缺口，再回舱充电，全程没人操作。真实项目在城市里飞，要先报批空域。`, basis: '尺寸：DJI Dock 3 / Matrice 4D 公开参数，外形原创；航线是示意' },
+  { key: 'dog', name: '四足机器狗', text: `站着 1.1 × 0.45 × 0.65 m、约 60 kg，能上下楼梯。背上有激光雷达和相机，沿固定路线巡检：一只在地面绕基坑看裂缝、积水，一只在最新那层楼板上绕核心筒看临边防护。腿是对角小跑（trot）：左前和右后一起迈。`, basis: '尺寸：宇树 B2 公开参数，外形原创；巡检内容是常见用途' },
+  { key: 'rebar', name: '钢筋绑扎机器人', text: `楼承板铺好以后、浇楼板之前，楼板钢筋的每个交叉点都要绑一下，一层上万个点。机器人骑在钢筋网上往前挪，相机找交叉点，横梁上的小车把绑扎枪送过去，枪头往下一按就绑好一个。`, basis: '外形和尺寸是推断的示意；这类机器人国内外都有在研、试用' },
+  { key: 'weld', name: '钢柱焊接机器人', text: `钢柱每三层接一次，接头要在高空焊满一圈。现场用的是绑在柱子上的一圈柔性轨道 + 一台焊接小车，激光找坡口、焊枪沿着走。报道里中建钢构这类机器人整机 9.8 kg、两人能搬，定位误差 1 mm 以内。`, basis: '资料：新华网、南方都市报 2026 年 7 月报道；外形原创' },
+  { key: 'grind', name: '墙面打磨机器人', text: `幕墙封闭以后，下面几层开始做内墙：喷涂、刮腻子、打磨。这台按一款“喷涂 + 腻子 + 打磨”三合一机器人的尺寸做：0.85 × 0.70 × 1.75 m、约 575 kg，作业高度 3.3 m。它在核心筒外墙边来回磨，楼外看不到，打开“剖开一半”或跟拍进去看。`, basis: '尺寸：一款三合一内墙机器人的公开参数，外形原创' },
+  { key: 'survey', name: '全站仪测量', text: `测角、测距的仪器。基坑阶段盯着地连墙有没有往坑里挪（变形监测）；上了楼以后每层都要放线，定钢柱、墙的位置，造楼机顶升前后也要测垂直度。`, basis: '常规做法' },
+  { key: 'remote', name: '塔吊远程操控', text: `塔吊司机不用再爬到一两百米高的驾驶室，坐在地面这个集装箱里看屏幕、握手柄开塔吊，一个人还能分时管几台；系统带群塔防碰撞。山西、武汉、广州都有项目在用 5G 远程塔吊。`, basis: '资料：科技日报 2025-01-15、2026-06-26 报道' },
+  { key: 'screen', name: '智慧工地大屏', text: `门口这块 6 × 3.4 m 的屏把进度、扬尘噪声、塔吊状态、在场人数、AI 视频预警放在一起。工地四周的 AI 监控杆（球机来回扫）识别没戴安全帽、闯入吊装区这类事。屏上的数随工期变，但都是示意值。`, basis: '常规做法；屏上数值是示意' },
+  { key: 'gate', name: '人脸识别闸机', text: `工人从大门东边的实名制通道刷脸进出，系统记出勤、核对是不是持证上岗，在场人数实时上大屏。现在大部分工地都有。`, basis: '常规做法' },
+  { key: 'fog', name: '扬尘监测 + 雾炮', prefer: () => sch.excavate.t0 + 30, text: `门口的监测站一直测 PM10、PM2.5、噪声；PM10 超过阈值，基坑两边的雾炮自动开，喷水雾压尘。挖土的时候最容易超。这页把阈值设成 80 μg/m³。`, basis: '常规做法；阈值和数值是假设' },
 ];
 
 const BASIS = [
@@ -155,6 +169,52 @@ function buildChapters() {
 function setView(v) {
   for (const b of document.querySelectorAll('#views button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
   stage.setView(v);
+  smartPick(null);
+}
+
+// ------------------------------------------------------------ 智能建造
+function buildSmart() {
+  const box = $('#smart');
+  for (const d of SMART) {
+    const b = document.createElement('button');
+    b.className = 'chipbtn';
+    b.dataset.key = d.key;
+    b.textContent = d.name;
+    b.setAttribute('aria-pressed', 'false');
+    b.onclick = () => smartGo(d.key);
+    box.appendChild(b);
+  }
+  $('#smartBack').onclick = () => setView('all');
+}
+
+function smartPick(key) {
+  for (const b of document.querySelectorAll('#smart button')) b.setAttribute('aria-pressed', String(b.dataset.key === key));
+  const d = SMART.find((x) => x.key === key);
+  $('#smartCard').hidden = !d;
+  if (d) {
+    $('#smartName').textContent = d.name;
+    $('#smartText').innerHTML = `${d.text}<span class="basis">〔${d.basis}〕</span>`;
+  }
+}
+
+function smartGo(key) {
+  const sm = stage.life && stage.life.smart;
+  if (!sm) return;
+  // 设备这个阶段不在场：往后找一个它在的时候（找不到再从头找）
+  const def = SMART.find((x) => x.key === key);
+  if (!sm.present(key, stateAt(sch, day)) && def.prefer) setDay(def.prefer());
+  if (!sm.present(key, stateAt(sch, day))) {
+    let found = null;
+    for (const [a, b] of [[day, sch.end], [0, day]]) {
+      for (let d = a; d < b && found == null; d += 0.5) if (sm.present(key, stateAt(sch, d))) found = d + 0.25;
+      if (found != null) break;
+    }
+    if (found != null) setDay(found);
+  }
+  if (stage.opts.life === false) $('#tLife').click();
+  stage.frame(performance.now());           // 先让设备摆到当前位置
+  for (const b of document.querySelectorAll('#views button')) b.setAttribute('aria-pressed', 'false');
+  if (stage.setTrack(key)) smartPick(key);
 }
 
 function setDay(d) {
@@ -336,6 +396,7 @@ function loop(now) {
 
 async function start() {
   buildChapters();
+  buildSmart();
   bind();
   await stage.load(towerGlb, zljGlb, machGlb);
   $('#loading').hidden = true;
@@ -344,8 +405,10 @@ async function start() {
   setView(q.get('view') || 'all');
   stage.setView(q.get('view') || 'all', true);
   if (q.has('cam')) stage.setCam(...q.get('cam').split(',').map(Number));
+  if (q.has('t')) stage.lifeT = +q.get('t');          // 调试：机械时间钉在第 t 秒
   if (q.has('cut')) $('#tCut').click();
   if (q.has('nomesh')) $('#tMesh').click();
+  if (q.has('track')) smartGo(q.get('track'));
   requestAnimationFrame(loop);
 }
 

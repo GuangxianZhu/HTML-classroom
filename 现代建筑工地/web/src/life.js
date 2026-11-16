@@ -2,118 +2,12 @@
 // 哪些在场由施工阶段（day）决定；它们怎么动用真实时间（秒），所以暂停时工地也是活的。
 // 坐标一律先用 Blender 的 (x, y, z)（z 向上），最后用 V() 转成 three。
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-const V = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
-const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 0, -1), z: new THREE.Vector3(0, 1, 0) };
+import { V, AX, rot, place, angLerp, Path, Inst, mat4, clamp, lerp, smooth, frac, hash } from './util.js';
+import { Smart } from './smart.js';
+
 const _q = new THREE.Quaternion();
-const _m = new THREE.Matrix4();
-const _m2 = new THREE.Matrix4();
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const lerp = (a, b, t) => a + (b - a) * t;
-const smooth = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
-const frac = (x) => x - Math.floor(x);
-const hash = (i) => frac(Math.sin(i * 127.1 + 311.7) * 43758.5453);
-
-// 绕 Blender 局部轴转（在初始姿态上叠加）
-function rot(o, axis, a) {
-  if (!o) return;
-  if (!o.userData.q0) o.userData.q0 = o.quaternion.clone();
-  o.quaternion.copy(o.userData.q0).multiply(_q.setFromAxisAngle(AX[axis], a));
-}
-function place(o, x, y, z, h = 0) {
-  o.position.copy(V(x, y, z));
-  o.rotation.set(0, h, 0);
-}
-function angLerp(a, b, t) {
-  let d = ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-  return a + d * t;
-}
-
-// ------------------------------------------------------------------ 路线：折线 + 圆角，按弧长取点
-class Path {
-  constructor(pts, r = 9) {
-    const raw = [pts[0]];
-    for (let i = 1; i < pts.length - 1; i++) {
-      const A = pts[i - 1], B = pts[i], C = pts[i + 1];
-      const lab = Math.hypot(A[0] - B[0], A[1] - B[1]), lbc = Math.hypot(C[0] - B[0], C[1] - B[1]);
-      const d = Math.min(r, lab / 2, lbc / 2);
-      const t1 = [B[0] + (A[0] - B[0]) / lab * d, B[1] + (A[1] - B[1]) / lab * d];
-      const t2 = [B[0] + (C[0] - B[0]) / lbc * d, B[1] + (C[1] - B[1]) / lbc * d];
-      for (let k = 0; k <= 8; k++) {
-        const u = k / 8;
-        raw.push([(1 - u) * (1 - u) * t1[0] + 2 * u * (1 - u) * B[0] + u * u * t2[0], (1 - u) * (1 - u) * t1[1] + 2 * u * (1 - u) * B[1] + u * u * t2[1]]);
-      }
-    }
-    raw.push(pts[pts.length - 1]);
-    this.x = []; this.y = []; this.s = [];
-    let s = 0;
-    for (let i = 0; i < raw.length; i++) {
-      if (i) s += Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]);
-      if (i && Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]) < 1e-6) continue;
-      this.x.push(raw[i][0]); this.y.push(raw[i][1]); this.s.push(s);
-    }
-    this.len = s;
-  }
-  at(s) {
-    s = clamp(s, 0, this.len);
-    let lo = 0, hi = this.s.length - 1;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (this.s[m] <= s) lo = m; else hi = m; }
-    const t = (s - this.s[lo]) / Math.max(1e-6, this.s[hi] - this.s[lo]);
-    const x = lerp(this.x[lo], this.x[hi], t), y = lerp(this.y[lo], this.y[hi], t);
-    return { x, y, h: Math.atan2(this.y[hi] - this.y[lo], this.x[hi] - this.x[lo]) };
-  }
-  nearest(px, py, s0 = 0, s1 = this.len) {
-    let best = 1e18, bs = 0;
-    for (let i = 0; i < this.s.length; i++) {
-      if (this.s[i] < s0 || this.s[i] > s1) continue;
-      const d = (this.x[i] - px) ** 2 + (this.y[i] - py) ** 2;
-      if (d < best) { best = d; bs = this.s[i]; }
-    }
-    return bs;
-  }
-}
-
-// ------------------------------------------------------------------ 实例化：一个原型画很多份（工人、标准节、附墙架）
-class Inst {
-  constructor(proto, max, parent, mats, anim = null) {
-    proto.updateMatrixWorld(true);
-    const inv = proto.matrixWorld.clone().invert();
-    this.parts = [];
-    proto.traverse((o) => {
-      if (!o.isMesh) return;
-      let node = null;
-      if (anim) for (let p = o.parent; p && p !== proto; p = p.parent) if (anim(p)) { node = p; break; }
-      const im = new THREE.InstancedMesh(o.geometry, o.material, max);
-      im.count = 0;
-      im.frustumCulled = false;
-      parent.add(im);
-      (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => mats.add(m));
-      const part = { im, mat: o.material, key: node ? anim(node) : null };
-      if (node) {
-        part.pivot = inv.clone().multiply(node.matrixWorld);
-        part.rest = node.matrixWorld.clone().invert().multiply(o.matrixWorld);
-      } else part.local = inv.clone().multiply(o.matrixWorld);
-      this.parts.push(part);
-    });
-    this.max = max;
-  }
-  set(i, M, swing = null) {
-    for (const p of this.parts) {
-      if (p.local) _m.multiplyMatrices(M, p.local);
-      else {
-        _m.multiplyMatrices(M, p.pivot);
-        if (swing) _m.multiply(_m2.makeRotationAxis(AX.y, swing(p.key)));
-        _m.multiply(p.rest);
-      }
-      p.im.setMatrixAt(i, _m);
-    }
-  }
-  count(n) {
-    for (const p of this.parts) { p.im.count = n; p.im.instanceMatrix.needsUpdate = true; }
-  }
-}
-
-const mat4 = (x, y, z, h = 0, s = 1) => new THREE.Matrix4().compose(V(x, y, z), new THREE.Quaternion().setFromAxisAngle(AX.z, h), new THREE.Vector3(s, s, s));
 
 // ==================================================================
 export class Life {
@@ -143,6 +37,7 @@ export class Life {
     this._cranes();
     this._hoist();
     this._workers();
+    this.smart = new Smart(this);
   }
 
   clone(name, paint = null) {
@@ -211,7 +106,7 @@ export class Life {
     const g = this.g;
     const put = (name, x, y, h = 0) => { const o = this.clone(name); place(o, x, y, 0, h); return o; };
     put('P_Office', -45, g.road - 27, 0);
-    put('P_Guard', g.cx + 13, g.fy0 + 4, 0);
+    put('P_Guard', g.cx + 17.5, g.fy0 + 4, 0);
     this.wash = put('P_Wash', g.cx + 4, g.fy0 + 6, Math.PI / 2);
     put('P_Board', g.cx - 18, g.fy0 + 1.2, 0);
     put('P_Shed', -36, g.fy0 + 4.6, Math.PI / 2);
@@ -378,10 +273,25 @@ export class Life {
 
   // ---------------------------------------------------------------- 塔吊
   _cranes() {
-    const Q = this.P.platform;
     this.cranes = [];
     const spots = [[7.75, 7.75, 0], [-7.75, -7.75, 1]];
     const lm = new THREE.LineBasicMaterial({ color: 0x1d1f22 });
+    // 吊的东西：H 型钢梁、钢管柱用和主楼同一种材质，原点都放在“吊点”（构件顶面中心）
+    const byName = (n) => [...this.mats].find((m) => m.name === n);
+    const steelM = byName('steel') || new THREE.MeshStandardMaterial({ color: 0x5f6870, metalness: 0.6, roughness: 0.5 });
+    const tubeM = byName('steel_tube') || steelM;
+    const tf = 0.04, tw = 0.06;
+    const parts = [new THREE.BoxGeometry(1, tf, 1).translate(0, -tf / 2, 0), new THREE.BoxGeometry(1, tf, 1).translate(0, -1 + tf / 2, 0),
+      new THREE.BoxGeometry(1, 1 - 2 * tf, tw).translate(0, -0.5, 0)];
+    this.hGeo = mergeGeometries(parts);
+    this.cGeo = new THREE.CylinderGeometry(1, 1, 1, 16).translate(0, -0.5, 0);
+    const rebarM = new THREE.MeshStandardMaterial({ color: 0x6b4a32, roughness: 0.9 });
+    this.mats.add(rebarM);
+    // 已经落位、但那层的钢结构还没“完成”的构件
+    this.placedB = new THREE.InstancedMesh(this.hGeo, steelM, 80);
+    this.placedC = new THREE.InstancedMesh(this.cGeo, tubeM, 40);
+    for (const im of [this.placedB, this.placedC]) { im.count = 0; im.frustumCulled = false; this.root.add(im); }
+    this.placedKey = '';
     for (const [x, y, k] of spots) {
       const top = this.clone('M_TowerCrane');
       top.userData.base = 'M_TowerCrane';
@@ -390,20 +300,18 @@ export class Life {
       const mast = new Inst(this.proto.M_TCMast, 26, this.root, this.mats);
       const collar = new Inst(this.proto.M_TCCollar, 2, this.root, this.mats);
       const ropes = new THREE.LineSegments(new THREE.BufferGeometry(), lm);
-      ropes.geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(18), 3));
+      ropes.geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(30), 3));
       ropes.frustumCulled = false;
       this.root.add(ropes);
       const ld = new THREE.Group();
-      const beamM = new THREE.MeshStandardMaterial({ color: 0x5f6870, metalness: 0.6, roughness: 0.5 });
-      this.mats.add(beamM);
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(9, 0.7, 0.3), beamM);
-      const colm = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 9, 16), beamM);
-      const rebarM = new THREE.MeshStandardMaterial({ color: 0x6b4a32, roughness: 0.9 });
-      this.mats.add(rebarM);
-      const bundle = new THREE.Mesh(new THREE.BoxGeometry(9, 0.5, 1.0), rebarM);
+      ld.rotation.order = 'YZX';               // 先绕竖轴转朝向，再绕水平轴倒（钢柱起吊时从躺着到立起来）
+      const beam = new THREE.Mesh(this.hGeo, steelM);
+      const colm = new THREE.Mesh(this.cGeo, tubeM);
+      const bundle = new THREE.Mesh(new THREE.BoxGeometry(9, 0.5, 1.0).translate(0, -0.25, 0), rebarM);
       ld.add(beam, colm, bundle);
       this.root.add(ld);
       this.cranes.push({ top, hook, mast, collar, ropes, ld, beam, colm, bundle, x, y, k,
+        ci: -1, job: null, nDrop: 0, batch: '', lastTo: null,
         slew: this.node(top, '_Slew'), jib: this.node(top, '_Jib'), L: this.proto.M_TowerCrane.userData.jib || 55,
         apex: this.proto.M_TowerCrane.userData.apex || [-1.8, 0, 12.5], heel: this.proto.M_TowerCrane.userData.heel || [2.2, 0, 1.6] });
     }
@@ -419,27 +327,86 @@ export class Life {
     return { th, x: c.x + rr * Math.cos(phi), y: c.y + rr * Math.sin(phi), z: zs + c.heel[2] + zp };
   }
 
-  _craneJobs(st, c) {
+  // 第 f 层的钢梁、第 f 层的钢柱：坐标和 blender/tower.py 一模一样。返回每台塔吊各自负责的一串（先柱后梁）
+  _pieces(fs, fc) {
+    const T = this.P.tower, Fr = T.frame, sch = this.sch;
+    const F = Fr.half, a = T.core.half, step = 2 * F / Fr.bays;
+    const r2 = (p, k) => { let [x, y] = p; for (let i = 0; i < k; i++) [x, y] = [-y, x]; return [x, y]; };
+    const out = [[], []];
+    const side = (x, y) => (x + y > 1e-6 || (Math.abs(x + y) <= 1e-6 && x > y) ? 0 : 1);
+    if (fc >= 1 && fc <= sch.N) {
+      const r = (this.spec.tower.col_d[fc] || 1.0) / 2, z1 = sch.z[fc + 1], len = z1 - sch.z[fc];
+      for (const [x, y] of this.spec.tower.columns) out[side(x, y)].push({ t: 'colm', x, y, z: z1, r, len, ord: 0, ang: Math.atan2(y, x) });
+    }
+    if (fs >= 1 && fs <= sch.N) {
+      const zt = sch.z[fs + 1] - T.slab.t;
+      const add = (p0, p1, spec, ord) => {
+        const x = (p0[0] + p1[0]) / 2, y = (p0[1] + p1[1]) / 2;
+        out[side(x, y)].push({ t: 'beam', x, y, z: zt, H: spec[0], B: spec[1], L: Math.hypot(p1[0] - p0[0], p1[1] - p0[1]),
+          yaw: Math.atan2(p1[1] - p0[1], p1[0] - p0[0]), ord, ang: Math.atan2(y, x) });
+      };
+      for (let k = 0; k < 4; k++) {
+        for (let i = 0; i < Fr.bays; i++) add(r2([-F + i * step, F], k), r2([-F + (i + 1) * step, F], k), Fr.edge_beam, 1);
+        for (let i = 1; i < Fr.bays; i++) add(r2([-F + i * step, F], k), r2([-F + i * step, a], k), Fr.main_beam, 1);
+        add(r2([F, F], k), r2([a, a], k), Fr.diag_beam, 2);
+        for (const d of Fr.sec_offsets) { const y = a + d; add(r2([-y, y], k), r2([y, y], k), Fr.sec_beam, 3); }
+      }
+    }
+    for (const L of out) L.sort((p, q) => p.ord - q.ord || p.ang - q.ang);
+    return out;
+  }
+
+  // 正在装的那一批：第 counts.steel+1 层的梁 + 第 counts.column+1 层的柱，按天数算已经装了几件
+  _steelBatch(st) {
+    const sch = this.sch, S = sch.S;
+    const fs = st.counts.steel + 1, fc = st.counts.column + 1;
+    if (fs > sch.N && fc > sch.N) return null;
+    const win = (tr, f) => {
+      if (f > sch.N) return null;
+      const t1 = sch.done[tr][f], t0 = f > 1 ? sch.done[tr][f - 1] : t1 - S.cycle;
+      return [t0, t1];
+    };
+    const ws = win('steel', fs), wc = win('column', fc);
+    const t0 = Math.min(ws ? ws[0] : 1e9, wc ? wc[0] : 1e9);
+    if (st.day < t0) return null;
+    const key = `${fs}/${fc}`;
+    if (this._batchKey !== key) { this._batchKey = key; this._batch = this._pieces(fs, fc); }
+    const lists = this._batch;
+    const byDay = lists.map((L) => {
+      const nc = L.filter((p) => p.t === 'colm').length, nb = L.length - nc;
+      let n = 0;
+      L.forEach((p, i) => {
+        const [w, f] = p.t === 'colm' ? [wc, (i + 1) / (nc + 1) * 0.35] : [ws, 0.35 + (i - nc + 1) / (nb + 1) * 0.65];
+        if (w && st.day >= w[0] + (w[1] - w[0]) * f && n === i) n = i + 1;
+      });
+      return n;
+    });
+    return { key, lists, byDay };
+  }
+
+  // 每个吊装循环开头定这一钩吊什么：钢构件为主，每四钩插一钩钢筋（给造楼机平台）
+  _pickJob(st, c, batch, ci) {
     const sch = this.sch, g = this.g, k = sch.ph[st.phase].key;
-    const pick = c.k === 0 ? { x: 22, y: g.hy1 + 5, z: 1.6 } : { x: -30, y: g.hy0 - 7, z: 1.6 };
-    const jobs = [];
+    const pick = c.k === 0 ? { x: 22, y: g.hy1 + 5, z: 1.65 } : { x: -30, y: g.hy0 - 7, z: 1.65 };
     const pl = st.plat;
     const deck = pl.show ? pl.rootZ + pl.lift + this.spec.zaoloji.deck : null;
-    if (k === 'basement' || k === 'raft') {
-      const zb = this._pitFloor(st);
-      for (let i = 0; i < 4; i++) jobs.push({ from: pick, to: { x: (c.k ? -1 : 1) * (14 + i * 4), y: (c.k ? -1 : 1) * (6 - i * 5), z: zb + 0.5 }, load: i % 2 ? 'colm' : 'bundle' });
-    } else if (['low', 'install', 'cycle'].includes(k)) {
-      const f = Math.max(1, st.counts.steel);
-      const zs = sch.z[Math.min(f + 1, sch.N + 1)];
-      const pts = c.k === 0 ? [[24, 12, 'colm'], [12, 24, 'beam'], [24, 0, 'beam'], [0, 24, 'colm']] : [[-24, -12, 'colm'], [-12, -24, 'beam'], [-24, 0, 'beam'], [0, -24, 'colm']];
-      for (const [x, y, ld] of pts) jobs.push({ from: pick, to: { x, y, z: zs + (ld === 'colm' ? 4.5 : 0.6) }, load: ld });
-      if (deck) jobs.push({ from: pick, to: { x: c.k ? 7.8 : -7.8, y: c.k ? -7.8 : 7.8, z: deck + 0.6 }, load: 'bundle' });
-    } else if (k === 'dismantle' && deck) {
-      jobs.push({ from: { x: c.k ? -9 : 9, y: c.k ? -4 : 4, z: deck + 0.6 }, to: pick, load: 'beam' });
-    } else {
-      jobs.push({ from: pick, to: { x: c.k ? -18 : 18, y: c.k ? -18 : 18, z: this.sch.z[Math.max(1, st.counts.slab) + 1] + 0.5 }, load: 'bundle' });
+    if (batch && ci % 4 !== 3) {
+      const L = batch.lists[c.k];
+      const n = Math.max(batch.byDay[c.k], c.batch === batch.key ? c.nDrop : 0);
+      if (n < L.length) {
+        const p = L[n];
+        return { from: pick, to: p, load: p.t, piece: p, idx: n, batch: batch.key };
+      }
     }
-    return jobs;
+    if (k === 'basement' || k === 'raft') {
+      const zb = this._pitFloor(st), i = ci % 4;
+      return { from: pick, to: { x: (c.k ? -1 : 1) * (14 + i * 4), y: (c.k ? -1 : 1) * (6 - i * 5), z: zb + 0.5 }, load: 'bundle' };
+    }
+    if (k === 'dismantle' && deck) return { from: { x: c.k ? -9 : 9, y: c.k ? -4 : 4, z: deck + 0.6 }, to: pick, load: 'bundle' };
+    if (deck) return { from: pick, to: { x: c.k ? 7.8 : -7.8, y: c.k ? -7.8 : 7.8, z: deck + 0.6 }, load: 'bundle' };
+    const coreTop = st.counts.core > 0 ? sch.z[st.counts.core + 1] : 0;
+    if (['low', 'install'].includes(k)) return { from: pick, to: { x: c.k ? -6 : 6, y: c.k ? -2 : 2, z: coreTop + 0.6 }, load: 'bundle' };
+    return { from: pick, to: { x: c.k ? -18 : 18, y: c.k ? -18 : 18, z: this.sch.z[Math.max(1, st.counts.slab) + 1] + 0.5 }, load: 'bundle' };
   }
 
   _pitFloor(st) {
@@ -450,13 +417,45 @@ export class Life {
     return z;
   }
 
+  // 已落位构件：钩子松开以后留在原位，那层的 Steel_NN / Column_NN 一显示就清掉
+  _drawPlaced(batch) {
+    let nb = 0, nc = 0;
+    if (batch) {
+      const key = batch.key + '|' + this.cranes.map((c) => Math.max(batch.byDay[c.k], c.batch === batch.key ? c.nDrop : 0)).join(',');
+      if (key === this.placedKey) return;
+      this.placedKey = key;
+      for (const c of this.cranes) {
+        const L = batch.lists[c.k];
+        const n = Math.max(batch.byDay[c.k], c.batch === batch.key ? c.nDrop : 0);
+        for (let i = 0; i < n && i < L.length; i++) {
+          const p = L[i];
+          if (p.t === 'beam') this.placedB.setMatrixAt(nb++, this._pieceMat(p, p.x, p.y, p.z, p.yaw, 0));
+          else this.placedC.setMatrixAt(nc++, this._pieceMat(p, p.x, p.y, p.z, 0, 0));
+        }
+      }
+    } else {
+      if (this.placedKey === '') return;
+      this.placedKey = '';
+    }
+    this.placedB.count = nb; this.placedC.count = nc;
+    this.placedB.instanceMatrix.needsUpdate = this.placedC.instanceMatrix.needsUpdate = true;
+  }
+
+  _pieceMat(p, x, y, z, yaw, tilt) {
+    const s = p.t === 'beam' ? new THREE.Vector3(p.L, p.H, p.B) : new THREE.Vector3(p.r, p.len, p.r);
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, tilt, 'YZX'));
+    return new THREE.Matrix4().compose(V(x, y, z), q, s);
+  }
+
   _updateCranes(st, t) {
     const sch = this.sch, pl = st.plat;
     const show = st.day >= sch.raft.t1 && st.day < sch.dismantle.t1 + 6;
     this.craneTop = 0;
+    const batch = show ? this._steelBatch(st) : null;
     for (const c of this.cranes) {
       c.top.visible = c.hook.visible = c.ropes.visible = c.ld.visible = show;
       if (!show) { c.mast.count(0); c.collar.count(0); continue; }
+      if (batch && c.batch !== batch.key) { c.batch = batch.key; c.nDrop = 0; }
       let zTop;
       const coreTop = st.counts.core > 0 ? sch.z[st.counts.core + 1] : 0;
       if (pl.show) zTop = pl.rootZ + pl.lift + this.spec.zaoloji.deck + 20;
@@ -474,25 +473,36 @@ export class Life {
       c.collar.count(2);
       place(c.top, c.x, c.y, zTop, 0);
       const zs = zTop + 0.45;
-      // 吊装循环（48 s）：转到取料点 → 落钩 → 起吊 → 转到落点 → 落钩 → 松钩 → 起钩
-      const jobs = this._craneJobs(st, c);
+      // 吊装循环（48 s）：转到取料点 → 落钩挂钩 → 起吊 → 转到落点 → 落钩就位 → 松钩 → 起钩
       const T = 48, tt = t + c.k * 21;
       const ci = Math.floor(tt / T), u = frac(tt / T) * T;
-      const job = jobs[ci % jobs.length], prev = jobs[(ci + jobs.length - 1) % jobs.length];
+      if (ci !== c.ci || !c.job || (c.job.batch && (!batch || c.job.batch !== batch.key))) {
+        if (c.job && ci !== c.ci) c.lastTo = c.job.to;
+        c.ci = ci;
+        c.job = this._pickJob(st, c, batch, ci);
+      }
+      const job = c.job;
       const ang = (p) => Math.atan2(p.y - c.y, p.x - c.x), rad = (p) => Math.hypot(p.x - c.x, p.y - c.y);
-      const A = job.from, Bp = job.to, P0 = prev.to;
+      const A = job.from, Bp = job.to, P0 = c.lastTo || A;
       const tipA = this._craneTip(c, zs, ang(A), rad(A)), tipB = this._craneTip(c, zs, ang(Bp), rad(Bp));
-      const travel = Math.min(tipA.z, tipB.z) - 4;
-      const hookAt = (p, carrying) => p.z + 2.1 + (carrying ? (job.load === 'colm' ? 4.6 : 0.4) : 0);
-      let phi, R, hz, carrying = false, loadOn = false;
-      if (u < 8) { const s = smooth(u / 8); phi = angLerp(ang(P0), ang(A), s); R = lerp(rad(P0), rad(A), s); hz = travel; }
-      else if (u < 14) { phi = ang(A); R = rad(A); hz = lerp(travel, hookAt(A, false), smooth((u - 8) / 6)); }
-      else if (u < 16) { phi = ang(A); R = rad(A); hz = hookAt(A, false); loadOn = u > 15; }
-      else if (u < 22) { phi = ang(A); R = rad(A); hz = lerp(hookAt(A, true), travel, smooth((u - 16) / 6)); carrying = loadOn = true; }
-      else if (u < 34) { const s = smooth((u - 22) / 12); phi = angLerp(ang(A), ang(Bp), s); R = lerp(rad(A), rad(Bp), s); hz = travel; carrying = loadOn = true; }
-      else if (u < 40) { phi = ang(Bp); R = rad(Bp); hz = lerp(travel, hookAt(Bp, true), smooth((u - 34) / 6)); carrying = loadOn = true; }
-      else if (u < 42) { phi = ang(Bp); R = rad(Bp); hz = hookAt(Bp, true); loadOn = u < 41; carrying = loadOn; }
-      else { phi = ang(Bp); R = rad(Bp); hz = lerp(hookAt(Bp, false), travel, smooth((u - 42) / 6)); }
+      const pc = job.piece;
+      const sling = job.load === 'beam' ? 2.0 : job.load === 'colm' ? 0.6 : 1.5;
+      const topOff = !pc ? 0 : pc.t === 'beam' ? pc.H : pc.r;       // 躺在料堆上时吊点离料堆顶面的高度
+      const hookA = A.z + topOff + 2.05 + sling, hookB = Bp.z + 2.05 + sling;
+      // 转臂时的高度：越过造楼机顶（平台 + 布料机）留点余量，不用升到臂尖
+      const clear = pl.show ? pl.rootZ + pl.lift + this.spec.zaoloji.deck + 14 : coreTop + 8;
+      const travel = Math.min(Math.min(tipA.z, tipB.z) - 4, Math.max(hookA, hookB, clear) + 6);
+      let phi, R, hz, loadOn = false, s = 0;
+      if (u < 8) { s = smooth(u / 8); phi = angLerp(ang(P0), ang(A), s); R = lerp(rad(P0), rad(A), s); hz = travel; }
+      else if (u < 14) { phi = ang(A); R = rad(A); hz = lerp(travel, hookA, smooth((u - 8) / 6)); }
+      else if (u < 16) { phi = ang(A); R = rad(A); hz = hookA; loadOn = u > 15; }
+      else if (u < 22) { phi = ang(A); R = rad(A); hz = lerp(hookA, travel, smooth((u - 16) / 6)); loadOn = true; }
+      else if (u < 34) { s = smooth((u - 22) / 12); phi = angLerp(ang(A), ang(Bp), s); R = lerp(rad(A), rad(Bp), s); hz = travel; loadOn = true; }
+      else if (u < 40) { phi = ang(Bp); R = rad(Bp); hz = lerp(travel, hookB, smooth((u - 34) / 6)); loadOn = true; }
+      else if (u < 42) { phi = ang(Bp); R = rad(Bp); hz = hookB; loadOn = u < 41; }
+      else { phi = ang(Bp); R = rad(Bp); hz = lerp(hookB, travel, smooth((u - 42) / 6)); }
+      // 松钩那一刻记下来：这件已经落位
+      if (pc && u >= 41 && job.batch === c.batch && c.nDrop < job.idx + 1) c.nDrop = job.idx + 1;
       const tip = this._craneTip(c, zs, phi, R);
       hz = Math.min(hz, tip.z - 2.5);
       rot(c.slew, 'z', phi);
@@ -502,17 +512,36 @@ export class Life {
       c.beam.visible = loadOn && job.load === 'beam';
       c.colm.visible = loadOn && job.load === 'colm';
       c.bundle.visible = loadOn && job.load === 'bundle';
-      const lz = hz - 2.1 - (job.load === 'colm' ? 4.5 : 0.35);
-      c.ld.position.copy(V(tip.x, tip.y, lz));
-      c.ld.rotation.set(0, phi + 0.6, 0);
-      // 钢丝绳：两根起升绳 + 一根变幅绳
+      const az = hz - 2.05 - sling;                  // 吊点高度
+      let yaw = phi + 0.6, tilt = 0, sl = [];
+      if (pc && pc.t === 'beam') {
+        yaw = u < 22 ? 0 : u < 34 ? angLerp(0, pc.yaw, s) : pc.yaw;   // 料堆上顺着 x 放，转臂途中用溜绳带到梁的方向
+        c.beam.scale.set(pc.L, pc.H, pc.B);
+        const ex = Math.cos(yaw) * pc.L * 0.3, ey = Math.sin(yaw) * pc.L * 0.3;
+        sl = [[tip.x + ex, tip.y + ey, az], [tip.x - ex, tip.y - ey, az]];
+      } else if (pc && pc.t === 'colm') {
+        yaw = 0;
+        if (u < 22) tilt = Math.acos(clamp((az - A.z) / pc.len, 0, 1));   // 柱脚还拖在料堆上：从躺着慢慢立起来
+        c.colm.scale.set(pc.r, pc.len, pc.r);
+        sl = [[tip.x, tip.y, az], [tip.x, tip.y, az]];
+      } else {
+        const ex = Math.cos(yaw) * 3, ey = Math.sin(yaw) * 3;
+        sl = [[tip.x + ex, tip.y + ey, az], [tip.x - ex, tip.y - ey, az]];
+      }
+      c.ld.position.copy(V(tip.x, tip.y, az));
+      c.ld.rotation.set(0, yaw, tilt);
+      // 钢丝绳：两根起升绳 + 一根变幅绳 + 两根吊索
       const pa = c.ropes.geometry.attributes.position;
       const ax = c.apex;
       const apx = c.x + (ax[0] * Math.cos(phi)), apy = c.y + (ax[0] * Math.sin(phi)), apz = zs + ax[2] + 0.4;
+      const hb = hz - 2.0;
       const vs = [V(tip.x + 0.15 * Math.sin(phi), tip.y - 0.15 * Math.cos(phi), tip.z), V(tip.x, tip.y, hz), V(tip.x - 0.15 * Math.sin(phi), tip.y + 0.15 * Math.cos(phi), tip.z), V(tip.x, tip.y, hz), V(apx, apy, apz), V(tip.x, tip.y, tip.z + 0.4)];
+      if (loadOn) for (const q of sl) vs.push(V(tip.x, tip.y, hb), V(q[0], q[1], q[2]));
+      else vs.push(V(tip.x, tip.y, hb), V(tip.x, tip.y, hb), V(tip.x, tip.y, hb), V(tip.x, tip.y, hb));
       vs.forEach((v, i) => pa.setXYZ(i, v.x, v.y, v.z));
       pa.needsUpdate = true;
     }
+    this._drawPlaced(batch);
   }
 
   // ---------------------------------------------------------------- 施工电梯（南立面）
@@ -570,7 +599,9 @@ export class Life {
     this.N = N;
     const g = this.g;
     // 地面上走的路线：项目部 → 过马路 → 大门 → 场内几个点
-    this.walkPts = [[-45, g.road - 22], [g.cx - 9, g.road - 9], [g.cx - 9, g.road + 9], [g.cx - 2, g.fy0 + 2], [g.cx - 2, g.rS + 6], [-30, g.hy0 - 3], [g.rW + 6, g.rS + 6], [g.rW + 6, 0], [g.rW + 6, g.rN - 6], [22, g.hy1 + 2], [g.rE - 6, g.rN - 6], [g.rE - 6, g.rS + 6], [-7, g.hy0 - 3], [g.cx + 12, g.fy0 + 7]];
+    // 进出场都走东边的实名制闸机（cx+11），三条通道
+    const gx = g.cx + 11;
+    this.walkPts = [[-45, g.road - 22], [gx, g.road - 9], [gx, g.road + 9], [gx, g.fy0 + 3.5], [g.cx - 2, g.fy0 + 5], [g.cx - 2, g.rS + 6], [-30, g.hy0 - 3], [g.rW + 6, g.rS + 6], [g.rW + 6, 0], [g.rW + 6, g.rN - 6], [22, g.hy1 + 2], [g.rE - 6, g.rN - 6], [g.rE - 6, g.rS + 6], [-7, g.hy0 - 3], [gx, g.fy0 + 3.5], [gx, g.road + 9], [gx, g.road - 9]];
   }
 
   _updateWorkers(st, t) {
@@ -595,7 +626,7 @@ export class Life {
       const j = Math.floor(s + hash(i) * L) % L, u = frac(s);
       const a = route[j], b = route[(j + 1) % L];
       const p = [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
-      put(p[0] + (hash(i * 3) - 0.5) * 2, p[1] + (hash(i * 5) - 0.5) * 2, 0.03, Math.atan2(b[1] - a[1], b[0] - a[0]), true);
+      put(p[0] + [-1.15, 0, 1.15][i % 3] + (hash(i * 3) - 0.5) * 0.25, p[1] + (hash(i * 5) - 0.5) * 0.6, 0.03, Math.atan2(b[1] - a[1], b[0] - a[0]), true);
     }
     // 信号工：站在两个堆场边
     put(-30 + 6, g.hy0 - 2.5, 0.03, Math.PI / 2, false);
@@ -755,6 +786,7 @@ export class Life {
     this._updateCranes(st, t);
     this._updateHoist(st, t);
     this._updateWorkers(st, t);
+    this.smart.update(st, t);
   }
 
   _spinDrum(drum, a) {

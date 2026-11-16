@@ -861,6 +861,375 @@ class Kit:
             a.box_mm((-1.2 + i * 0.9, -1.01, 0.4), (-0.5 + i * 0.9, -0.99, 1.9), "dark_steel")
         self.mesh(a, "P_Transformer_m", R)
 
+    # ---------------------------------------------------- 智能建造：无人机 + 机场、机器狗、施工机器人、智慧工地设备
+    def drone(self, name="M_Drone"):
+        """行业无人机：外形尺寸 0.378 × 0.416 × 0.213 m、轴距 0.4985 m、桨 13.6 英寸（参照 DJI Matrice 4D 公开参数，外形原创）。
+        原点在脚架着地面中心，机头 +X；四个桨各是一个节点（kind=rotor，绕 z 转）。"""
+        R = self.root(name, dict(model="drone", wheelbase=0.4985))
+        a = Acc()
+        a.box((0, 0, 0.12), (0.26, 0.15, 0.08), "drone_gray")
+        a.box((-0.01, 0, 0.168), (0.16, 0.10, 0.026), "black")                       # 电池
+        a.box((0.155, 0, 0.075), (0.07, 0.085, 0.07), "black")                      # 云台相机
+        a.cyl((0.19, 0, 0.075), (0.195, 0, 0.075), 0.022, "glass_dark", seg=12)
+        a.cyl((0.08, 0, 0.16), (0.08, 0, 0.19), 0.026, "black", seg=12)             # 顶部激光雷达
+        m = 0.4985 / 2 / math.sqrt(2)
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                a.bar((sx * 0.08, sy * 0.06, 0.13), (sx * m, sy * m, 0.15), 0.028, 0.02, "drone_gray")
+                a.cyl((sx * m, sy * m, 0.135), (sx * m, sy * m, 0.172), 0.026, "black", seg=12)
+                a.cyl((sx * m * 0.9, sy * m * 0.9, 0.0), (sx * m * 0.9, sy * m * 0.9, 0.135), 0.007, "black", seg=6)
+                a.box((sx * m, sy * m, 0.128), (0.02, 0.012, 0.008), "lamp" if sx > 0 else "lamp_red")
+        self.mesh(a, name + "_m", R)
+        for i, (sx, sy) in enumerate(((1, 1), (-1, 1), (-1, -1), (1, -1))):
+            n = self.node(f"{name}_Rot{i}", R, (sx * m, sy * m, 0.178), dict(kind="rotor", axis="z", dir=1 if i % 2 == 0 else -1))
+            a = Acc()
+            a.box((sx * m, sy * m, 0.18), (0.035, 0.035, 0.012), "black")
+            a.bar((sx * m - 0.17, sy * m, 0.18), (sx * m + 0.17, sy * m, 0.18), 0.032, 0.005, "black")
+            self.mesh(a, n.name + "_m", n)
+        return R
+
+    def dock(self, name="M_Dock"):
+        """无人机机场：关盖 0.64 × 0.745 × 0.77 m，开盖 1.76 × 0.745 × 0.485 m（参照 DJI Dock 3 公开参数，外形原创）。
+        两片舱盖各是一个节点（kind=lid，绕 y 转，open 是开到位的角度）。"""
+        R = self.root(name, dict(model="dock"))
+        a = Acc()
+        L, W, H = 0.32, 0.3725, 0.485
+        a.box_mm((-L, -W, 0.04), (L, W, H), "mach_white")
+        a.box_mm((-L + 0.02, -W + 0.02, H), (L - 0.02, W - 0.02, H + 0.006), "drone_gray")     # 停机坪
+        a.box_mm((-0.01, -0.12, H + 0.006), (0.01, 0.12, H + 0.008), "white")
+        for s in (-1, 1):
+            a.box_mm((-L + 0.06, s * W - 0.004, 0.12), (L - 0.06, s * W + 0.004, 0.3), "drone_gray")   # 侧面散热格栅
+            for x in (-L + 0.04, L - 0.04):
+                a.box((x, s * (W - 0.04), 0.02), (0.08, 0.08, 0.04), "black")
+        a.cyl((-0.26, W - 0.03, H), (-0.26, W - 0.03, 1.25), 0.012, "truck_gray", seg=8)           # 气象站杆
+        a.box((-0.26, W - 0.03, 1.27), (0.05, 0.05, 0.04), "mach_white")
+        a.cyl((-0.26, W - 0.03, 1.29), (-0.26, W - 0.03, 1.33), 0.04, "mach_white", seg=10)
+        a.cyl((0.26, W - 0.03, H), (0.26, W - 0.03, 0.95), 0.008, "black", seg=6)                  # 天线
+        self.mesh(a, name + "_m", R)
+        prof = [(L, H), (L - 0.005, 0.6), (L - 0.05, 0.69), (L - 0.13, 0.745), (0.0, 0.77)]
+        for s, nm in ((1, "P"), (-1, "N")):
+            n = self.node(f"{name}_Lid{nm}", R, (s * L, 0, H), dict(kind="lid", axis="y", open=2.38 * s))
+            a = Acc()
+            for (x0, z0), (x1, z1) in zip(prof[:-1], prof[1:]):
+                dx, dz = x1 - x0, z1 - z0
+                nx, nz = dz, -dx
+                if nx * s < 0:
+                    nx, nz = -nx, -nz
+                ln = math.hypot(nx, nz)
+                a.bar((s * x0, 0, z0), (s * x1, 0, z1), 2 * W, 0.018, "mach_white", up=(nx / ln, 0, nz / ln))
+            self.mesh(a, n.name + "_m", n)
+        return R
+
+    def robot_dog(self, name="M_RobotDog"):
+        """四足巡检机器狗：站立 1.098 × 0.45 × 0.645 m、约 60 kg（参照宇树 B2 公开参数，外形原创）。
+        每条腿：髋（kind=hip）→ 膝（kind=knee），都绕 y 转；膝朝后。"""
+        R = self.root(name, dict(model="robot_dog"))
+        a = Acc()
+        hz = 0.47
+        a.box((0, 0, hz), (0.78, 0.30, 0.17), "robot_gray")
+        a.box((-0.02, 0, hz + 0.095), (0.6, 0.26, 0.02), "black")
+        a.box((0.43, 0, hz - 0.01), (0.1, 0.25, 0.13), "black")
+        for y in (-0.06, 0.06):
+            a.cyl((0.48, y, hz + 0.01), (0.485, y, hz + 0.01), 0.022, "glass_dark", seg=10)
+        a.cyl((0.3, 0, hz + 0.105), (0.3, 0, hz + 0.175), 0.05, "black", seg=14)                    # 激光雷达
+        for sy in (-1, 1):
+            a.box_mm((-0.3, sy * 0.15 - 0.003, hz + 0.02), (0.3, sy * 0.15 + 0.003, hz + 0.05), "yellow")
+            for sx in (-1, 1):
+                a.cyl((sx * 0.33, sy * 0.13, hz), (sx * 0.33, sy * 0.215, hz), 0.06, "black", seg=14)
+        self.mesh(a, name + "_m", R)
+        yl = 0.175
+        for sx, fx in ((1, "F"), (-1, "R")):
+            for sy, fy in ((1, "L"), (-1, "R")):
+                tag = fx + fy
+                hip = (sx * 0.33, sy * yl, hz)
+                knee = (hip[0] - 0.236, hip[1], hz - 0.23)
+                foot = (hip[0], hip[1], 0.035)
+                h = self.node(f"{name}_{tag}_Hip", R, hip, dict(kind="hip", axis="y", leg=tag))
+                a = Acc()
+                a.bar(hip, knee, 0.065, 0.075, "robot_gray", up=(0.7, 0, 0.7))
+                a.cyl((knee[0], knee[1] - 0.04, knee[2]), (knee[0], knee[1] + 0.04, knee[2]), 0.04, "black", seg=12)
+                self.mesh(a, h.name + "_m", h)
+                k = self.node(f"{name}_{tag}_Knee", h, knee, dict(kind="knee", axis="y", leg=tag))
+                a = Acc()
+                a.bar(knee, foot, 0.04, 0.045, "black", up=(-0.6, 0, 0.8))
+                a.cyl((foot[0], foot[1] - 0.03, foot[2]), (foot[0], foot[1] + 0.03, foot[2]), 0.035, "rubber", seg=12)
+                self.mesh(a, k.name + "_m", k)
+        return R
+
+    def rebar_bot(self, name="M_RebarBot"):
+        """楼板钢筋绑扎机器人：龙门架骑在钢筋网上走，横梁上的小车带绑扎枪找交叉点（外形和尺寸是推断的示意）。
+        小车 kind=slide 沿 y，绑扎枪 kind=slide 沿 z。"""
+        R = self.root(name, dict(model="rebar_bot"))
+        a = Acc()
+        X, Y = 0.58, 0.44
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                a.box((sx * X, sy * Y, 0.42), (0.06, 0.06, 0.62), "robot_orange")
+                a.cyl((sx * X, sy * Y - 0.03, 0.07), (sx * X, sy * Y + 0.03, 0.07), 0.07, "tire", seg=14)
+            a.box((sx * X, 0, 0.75), (0.07, 2 * Y + 0.06, 0.08), "robot_orange")
+        for sy in (-1, 1):
+            a.box((0, sy * Y, 0.75), (2 * X + 0.06, 0.06, 0.08), "robot_orange")
+        a.box((-0.2, 0, 0.88), (0.45, 0.4, 0.18), "mach_white")                                     # 电池 + 控制箱
+        a.box((-0.2, 0.201, 0.9), (0.2, 0.004, 0.06), "robot_orange")
+        a.bar((X, 0, 0.79), (X, 0, 1.05), 0.03, 0.03, "black")                                       # 相机杆
+        a.box((X, 0, 1.08), (0.08, 0.14, 0.06), "black")
+        a.cyl((X + 0.04, -0.04, 1.08), (X + 0.045, -0.04, 1.08), 0.015, "glass_dark", seg=8)
+        a.cyl((X + 0.04, 0.04, 1.08), (X + 0.045, 0.04, 1.08), 0.015, "glass_dark", seg=8)
+        for sx in (-0.18, 0.18):
+            a.box((sx, 0, 0.7), (0.03, 2 * Y, 0.03), "chrome")                                      # 小车导轨
+        self.mesh(a, name + "_m", R)
+        c = self.node(f"{name}_Car", R, (0, 0, 0.66), dict(kind="slide", axis="y"))
+        a = Acc()
+        a.box((0, 0, 0.66), (0.44, 0.16, 0.08), "robot_orange")
+        a.box((0, 0, 0.58), (0.12, 0.12, 0.1), "mach_white")
+        self.mesh(a, c.name + "_m", c)
+        g = self.node(f"{name}_Gun", c, (0, 0, 0.5), dict(kind="slide", axis="z"))
+        a = Acc()
+        a.box((0, 0, 0.38), (0.07, 0.1, 0.24), "drone_gray")
+        a.box((0.0, 0, 0.24), (0.05, 0.05, 0.06), "black")
+        a.cyl((0, 0, 0.21), (0, 0, 0.17), 0.012, "chrome", seg=8)
+        self.mesh(a, g.name + "_m", g)
+        return R
+
+    def weld_ring(self, name="M_WeldRing"):
+        """柱子对接焊缝用的柔性轨道：半径 1（网页按柱子半径缩放 x、y）。"""
+        R = self.root(name, dict(model="weld_ring"))
+        a = Acc()
+        n = 48
+        for i in range(n):
+            t = 2 * math.pi * (i + 0.5) / n
+            Rz = np.array([[math.cos(t), -math.sin(t), 0], [math.sin(t), math.cos(t), 0], [0, 0, 1]])
+            a.box((math.cos(t), math.sin(t), 0), (0.03, 2 * math.pi / n + 0.004, 0.05), "dark_steel", R=Rz)
+        for i in range(4):
+            t = math.pi / 2 * i + math.pi / 4
+            Rz = np.array([[math.cos(t), -math.sin(t), 0], [math.sin(t), math.cos(t), 0], [0, 0, 1]])
+            a.box((math.cos(t) * 1.02, math.sin(t) * 1.02, 0), (0.05, 0.08, 0.08), "black", R=Rz)
+        self.mesh(a, name + "_m", R)
+        return R
+
+    def weld_cart(self, name="M_WeldCart"):
+        """轨道焊接小车（便携式焊接机器人，整机约 10 kg）：原点在轨道上、贴着柱面，+X 指向柱子（焊缝在原点上方 0.17 m）。"""
+        R = self.root(name, dict(model="weld_cart", seam=0.17))
+        a = Acc()
+        a.box((-0.1, 0, 0.0), (0.14, 0.2, 0.12), "robot_orange")
+        a.box((-0.1, 0, 0.075), (0.12, 0.16, 0.03), "drone_gray")
+        a.cyl((-0.15, -0.035, 0.13), (-0.15, 0.035, 0.13), 0.06, "dark_steel", seg=14)               # 焊丝盘
+        a.bar((-0.06, 0, 0.07), (0.0, 0, 0.17), 0.025, 0.025, "dark_steel", up=(1, 0, 0))            # 焊枪
+        a.cyl((-0.01, 0, 0.155), (0.012, 0, 0.175), 0.012, "chrome", seg=8)
+        a.box((-0.03, 0.06, 0.15), (0.04, 0.04, 0.05), "black")                                      # 激光焊缝跟踪
+        self.mesh(a, name + "_m", R)
+        return R
+
+    def grinder(self, name="M_Grinder"):
+        """墙面打磨 / 喷涂机器人：0.85 × 0.70 × 1.75 m（参照一款“喷涂 + 腻子 + 打磨”三合一机器人的公开参数，外形原创）。
+        升降架 kind=slide 沿 z，磨头 kind=spin 绕 x 转；磨头朝 +X 贴墙。"""
+        R = self.root(name, dict(model="grinder"))
+        a = Acc()
+        a.box((0, 0, 0.25), (0.85, 0.70, 0.3), "robot_orange")
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                a.cyl((sx * 0.3, sy * 0.3, 0.1), (sx * 0.3, sy * 0.36, 0.1), 0.1, "tire", seg=14)
+        a.box((-0.08, 0, 0.75), (0.6, 0.6, 0.7), "mach_white")
+        a.box((-0.08, 0.301, 0.85), (0.4, 0.004, 0.25), "drone_gray")
+        for y in (-0.18, 0.18):
+            a.box((0.27, y, 1.07), (0.05, 0.05, 1.36), "dark_steel")
+        a.box((0.27, 0, 1.73), (0.06, 0.42, 0.04), "dark_steel")
+        a.cyl((-0.08, 0, 1.1), (-0.08, 0, 1.17), 0.06, "black", seg=12)                              # 激光雷达
+        a.cyl((-0.25, 0.2, 1.1), (-0.25, 0.2, 1.35), 0.09, "drone_gray", seg=12)                     # 吸尘桶
+        self.mesh(a, name + "_m", R)
+        L = self.node(f"{name}_Lift", R, (0.3, 0, 0.9), dict(kind="slide", axis="z"))
+        a = Acc()
+        a.box((0.32, 0, 0.9), (0.08, 0.44, 0.12), "robot_orange")
+        a.bar((0.32, 0, 0.9), (0.47, 0, 0.9), 0.08, 0.08, "drone_gray")
+        self.mesh(a, L.name + "_m", L)
+        hd = self.node(f"{name}_Head", L, (0.5, 0, 0.9), dict(kind="spin", axis="x"))
+        a = Acc()
+        a.cyl((0.47, 0, 0.9), (0.53, 0, 0.9), 0.17, "drone_gray", seg=20)
+        a.cyl((0.53, 0, 0.9), (0.545, 0, 0.9), 0.165, "dirt", seg=20)
+        a.box((0.5, 0.0, 0.9), (0.02, 0.3, 0.03), "black")
+        self.mesh(a, hd.name + "_m", hd)
+        return R
+
+    def total_station(self, name="M_TotalStation"):
+        """全站仪 + 三脚架（高约 1.65 m）。仪器头 kind=slew 绕 z 转。"""
+        R = self.root(name, dict(model="total_station"))
+        a = Acc()
+        top = 1.34
+        for i in range(3):
+            t = 2 * math.pi * i / 3
+            a.bar((0.06 * math.cos(t), 0.06 * math.sin(t), top), (0.55 * math.cos(t), 0.55 * math.sin(t), 0.0), 0.035, 0.03, "yellow")
+            a.box((0.55 * math.cos(t), 0.55 * math.sin(t), 0.02), (0.03, 0.03, 0.05), "chrome")
+        a.cyl((0, 0, top - 0.03), (0, 0, top + 0.01), 0.09, "drone_gray", seg=14)
+        self.mesh(a, name + "_m", R)
+        h = self.node(f"{name}_Head", R, (0, 0, top + 0.01), dict(kind="slew", axis="z"))
+        a = Acc()
+        a.box((0, 0, top + 0.04), (0.17, 0.17, 0.05), "black")
+        a.box((0, 0, top + 0.1), (0.15, 0.2, 0.07), "mach_white")
+        a.box((-0.076, 0, top + 0.1), (0.004, 0.12, 0.05), "glass_dark")
+        for y in (-0.08, 0.08):
+            a.box((0, y, top + 0.2), (0.07, 0.035, 0.16), "mach_white")
+        a.cyl((-0.11, 0, top + 0.22), (0.11, 0, top + 0.22), 0.045, "drone_gray", seg=14)
+        a.cyl((0.11, 0, top + 0.22), (0.115, 0, top + 0.22), 0.04, "glass_dark", seg=14)
+        self.mesh(a, h.name + "_m", h)
+        return R
+
+    def cam_pole(self, name="P_CamPole"):
+        """AI 视频监控杆：6 m 杆 + 球机（kind=slew）+ 枪机 + 太阳能板 + 4G 箱。"""
+        R = self.root(name, dict(model="cam_pole"))
+        a = Acc()
+        a.box((0, 0, 0.15), (0.8, 0.8, 0.3), "concrete")
+        a.cyl((0, 0, 0.3), (0, 0, 6.0), 0.08, "truck_gray", seg=12, r1=0.06)
+        a.bar((0, 0, 5.85), (0.85, 0, 5.85), 0.06, 0.06, "truck_gray")
+        a.box((-0.38, 0, 5.7), (0.32, 0.11, 0.11), "mach_white")
+        a.box((-0.545, 0, 5.7), (0.01, 0.08, 0.08), "glass_dark")
+        a.bar((0, 0, 6.0), (0, 0, 6.3), 0.04, 0.04, "truck_gray")
+        a.box((0.1, 0, 6.35), (0.7, 0.55, 0.03), "window", R=np.array([[0.87, 0, 0.5], [0, 1, 0], [-0.5, 0, 0.87]]))
+        a.box((0.15, 0, 2.6), (0.18, 0.4, 0.5), "mach_white")
+        a.cyl((0.12, 0, 4.6), (0.3, 0, 4.5), 0.05, "mach_white", seg=10, r1=0.11)                    # 喇叭
+        self.mesh(a, name + "_m", R)
+        p = self.node(f"{name}_PTZ", R, (0.85, 0, 5.8), dict(kind="slew", axis="z"))
+        a = Acc()
+        a.cyl((0.85, 0, 5.82), (0.85, 0, 5.72), 0.12, "mach_white", seg=16)
+        a.cyl((0.85, 0, 5.72), (0.85, 0, 5.62), 0.11, "glass_dark", seg=16, r1=0.05)
+        a.box((0.93, 0, 5.66), (0.06, 0.06, 0.05), "black")
+        self.mesh(a, p.name + "_m", p)
+        return R
+
+    def remote_cab(self, name="P_RemoteCab"):
+        """塔吊远程操控室：20 尺箱（6.06 × 2.44 × 2.59 m），两个操作台，各一把座椅 + 两个手柄 + 三块屏。窗朝 +Y。"""
+        R = self.root(name, dict(model="remote_cab"))
+        a = Acc()
+        L, W, H = 3.03, 1.22, 2.59
+        a.box_mm((-L, -W, 0), (L, W, 0.12), "drone_gray")
+        a.box_mm((-L, -W, H - 0.15), (L, W, H), "roof_blue")
+        a.box_mm((-L, -W, 0.12), (L, -W + 0.06, H - 0.15), "mach_white")
+        a.box_mm((-L, -W, 0.12), (-L + 0.06, W, H - 0.15), "mach_white")
+        a.box_mm((L - 0.06, -W, 0.12), (L, W, H - 0.15), "mach_white")
+        a.box_mm((-L, W - 0.06, 0.12), (L, W, 1.0), "mach_white")
+        a.box_mm((-L, W - 0.06, 2.2), (L, W, H - 0.15), "mach_white")
+        for x in (-L, -1.0, 1.0, L - 0.08):
+            a.box_mm((x, W - 0.06, 1.0), (x + 0.08, W, 2.2), "mach_white")
+        a.box_mm((-L + 0.08, W - 0.03, 1.0), (L - 0.08, W - 0.02, 2.2), "glass")
+        a.box_mm((L, -0.5, 0.2), (L + 0.03, 0.5, 2.2), "roof_blue")                                    # 门
+        a.box_mm((-L - 0.4, -0.6, 1.6), (-L, 0.2, 2.2), "mach_white")                                  # 空调外机
+        a.box_mm((-1.4, -W - 0.05, 2.0), (1.4, -W - 0.02, 2.4), "blue")                               # 门头牌
+        for cx in (-1.25, 1.25):
+            a.box((cx, 0.45, 0.8), (1.3, 0.6, 0.06), "drone_gray")                                    # 操作台面
+            a.box((cx, 0.45, 0.45), (1.2, 0.5, 0.65), "dark_steel")
+            for k, dx in enumerate((-0.45, 0.0, 0.45)):
+                a.box((cx + dx, 0.62, 1.2), (0.42, 0.04, 0.26), "screen")
+                a.box((cx + dx, 0.66, 1.0), (0.05, 0.04, 0.2), "black")
+            a.box((cx, 0.62, 1.55), (1.3, 0.04, 0.36), "screen")
+            a.box((cx, -0.3, 0.45), (0.5, 0.5, 0.1), "black")                                         # 座椅
+            a.box((cx, -0.53, 0.8), (0.5, 0.08, 0.6), "black")
+            for s in (-1, 1):
+                a.box((cx + s * 0.33, -0.25, 0.65), (0.12, 0.35, 0.1), "black")                      # 扶手 + 手柄
+                a.cyl((cx + s * 0.33, -0.12, 0.7), (cx + s * 0.33, -0.12, 0.84), 0.02, "black", seg=8)
+            a.cyl((cx, -0.3, 0.12), (cx, -0.3, 0.4), 0.04, "chrome", seg=8)
+        self.mesh(a, name + "_m", R)
+        return R
+
+    def led_screen(self, name="P_LEDScreen"):
+        """智慧工地大屏：6.0 × 3.375 m（16:9），底边离地 2.2 m，屏面朝 +X。屏面节点 _Face 写 w/h，网页贴画布。"""
+        R = self.root(name, dict(model="led_screen"))
+        a = Acc()
+        w, h, z0 = 6.0, 3.375, 2.2
+        for y in (-2.0, 2.0):
+            a.box((-0.35, y, (z0 + h) / 2 + 0.3), (0.3, 0.3, z0 + h + 0.6), "truck_gray")
+            a.box((-0.35, y, 0.2), (0.9, 0.9, 0.4), "concrete")
+        a.box((-0.15, 0, z0 + h / 2), (0.25, w + 0.24, h + 0.24), "drone_gray")
+        a.box((-0.15, 0, z0 + h + 0.35), (0.5, w + 0.6, 0.12), "roof_blue")
+        a.box((-0.15, 0, z0 - 0.35), (0.12, w * 0.6, 0.4), "roof_blue")
+        a.box_mm((-0.05, -w / 2, z0), (-0.02, w / 2, z0 + h), "screen")
+        self.mesh(a, name + "_m", R)
+        self.node(f"{name}_Face", R, (0.0, 0, z0 + h / 2), dict(kind="face", w=w, h=h))
+        return R
+
+    def dust_station(self, name="P_DustStation"):
+        """扬尘噪声监测站：4 m 杆，传感器箱、百叶箱、风速风向仪（_Cups kind=spin），前面一块 1.5 × 0.9 m 小屏（_Face，朝 +X）。"""
+        R = self.root(name, dict(model="dust_station"))
+        a = Acc()
+        a.box((0, 0, 0.1), (0.7, 0.7, 0.2), "concrete")
+        a.cyl((0, 0, 0.2), (0, 0, 4.0), 0.05, "truck_gray", seg=10)
+        a.box((0.1, 0, 2.9), (0.2, 0.3, 0.45), "mach_white")
+        for k in range(6):
+            a.cyl((-0.15, 0, 3.25 + k * 0.035), (-0.15, 0, 3.27 + k * 0.035), 0.09 - k * 0.006, "mach_white", seg=12)
+        a.bar((0, 0, 3.9), (0, 0.45, 3.9), 0.03, 0.03, "truck_gray")
+        a.box((0, 0.45, 3.95), (0.2, 0.02, 0.08), "black")
+        for y in (-0.8, 0.8):
+            a.box((-0.05, y, 1.1), (0.08, 0.08, 2.2), "truck_gray")
+        a.box((0.0, 0, 1.65), (0.1, 1.7, 1.05), "drone_gray")
+        a.box_mm((0.05, -0.75, 1.2), (0.06, 0.75, 2.1), "screen")
+        self.mesh(a, name + "_m", R)
+        self.node(f"{name}_Face", R, (0.07, 0, 1.65), dict(kind="face", w=1.5, h=0.9))
+        c = self.node(f"{name}_Cups", R, (0, 0, 4.1), dict(kind="spin", axis="z"))
+        a = Acc()
+        a.cyl((0, 0, 4.0), (0, 0, 4.12), 0.02, "black", seg=8)
+        for i in range(3):
+            t = 2 * math.pi * i / 3
+            a.bar((0, 0, 4.12), (0.18 * math.cos(t), 0.18 * math.sin(t), 4.12), 0.012, 0.012, "black")
+            a.cyl((0.18 * math.cos(t), 0.18 * math.sin(t), 4.12), (0.18 * math.cos(t) - 0.04 * math.sin(t), 0.18 * math.sin(t) + 0.04 * math.cos(t), 4.12), 0.035, "mach_white", seg=10, r1=0.012)
+        self.mesh(a, c.name + "_m", c)
+        return R
+
+    def fog_cannon(self, name="M_FogCannon"):
+        """雾炮机（拖挂式）：风筒直径约 1 m，回转（_Slew kind=slew 绕 z）+ 俯仰（_Barrel kind=pitch 绕 y）。喷口在风筒前端 x=0.9。"""
+        R = self.root(name, dict(model="fog_cannon", nozzle=0.95))
+        a = Acc()
+        a.box((0, 0, 0.6), (2.2, 1.4, 0.2), "truck_gray")
+        a.bar((1.1, 0, 0.55), (2.2, 0, 0.45), 0.08, 0.08, "dark_steel")
+        a.cyl((2.2, 0, 0.45), (2.2, 0, 0.3), 0.05, "dark_steel", seg=8)
+        for sy in (-1, 1):
+            a.cyl((-0.2, sy * 0.72, 0.32), (-0.2, sy * 0.88, 0.32), 0.32, "tire", seg=16)
+        a.box((-0.75, 0, 0.95), (0.5, 0.9, 0.5), "mach_white")                                       # 水泵 + 电控箱
+        a.box((-0.75, 0.451, 1.0), (0.3, 0.004, 0.2), "drone_gray")
+        a.cyl((0.2, 0, 0.7), (0.2, 0, 0.85), 0.35, "dark_steel", seg=16)
+        self.mesh(a, name + "_m", R)
+        sl = self.node(f"{name}_Slew", R, (0.2, 0, 0.85), dict(kind="slew", axis="z"))
+        a = Acc()
+        for sy in (-1, 1):
+            a.box((0.2, sy * 0.6, 1.15), (0.12, 0.06, 0.6), "red_white")
+        a.box((0.2, 0, 0.88), (0.3, 1.25, 0.08), "red_white")
+        self.mesh(a, sl.name + "_m", sl)
+        b = self.node(f"{name}_Barrel", sl, (0.2, 0, 1.4), dict(kind="pitch", axis="y"))
+        a = Acc()
+        a.cyl((-0.65, 0, 1.4), (0.95, 0, 1.4), 0.52, "mach_white", seg=24, caps=False)
+        a.cyl((0.95, 0, 1.4), (-0.65, 0, 1.4), 0.5, "drone_gray", seg=24, caps=False)              # 内壁
+        a.cyl((0.6, 0, 1.4), (0.75, 0, 1.4), 0.53, "red_white", seg=24, caps=False)
+        a.cyl((-0.5, 0, 1.4), (-0.48, 0, 1.4), 0.5, "dark_steel", seg=24)                            # 后网罩
+        for i in range(12):
+            t = 2 * math.pi * i / 12
+            a.cyl((0.9, 0.46 * math.cos(t), 1.4 + 0.46 * math.sin(t)), (0.95, 0.46 * math.cos(t), 1.4 + 0.46 * math.sin(t)), 0.02, "chrome", seg=6)
+        self.mesh(a, b.name + "_m", b)
+        return R
+
+    def face_gate(self, name="P_FaceGate"):
+        """实名制人脸识别闸机：三条通道（沿 y 走，-Y 是进场一侧），每个机箱顶上一块人脸识别屏；上面一个雨棚。"""
+        R = self.root(name, dict(model="face_gate", lanes=[-1.15, 0.0, 1.15]))
+        a = Acc()
+        for x in (-1.725, -0.575, 0.575, 1.725):
+            a.box((x, 0, 0.5), (0.25, 1.2, 1.0), "mach_white")
+            a.box((x, 0, 1.005), (0.26, 1.21, 0.01), "drone_gray")
+            a.box_mm((x - 0.126, -0.5, 0.75), (x + 0.126, 0.5, 0.8), "lamp")
+            a.cyl((x, -0.45, 1.0), (x, -0.45, 1.3), 0.02, "chrome", seg=8)
+            a.box((x, -0.45, 1.42), (0.14, 0.03, 0.22), "black")
+            a.box((x, -0.467, 1.42), (0.11, 0.004, 0.17), "screen")
+            for s in (-1, 1):
+                if abs(x + s * 0.2) < 1.8:
+                    a.box((x + s * 0.2, 0.0, 0.75), (0.15, 0.02, 0.5), "glass")                       # 翼闸挡板
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                a.box((sx * 2.3, sy * 1.5, 1.5), (0.12, 0.12, 3.0), "truck_gray")
+        a.box((0, 0, 3.05), (4.8, 3.4, 0.12), "roof_blue")
+        a.box((0, -1.72, 2.85), (4.8, 0.06, 0.45), "blue")
+        a.box_mm((-2.4, -1.75, 0.0), (2.4, 1.75, 0.03), "concrete")
+        self.mesh(a, name + "_m", R)
+        return R
+
+    def smart(self):
+        return [self.drone(), self.dock(), self.robot_dog(), self.rebar_bot(), self.weld_ring(), self.weld_cart(), self.grinder(),
+                self.total_station(), self.fog_cannon(), self.cam_pole(), self.remote_cab(), self.led_screen(), self.dust_station(), self.face_gate()]
+
     # ---------------------------------------------------- 全部排一排（.blend 里看用；网页会自己摆位置）
     def build_all(self, origin=(320.0, 0.0)):
         order = []
@@ -884,6 +1253,7 @@ class Kit:
         order.append(self.worker())
         self.props()
         order += [self.roots[k] for k in ("P_Office", "P_Guard", "P_Shed", "P_Light", "P_Wash", "P_Board", "P_Charger", "P_SteelStack", "P_Transformer")]
+        order += self.smart()
         ox, oy = origin
         x = ox
         for r in order:
