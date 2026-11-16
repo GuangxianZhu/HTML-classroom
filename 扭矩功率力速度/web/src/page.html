@@ -1,0 +1,389 @@
+<title>扭矩、功率、力、速度</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+/* 版式：一步一节，左边读、右边动手（图跟着滚动停在右边），手机上读一段、拖一下、再读。
+   五个量各有一种颜色，从第一步用到最后一步：力红、扭矩紫、转速蓝、速度青、功率金。页面的强调色就是功率的金色。 */
+:root{
+  --bg:#ECEFF2; --panel:#F9FAFB; --panel2:#E2E7EC; --ink:#121A22; --ink2:#3A4652; --ink3:#5D6975; --line:#CAD2D9;
+  --F:#C23B22; --T:#6A3FC2; --n:#1F5DCB; --v:#0C7A69; --P:#9C6206; --P-soft:#F4E6CC;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD; --grip:#C23B22; --drag:#7C8794;
+  --f-cn:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1318; --panel:#161D24; --panel2:#1F2832; --ink:#E7ECF0; --ink2:#B5C0CA; --ink3:#8B98A5; --line:#2C3742;
+  --F:#FF7B5E; --T:#B79BFF; --n:#71A4FF; --v:#3FCAB0; --P:#F1B23F; --P-soft:#3A2C12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --grip:#FF7B5E; --drag:#8C99A6; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --panel2:#1F2832; --ink:#E7ECF0; --ink2:#B5C0CA; --ink3:#8B98A5; --line:#2C3742;
+  --F:#FF7B5E; --T:#B79BFF; --n:#71A4FF; --v:#3FCAB0; --P:#F1B23F; --P-soft:#3A2C12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --grip:#FF7B5E; --drag:#8C99A6; color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{box-sizing:border-box;scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 var(--f-cn);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-block:26px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:46px}
+.qF{color:var(--F)} .qT{color:var(--T)} .qn{color:var(--n)} .qv{color:var(--v)} .qP{color:var(--P)}
+.qF,.qT,.qn,.qv,.qP{font-weight:700}
+.nw{white-space:nowrap}
+
+.hero{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font:500 13px/1 var(--f-mono);color:var(--P);letter-spacing:.06em}
+h1{margin:0;font-size:clamp(28px,5vw,50px);line-height:1.25;font-weight:900;letter-spacing:.01em;text-wrap:balance}
+.hero p{margin:0;max-width:44em;font-size:17px;color:var(--ink2)}
+.legend5{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 0;padding:0;list-style:none;font-size:14px;color:var(--ink2)}
+.legend5 li{display:flex;align-items:center;gap:6px}
+.legend5 i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.steps{display:flex;flex-wrap:wrap;gap:6px 8px;margin:6px 0 0;padding:0;list-style:none;font-size:13.5px}
+.steps a{display:inline-flex;gap:6px;align-items:baseline;padding:4px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink2);text-decoration:none}
+.steps a:hover{border-color:var(--P);color:var(--ink)}
+.steps b{font:700 15px/1 var(--f-num);color:var(--P)}
+
+.sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);grid-template-areas:"a f" "b f";grid-template-rows:auto 1fr;gap:6px 34px;scroll-margin-top:12px;border-top:1px solid var(--line);padding-top:26px}
+.sec>.a{grid-area:a;min-width:0}
+.sec>.b{grid-area:b;min-width:0}
+.sec>.f{grid-area:f;min-width:0;display:flex;flex-direction:column;gap:12px;align-self:start;position:sticky;top:12px}
+.num{font:700 15px/1 var(--f-num);letter-spacing:.1em;color:var(--P);display:block;margin-bottom:6px}
+h2{margin:0 0 8px;font-size:clamp(23px,3vw,29px);line-height:1.3;font-weight:900;text-wrap:balance}
+p{margin:0 0 .75em;max-width:38em}
+.b p:last-child,.a p:last-child{margin-bottom:0}
+b,strong{font-weight:700}
+.key{background:var(--P-soft);border-radius:5px;padding:11px 14px;margin:.4em 0 .9em;font-weight:500;max-width:38em}
+.lim{font-size:14px;line-height:1.7;color:var(--ink3);margin:.9em 0 0;max-width:40em}
+.ev{font:500 11.5px/1 var(--f-cn);padding:3px 6px;border-radius:3px;border:1px solid currentColor;white-space:nowrap;margin-right:5px;vertical-align:1px}
+.ev.a{color:var(--ok)} .ev.c{color:var(--P)} .ev.d{color:var(--T)}
+
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.fig canvas{display:block;width:100%;border-radius:3px;touch-action:pan-y}
+.cap{font-size:13.5px;line-height:1.6;color:var(--ink2);min-height:1.6em;margin:0;max-width:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn{font:500 14px/1.2 var(--f-cn);padding:8px 11px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:var(--P)}
+.btn[aria-pressed="true"]{background:var(--P);border-color:var(--P);color:var(--panel)}
+.btn:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--P);outline-offset:2px}
+.ctl{display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr) 7.4em;gap:4px 10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.ctl input{width:100%;min-width:0;accent-color:var(--P)}
+.ctl output{font:500 12.5px var(--f-mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kpi{border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:var(--panel)}
+.kpi span{display:block;font-size:12px;color:var(--ink3);line-height:1.4}
+.kpi b{font:700 22px/1.2 var(--f-num);font-variant-numeric:tabular-nums}
+.kpi small{font:400 12px var(--f-cn);color:var(--ink3);margin-left:2px}
+.calc{font:400 13.5px/1.75 var(--f-mono);background:var(--panel2);border-radius:5px;padding:8px 11px;overflow-x:auto;white-space:nowrap;color:var(--ink2)}
+.calc div{min-width:max-content}
+.calc b{color:var(--ink)}
+.calc .note{font-family:var(--f-cn);font-size:12.5px;color:var(--ink3)}
+.guess{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:.3em 0 .9em;display:flex;flex-direction:column;gap:7px;max-width:38em}
+.guess .q{font-weight:500;margin:0}
+.guess .tag{font:500 12px/1 var(--f-mono);color:var(--P);letter-spacing:.05em}
+.guess .btn{background:var(--panel2);text-align:left}
+.guess .btn.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.guess .btn.wrong{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.guess .r{margin:0;font-size:14.5px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-weight:500;color:var(--ink3);white-space:nowrap}
+td{min-width:80px}
+td.f{font-family:var(--f-mono);font-size:13px;white-space:nowrap}
+.faq{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 30px}
+.faq h3{margin:0 0 .25em;font-size:16px}
+.faq p{margin:0;font-size:15px}
+.end{border-top:1px solid var(--line);padding-top:24px;display:flex;flex-direction:column;gap:18px}
+.end h2{margin:0}
+a{color:var(--P)}
+@media (max-width:920px){
+  .wrap{gap:34px}
+  .sec{grid-template-columns:minmax(0,1fr);grid-template-areas:"a" "f" "b";grid-template-rows:auto;gap:12px}
+  .sec>.f{position:static}
+  .faq{grid-template-columns:minmax(0,1fr)}
+  .ctl{grid-template-columns:minmax(64px,auto) minmax(0,1fr) 6.6em}
+}
+@media (max-width:420px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">零基础动力课 · 九步，从一把扳手讲到发动机和电机</div>
+    <h1><span class="nw"><span class="qP">功率</span> = <span class="qF">力</span> × <span class="qv">速度</span></span> <span class="nw">= <span class="qT">扭矩</span> × <span class="qn">转速</span></span></h1>
+    <p>车为什么要变速箱，电动车为什么不用？发动机和电机的功率又是谁决定的？这九步一步只多讲一个东西。每一步先猜一题，再拖滑块看数字怎么变，下面的算式会把当前的数字代进去。</p>
+    <ul class="legend5" aria-label="五个量的颜色">
+      <li><i style="background:var(--F)"></i>力 F（N）</li><li><i style="background:var(--T)"></i>扭矩 T（N·m）</li>
+      <li><i style="background:var(--n)"></i>转速 n（rpm）</li><li><i style="background:var(--v)"></i>速度 v（m/s、km/h）</li><li><i style="background:var(--P)"></i>功率 P（kW）</li>
+    </ul>
+    <div class="fig">
+      <canvas id="h" aria-label="发动机、一对齿轮、车轮、路面连成一串，每一段都标着扭矩和转速，底下一条功率带从头到尾差不多一样宽"></canvas>
+      <div class="ctl"><label for="h-i">总减速比</label><input id="h-i" type="range" min="2" max="16" step="0.1" value="6"><output id="h-io"></output></div>
+      <p class="cap" id="h-cap"></p>
+    </div>
+    <ul class="steps" aria-label="九个步骤">
+      <li><a href="#s1"><b>1</b>扳手：扭矩</a></li><li><a href="#s2"><b>2</b>车轮：车速</a></li><li><a href="#s3"><b>3</b>功率</a></li>
+      <li><a href="#s4"><b>4</b>齿轮</a></li><li><a href="#s5"><b>5</b>车轮推力</a></li><li><a href="#s6"><b>6</b>发动机的功率</a></li>
+      <li><a href="#s7"><b>7</b>电机的曲线</a></li><li><a href="#s8"><b>8</b>电机的功率</a></li><li><a href="#s9"><b>9</b>油车和电车</a></li>
+    </ul>
+  </header>
+
+  <section class="sec" id="s1">
+    <div class="a">
+      <span class="num">第 1 步</span><h2>扳手：<span class="qT">扭矩</span> = <span class="qF">力</span> × 力臂</h2>
+      <p><span class="qF">力</span>就是推或拉，单位是牛顿（N）。1 kg 的东西压在手上，大约是 9.8 N。</p>
+      <p>拧螺栓光看力不够：同样的手劲，握在扳手末端比握在根部好拧得多。让东西转起来的效果叫<span class="qT">扭矩</span>，等于力乘上<b>力臂</b>（转轴到用力那一点的距离），单位 N·m。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f1" aria-label="一把扳手套在螺栓上，手在扳手上往下压。扭矩够了螺栓就转"></canvas>
+      <div class="ctl"><label for="f1-F">手上的力</label><input id="f1-F" type="range" min="50" max="500" step="10" value="300"><output id="f1-Fo"></output></div>
+      <div class="ctl"><label for="f1-r">握的位置</label><input id="f1-r" type="range" min="0.08" max="0.45" step="0.01" value="0.30"><output id="f1-ro"></output></div>
+      <div class="calc" id="f1-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g1">
+        <span class="tag">先猜一下</span>
+        <p class="q">同样的手劲，扳手换成两倍长、握在末端，拧螺栓的扭矩变成多少？</p>
+        <div class="row"><button class="btn" type="button">和原来一样</button><button class="btn" type="button">两倍</button><button class="btn" type="button">四倍</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">车轮也是一根扳手：轴上有<span class="qT">扭矩</span>，车轮外沿推地面的<span class="qF">力</span> = 扭矩 ÷ 车轮半径。第 5 步会用到。</p>
+      <p class="lim"><span class="ev a">公认</span>扭矩 = 力 × 力臂（力和扳手垂直时）。<span class="ev c">本页简化</span>螺栓要 110 N·m 才拧得动，是轿车轮毂螺栓常见的量级。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s2">
+    <div class="a">
+      <span class="num">第 2 步</span><h2>车轮：<span class="qv">车速</span> = <span class="qn">转速</span> × 半径</h2>
+      <p><span class="qn">转速</span>常用 rpm 表示，就是每分钟转多少圈。车轮转一圈，车往前走一个周长 2πr。所以车速 = 每秒转几圈 × 周长。</p>
+      <p>物理书里常写成 <b>v = ω × r</b>。ω 叫角速度，单位 rad/s，就是把“每分钟多少圈”换成“每秒转过多少弧度”：ω = rpm × 2π ÷ 60。两种写法算出来是同一个数。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f2" aria-label="一个车轮在路上滚，轮子上有一条标记线，路面往后走"></canvas>
+      <div class="ctl"><label for="f2-n">车轮转速</label><input id="f2-n" type="range" min="0" max="1500" step="10" value="800"><output id="f2-no"></output></div>
+      <div class="ctl"><label for="f2-r">车轮半径</label><input id="f2-r" type="range" min="0.25" max="0.40" step="0.005" value="0.30"><output id="f2-ro"></output></div>
+      <div class="calc" id="f2-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g2">
+        <span class="tag">先猜一下</span>
+        <p class="q">车轮每分钟转 800 圈，半径 0.30 m，车速大约多少？</p>
+        <div class="row"><button class="btn" type="button">50 km/h</button><button class="btn" type="button">90 km/h</button><button class="btn" type="button">150 km/h</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">同样的<span class="qn">转速</span>，轮子越大跑得越快。km/h 和 m/s 差 3.6 倍：1 m/s = 3.6 km/h。</p>
+      <p class="lim"><span class="ev a">公认</span>车轮不打滑时，车速 = 角速度 × 半径。<span class="ev c">本页简化</span>真轮胎被压扁一点，滚动半径比量出来的半径小一些。图里的转动放慢了 20 倍，不然只看得到一团影子。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s3">
+    <div class="a">
+      <span class="num">第 3 步</span><h2><span class="qP">功率</span>：每秒做多少功</h2>
+      <p>用力推着东西走一段路叫<b>做功</b>：功 = 力 × 距离，单位焦耳（J）。<span class="qP">功率</span>是每秒做多少功，单位瓦（W），1 kW = 1000 W。每秒走的距离就是速度，所以 <b>功率 = <span class="qF">力</span> × <span class="qv">速度</span></b>。</p>
+      <p>转动的东西也一样：<b>功率 = <span class="qT">扭矩</span> × 角速度</b>。用 rpm 算更方便：功率（kW）= 扭矩（N·m）× rpm ÷ 9549。9549 就是 60000 ÷ 2π，只是在换单位。车的参数常写“马力”，1 马力（PS）约等于 0.7355 kW。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f3" aria-label="卷扬机的卷筒转着收绳子，把重物匀速吊上去"></canvas>
+      <div class="ctl"><label for="f3-m">重物</label><input id="f3-m" type="range" min="20" max="200" step="5" value="100"><output id="f3-mo"></output></div>
+      <div class="ctl"><label for="f3-v">往上的速度</label><input id="f3-v" type="range" min="0.2" max="3" step="0.1" value="1"><output id="f3-vo"></output></div>
+      <div class="calc" id="f3-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g3">
+        <span class="tag">先猜一下</span>
+        <p class="q">两台卷扬机：A 每秒把 100 kg 吊高 1 m，B 每秒把 50 kg 吊高 2 m。谁的功率大？</p>
+        <div class="row"><button class="btn" type="button">A</button><button class="btn" type="button">B</button><button class="btn" type="button">一样大</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">只说“<span class="qT">扭矩</span>大”或者“<span class="qn">转速</span>高”，都还不知道它到底有多大劲。两个乘起来才是<span class="qP">功率</span>。</p>
+      <p class="lim"><span class="ev a">公认</span>功率 = 力 × 速度 = 扭矩 × 角速度。<span class="ev c">本页简化</span>卷筒半径固定 0.10 m，不算绳子和轴承的摩擦。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s4">
+    <div class="a">
+      <span class="num">第 4 步</span><h2>齿轮：功率不变，拿<span class="qn">转速</span>换<span class="qT">扭矩</span></h2>
+      <p>小齿轮带大齿轮：小的转一圈，大的只转一部分，<span class="qn">转速</span>按齿数比降下来，大齿轮上的<span class="qT">扭矩</span>按同样的比例涨上去。</p>
+      <p>齿轮自己不出力，所以进去多少<span class="qP">功率</span>，出来就有多少，只扣掉一点摩擦（一对齿轮约 2%）。变速箱就是一组可以换的齿比，CVT 是能连续地换。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f4" aria-label="小齿轮带大齿轮，两边标着扭矩和转速，底下两条功率条几乎一样长"></canvas>
+      <div class="ctl"><label for="f4-z1">小齿轮齿数</label><input id="f4-z1" type="range" min="10" max="40" step="1" value="20"><output id="f4-z1o"></output></div>
+      <div class="ctl"><label for="f4-z2">大齿轮齿数</label><input id="f4-z2" type="range" min="20" max="80" step="1" value="60"><output id="f4-z2o"></output></div>
+      <div class="ctl"><label for="f4-n">输入转速</label><input id="f4-n" type="range" min="500" max="6000" step="100" value="3000"><output id="f4-no"></output></div>
+      <div class="ctl"><label for="f4-T">输入扭矩</label><input id="f4-T" type="range" min="20" max="200" step="5" value="100"><output id="f4-To"></output></div>
+      <div class="calc" id="f4-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g4">
+        <span class="tag">先猜一下</span>
+        <p class="q">20 齿的小齿轮带 60 齿的大齿轮。小齿轮 3000 rpm、100 N·m，大齿轮大约是多少？</p>
+        <div class="row"><button class="btn" type="button">1000 rpm、300 N·m</button><button class="btn" type="button">9000 rpm、33 N·m</button><button class="btn" type="button">1000 rpm、100 N·m</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">齿轮不生产功率，只把它换成“转得慢、劲大”，或者“转得快、劲小”。</p>
+      <p class="lim"><span class="ev a">公认</span>齿比 = 齿数比；理想齿轮输入功率 = 输出功率。<span class="ev c">本页简化</span>效率固定 98%。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s5">
+    <div class="a">
+      <span class="num">第 5 步</span><h2>车轮推地面的力 = <span class="qP">功率</span> ÷ <span class="qv">车速</span></h2>
+      <p>把前面串起来：发动机的扭矩经过变速箱和主减速放大，到了车轮上；车轮扭矩 ÷ 车轮半径，就是推地面的<span class="qF">力</span>（第 1 步的扳手）。</p>
+      <p>再把“功率 = 力 × 速度”倒过来：<b>推力 = 功率 ÷ 车速</b>。到了某个车速，车轮能推出多大的力，只看送到车轮上的功率。变速箱怎么换比例，都改不了这一点。</p>
+      <p>例子车是<a href="../汽车模拟器/index.html">汽车模拟器</a>里那台：1325 kg，1.5 L 发动机最大 80 kW（约 6000 rpm），最大扭矩 142 N·m（约 4200 rpm），配 CVT。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f5" aria-label="横轴车速、纵轴车轮推力的图。金色曲线是发动机守在最大功率转速时的推力，虚线是守在最大扭矩转速时的；红线是轮胎抓地力上限，灰线是风阻加滚阻"></canvas>
+      <div class="row" role="group" aria-label="发动机守在哪个转速"><span class="cap">发动机守在：</span><button class="btn" type="button" id="f5-p" aria-pressed="true">最大功率 6000 rpm</button><button class="btn" type="button" id="f5-t" aria-pressed="false">最大扭矩 4200 rpm</button></div>
+      <div class="ctl"><label for="f5-v">车速</label><input id="f5-v" type="range" min="5" max="190" step="1" value="60"><output id="f5-vo"></output></div>
+      <div class="kpis" id="f5-k"></div>
+      <div class="calc" id="f5-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g5">
+        <span class="tag">先猜一下</span>
+        <p class="q">地板油加速时，CVT 应该让发动机守在哪个转速上？</p>
+        <div class="row"><button class="btn" type="button">最大扭矩的转速（约 4200 rpm）</button><button class="btn" type="button">最大功率的转速（约 6000 rpm）</button><button class="btn" type="button">越低越好，省油</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">低速时推力被<b>轮胎抓地力</b>封顶（再大就打滑），高速时被<b>风阻</b>吃掉。中间那一大段，推力 = 功率 ÷ 车速。金色曲线和灰色阻力线相交的地方就是极速。</p>
+      <p class="lim"><span class="ev a">公认</span>车速一定时，推力只由送到车轮的功率决定。<span class="ev c">本页简化</span>从曲轴到车轮的效率按 84% 的常数；抓地力 = 0.9 × 压在前轮上的 58% 车重。实际低速段还有变矩器和最低挡的限制，第 9 步再说。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s6">
+    <div class="a">
+      <span class="num">第 6 步</span><h2>发动机的<span class="qP">功率</span>：每秒吸进多少空气</h2>
+      <p>油很好喷，想喷多少都行，但油要有氧气才能烧。汽油 1 kg 要配 14.7 kg 空气才烧得干净，所以<b>吸进来多少空气，就只能烧多少油</b>。</p>
+      <p>1 kg 空气能陪着烧出约 2.9 MJ 的热（43 MJ ÷ 14.7）。汽油机满负荷时，大约三成多的热变成了功，其余从排气和冷却水里跑掉。</p>
+      <p>四冲程发动机曲轴转两圈，每个缸吸一次气。缸不一定吸得满：低转速时气流慢，高转速时气门开的时间太短。吸满的程度叫<b>充气效率</b>，它让扭矩曲线中间鼓、两头低。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f6a" aria-label="空气从左边进来，和喷进去的油一起在气缸里烧，右边分成两股：金色的是功率，灰色的是排气和冷却带走的热"></canvas>
+      <canvas id="f6b" aria-label="这台发动机全开时，扭矩和功率随转速变化的曲线，当前转速有一条竖线"></canvas>
+      <div class="ctl"><label for="f6-d">排量</label><input id="f6-d" type="range" min="0.66" max="3" step="0.02" value="1.5"><output id="f6-do"></output></div>
+      <div class="ctl"><label for="f6-n">转速</label><input id="f6-n" type="range" min="1000" max="7000" step="100" value="6000"><output id="f6-no"></output></div>
+      <div class="ctl"><label for="f6-t">节气门</label><input id="f6-t" type="range" min="0.05" max="1" step="0.01" value="1"><output id="f6-to"></output></div>
+      <div class="ctl"><label for="f6-b">增压</label><input id="f6-b" type="range" min="1" max="2" step="0.05" value="1"><output id="f6-bo"></output></div>
+      <div class="ctl"><label for="f6-e">热效率</label><input id="f6-e" type="range" min="0.25" max="0.40" step="0.01" value="0.34"><output id="f6-eo"></output></div>
+      <div class="kpis" id="f6-k"></div>
+      <div class="calc" id="f6-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g6">
+        <span class="tag">先猜一下</span>
+        <p class="q">1.5 L 的发动机在 6000 rpm，每秒大约吸进多少空气？</p>
+        <div class="row"><button class="btn" type="button">约 8 g</button><button class="btn" type="button">约 80 g</button><button class="btn" type="button">约 800 g</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">想要更大的功率只有四条路：<b>排量大</b>（每圈吸得多）、<b>转速高</b>（每秒吸的次数多）、<b>增压</b>（压缩了再塞进去，1.5 T 能顶 2.0 L 就是这个道理）、<b>效率高</b>。平时开车用不到这么大的功率，因为节气门在限制空气。</p>
+      <p class="lim"><span class="ev a">公认</span>理论空燃比 14.7 : 1，汽油热值约 43 MJ/kg，四冲程两圈吸一次。<span class="ev d">估算</span>充气效率曲线（1000 rpm 78%，4000 rpm 95%，7000 rpm 76%）。<span class="ev c">本页简化</span>热效率按常数，真发动机高转速时摩擦更大，效率还会再掉一点；节气门当成按比例放空气。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s7">
+    <div class="a">
+      <span class="num">第 7 步</span><h2>电机：先恒<span class="qT">扭矩</span>，再恒<span class="qP">功率</span></h2>
+      <p>电机的扭矩来自电流：<b>扭矩 = k × 电流</b>。k 由磁铁、绕组匝数和电机大小决定。电流有上限（再大线圈会过热，逆变器也扛不住），所以扭矩也有上限。</p>
+      <p>电机一转起来，自己也在发电，这叫<b>反电动势</b>：反电动势 = k × 角速度。转得越快，它越接近电池电压，能推进去的电流就越少。顶到电池电压的那个转速叫<b>基速</b>。</p>
+      <p>基速以下，电流开满，扭矩是平的。基速以上，控制器用“弱磁”把反电动势压下去，电机还能往上转，但只能保持恒定的功率，扭矩 = 功率 ÷ 角速度，随转速往下掉。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f7" aria-label="电机的扭矩和功率随转速变化的曲线：扭矩先平后降，功率先升后平；旁边一根电压条，反电动势往上涨，碰到电池电压就开始弱磁"></canvas>
+      <div class="ctl"><label for="f7-n">电机转速</label><input id="f7-n" type="range" min="0" max="16000" step="100" value="3000"><output id="f7-no"></output></div>
+      <div class="row"><button class="btn" type="button" id="f7-run">从 0 转到最高</button><button class="btn" type="button" id="f7-w" aria-pressed="true">弱磁：开</button></div>
+      <div class="kpis" id="f7-k"></div>
+      <div class="calc" id="f7-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g7">
+        <span class="tag">先猜一下</span>
+        <p class="q">电机从静止刚开始转的那一刻，扭矩是多少？</p>
+        <div class="row"><button class="btn" type="button">零，转起来才有</button><button class="btn" type="button">最大</button><button class="btn" type="button">最大的一半</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">电机从 0 转就有满扭矩，过了基速功率一直是平的，所以电动车大多只用一个固定齿比，不用变速箱。</p>
+      <p class="lim"><span class="ev a">公认</span>扭矩正比于电流，反电动势正比于转速，过基速靠弱磁保持恒功率。<span class="ev c">本页简化</span>理想电机：不算损失和磁饱和，k 把三相的系数都折算进去了；关掉弱磁时扭矩掉到零的那一段画成直线。这台电机是 400 V、400 A、k = 0.75 N·m/A。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s8">
+    <div class="a">
+      <span class="num">第 8 步</span><h2>电机的<span class="qP">功率</span> ≈ 电压 × 电流</h2>
+      <p>把上一步的两件事乘起来：扭矩上限 = k × 电流，基速 = 电压 ÷ k，所以基速时的功率 = (k × 电流) × (电压 ÷ k) = <b>电压 × 电流</b>。k 被约掉了。</p>
+      <p>绕组多绕几匝（k 变大），扭矩大了，基速同比变低，功率不变。绕组就像电机里面的一个齿比。要更大的功率，只能提高<b>电压</b>（电池串更多电芯，比如 800 V 平台）或者<b>电流</b>（逆变器、电池能放多大电流）。</p>
+      <p>所以同样 160 kW，可以做成“力优先”或者“速度优先”。下面是一台虚构的电动车：1600 kg，后轮驱动，一个固定齿比。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f8" aria-label="横轴车速、纵轴车轮推力。实线是现在这套电机和齿比，虚线是另一种做法；红线是轮胎抓地力上限，灰线是阻力"></canvas>
+      <div class="row" role="group" aria-label="两种做法"><button class="btn" type="button" id="f8-a" aria-pressed="true">力优先</button><button class="btn" type="button" id="f8-b" aria-pressed="false">速度优先</button></div>
+      <div class="ctl"><label for="f8-U">电池电压</label><input id="f8-U" type="range" min="200" max="800" step="10" value="400"><output id="f8-Uo"></output></div>
+      <div class="ctl"><label for="f8-I">最大电流</label><input id="f8-I" type="range" min="100" max="600" step="10" value="400"><output id="f8-Io"></output></div>
+      <div class="ctl"><label for="f8-k">k（匝数）</label><input id="f8-k" type="range" min="0.3" max="1.2" step="0.01" value="0.75"><output id="f8-ko"></output></div>
+      <div class="ctl"><label for="f8-g">齿比</label><input id="f8-g" type="range" min="3" max="12" step="0.01" value="8.13"><output id="f8-go"></output></div>
+      <div class="kpis" id="f8-k2"></div>
+      <div class="calc" id="f8-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g8">
+        <span class="tag">先猜一下</span>
+        <p class="q">电池电压、最大电流都不变，绕组匝数加一倍（k 翻倍），电机的最大功率怎么变？</p>
+        <div class="row"><button class="btn" type="button">翻倍</button><button class="btn" type="button">不变</button><button class="btn" type="button">减半</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">改 k：拐点在横轴上前后挪，但电机最高转速对应的车速不变。改齿比：连最高车速一起变。力优先做过头，推力超过红线，起步只会打滑。</p>
+      <p class="lim"><span class="ev a">公认</span>理想电机基速时的功率 = 电压 × 电流。<span class="ev c">本页简化</span>不算损失（真电机和逆变器还要扣掉约 5%～10%）；电机最高转速固定 16000 rpm。真电机还分<b>峰值功率</b>和<b>持续功率</b>：线圈发热和电流的平方成正比，峰值只能撑几十秒，持续功率常常只有峰值的一半左右，差在散热。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s9">
+    <div class="a">
+      <span class="num">第 9 步</span><h2>放在一起：发动机 + CVT 和电机</h2>
+      <p>最后把两种动力装进同一辆车（还是第 5 步那台，1325 kg，前驱）。为了公平，让两者送到车轮上的最大功率一样，都是约 68 kW。</p>
+      <p>中高速时两条线都贴着同一条“功率 ÷ 车速”的曲线，一模一样。差别只在低速：发动机怠速以下转不动，要靠变矩器打滑放大扭矩、CVT 停在最低挡；电机从 0 转就有满扭矩，推力只看电机扭矩上限 × 齿比。两种都被轮胎抓地力封顶。</p>
+      <p>发动机只在一个转速附近才出最大功率，所以要 CVT 一直帮它守在那儿；电机从基速到最高转速都是最大功率，一个齿比就够了。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f9" aria-label="同一张推力对车速的图上画着油车和电车两条线，中高速重合在同一条功率曲线上，低速各自被不同的东西限制"></canvas>
+      <div class="ctl"><label for="f9-v">车速</label><input id="f9-v" type="range" min="0" max="190" step="1" value="30"><output id="f9-vo"></output></div>
+      <div class="ctl"><label for="f9-g">电车的齿比</label><input id="f9-g" type="range" min="5" max="12" step="0.1" value="8"><output id="f9-go"></output></div>
+      <div class="kpis" id="f9-k"></div>
+      <p class="cap" id="f9-cap"></p>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g9">
+        <span class="tag">先猜一下</span>
+        <p class="q">电动车为什么一个固定齿比就够，油车却要变速箱？</p>
+        <div class="row"><button class="btn" type="button">电机出最大功率的转速范围宽</button><button class="btn" type="button">电机的扭矩比发动机大得多</button><button class="btn" type="button">电机比发动机轻</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">速度和推力的关系，两种动力服从同一个式子。另一个差别在能量上：从油到车轮，发动机车大约只有两三成；从电池到车轮，电动车大约八九成。</p>
+      <p class="lim"><span class="ev a">公认</span>车速一定时推力只看车轮上的功率。<span class="ev c">本页简化</span>油车这条线是全油门、所有速比里挑出的最大推力，低速段的变矩器用的是汽车模拟器里同一个模型；电车是理想电机（扭矩上限 250 N·m，最高 14000 rpm，齿轮效率 97%）。</p>
+    </div>
+  </section>
+
+  <section class="end" id="end">
+    <h2>一张表记住</h2>
+    <div class="tw"><table>
+      <thead><tr><th>量</th><th>单位</th><th>怎么算</th><th>本页的例子</th></tr></thead>
+      <tbody>
+        <tr><td class="qF">力 F</td><td>N</td><td class="f">F = T ÷ r；F = P ÷ v</td><td>60 km/h 时车轮推地面约 4070 N</td></tr>
+        <tr><td class="qT">扭矩 T</td><td>N·m</td><td class="f">T = F × r；T = P ÷ ω</td><td>1.5 L 发动机最大 142 N·m</td></tr>
+        <tr><td class="qn">转速 n</td><td>rpm</td><td class="f">ω = n × 2π ÷ 60</td><td>最大功率在约 6000 rpm</td></tr>
+        <tr><td class="qv">速度 v</td><td>m/s</td><td class="f">v = ω × r；km/h = m/s × 3.6</td><td>车轮 800 rpm、半径 0.30 m ≈ 90 km/h</td></tr>
+        <tr><td class="qP">功率 P</td><td>kW</td><td class="f">P = F × v = T × n ÷ 9549</td><td>128 N·m × 6000 rpm ≈ 80 kW</td></tr>
+      </tbody>
+    </table></div>
+    <div class="faq">
+      <div><h3>扭矩大，加速就快？</h3><p>不一定。到了车轮上，同一个车速下推力只看功率。扭矩大但转速上不去的发动机，配上齿比以后不一定比扭矩小、转速高的推得更猛。</p></div>
+      <div><h3>电机功率看电机多大？</h3><p>主要看电压 × 电流，也就是电池和逆变器。电机本体管的是扛不扛得住这么大的电流（发热）和转不转得了这么快。哪一样最弱，哪一样就是上限。</p></div>
+      <div><h3>为什么低速大扭矩的车好开？</h3><p>城里开车常用的是低速段，那里推力被扭矩上限 × 齿比限制，还没碰到功率线。低速扭矩大，轻踩油门就有力，不用把发动机拉到高转速。</p></div>
+    </div>
+    <p class="lim">接着看：<a href="../汽车模拟器/index.html">汽车模拟器</a>（这页例子车的真身，能踩油门开）、<a href="../踏板摩托车动力系统/index.html">踏板摩托车动力系统</a>（“油门”“转速和功率”“热值和油耗”三章）、<a href="../电流怎么转动磁场/index.html">电流怎么转动磁场</a>（电机零基础）、<a href="../电动车电机调速/index.html">电动车电机调速</a>（弱磁和外特性的细节）。</p>
+    <p class="lim">标签的意思：<span class="ev a">公认</span>教科书和工程上通用的结论；<span class="ev c">本页简化</span>为了讲清楚故意省掉的东西；<span class="ev d">估算</span>我按常见范围取的数，不是哪台真机的实测。例子车、电动车都是虚构的。</p>
+  </section>
+</div>

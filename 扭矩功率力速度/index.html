@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>扭矩、功率、力、速度</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+/* 版式：一步一节，左边读、右边动手（图跟着滚动停在右边），手机上读一段、拖一下、再读。
+   五个量各有一种颜色，从第一步用到最后一步：力红、扭矩紫、转速蓝、速度青、功率金。页面的强调色就是功率的金色。 */
+:root{
+  --bg:#ECEFF2; --panel:#F9FAFB; --panel2:#E2E7EC; --ink:#121A22; --ink2:#3A4652; --ink3:#5D6975; --line:#CAD2D9;
+  --F:#C23B22; --T:#6A3FC2; --n:#1F5DCB; --v:#0C7A69; --P:#9C6206; --P-soft:#F4E6CC;
+  --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD; --grip:#C23B22; --drag:#7C8794;
+  --f-cn:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1318; --panel:#161D24; --panel2:#1F2832; --ink:#E7ECF0; --ink2:#B5C0CA; --ink3:#8B98A5; --line:#2C3742;
+  --F:#FF7B5E; --T:#B79BFF; --n:#71A4FF; --v:#3FCAB0; --P:#F1B23F; --P-soft:#3A2C12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --grip:#FF7B5E; --drag:#8C99A6; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1318; --panel:#161D24; --panel2:#1F2832; --ink:#E7ECF0; --ink2:#B5C0CA; --ink3:#8B98A5; --line:#2C3742;
+  --F:#FF7B5E; --T:#B79BFF; --n:#71A4FF; --v:#3FCAB0; --P:#F1B23F; --P-soft:#3A2C12;
+  --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --grip:#FF7B5E; --drag:#8C99A6; color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{box-sizing:border-box;scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 var(--f-cn);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-block:26px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:46px}
+.qF{color:var(--F)} .qT{color:var(--T)} .qn{color:var(--n)} .qv{color:var(--v)} .qP{color:var(--P)}
+.qF,.qT,.qn,.qv,.qP{font-weight:700}
+.nw{white-space:nowrap}
+
+.hero{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font:500 13px/1 var(--f-mono);color:var(--P);letter-spacing:.06em}
+h1{margin:0;font-size:clamp(28px,5vw,50px);line-height:1.25;font-weight:900;letter-spacing:.01em;text-wrap:balance}
+.hero p{margin:0;max-width:44em;font-size:17px;color:var(--ink2)}
+.legend5{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 0;padding:0;list-style:none;font-size:14px;color:var(--ink2)}
+.legend5 li{display:flex;align-items:center;gap:6px}
+.legend5 i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.steps{display:flex;flex-wrap:wrap;gap:6px 8px;margin:6px 0 0;padding:0;list-style:none;font-size:13.5px}
+.steps a{display:inline-flex;gap:6px;align-items:baseline;padding:4px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--ink2);text-decoration:none}
+.steps a:hover{border-color:var(--P);color:var(--ink)}
+.steps b{font:700 15px/1 var(--f-num);color:var(--P)}
+
+.sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);grid-template-areas:"a f" "b f";grid-template-rows:auto 1fr;gap:6px 34px;scroll-margin-top:12px;border-top:1px solid var(--line);padding-top:26px}
+.sec>.a{grid-area:a;min-width:0}
+.sec>.b{grid-area:b;min-width:0}
+.sec>.f{grid-area:f;min-width:0;display:flex;flex-direction:column;gap:12px;align-self:start;position:sticky;top:12px}
+.num{font:700 15px/1 var(--f-num);letter-spacing:.1em;color:var(--P);display:block;margin-bottom:6px}
+h2{margin:0 0 8px;font-size:clamp(23px,3vw,29px);line-height:1.3;font-weight:900;text-wrap:balance}
+p{margin:0 0 .75em;max-width:38em}
+.b p:last-child,.a p:last-child{margin-bottom:0}
+b,strong{font-weight:700}
+.key{background:var(--P-soft);border-radius:5px;padding:11px 14px;margin:.4em 0 .9em;font-weight:500;max-width:38em}
+.lim{font-size:14px;line-height:1.7;color:var(--ink3);margin:.9em 0 0;max-width:40em}
+.ev{font:500 11.5px/1 var(--f-cn);padding:3px 6px;border-radius:3px;border:1px solid currentColor;white-space:nowrap;margin-right:5px;vertical-align:1px}
+.ev.a{color:var(--ok)} .ev.c{color:var(--P)} .ev.d{color:var(--T)}
+
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.fig canvas{display:block;width:100%;border-radius:3px;touch-action:pan-y}
+.cap{font-size:13.5px;line-height:1.6;color:var(--ink2);min-height:1.6em;margin:0;max-width:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn{font:500 14px/1.2 var(--f-cn);padding:8px 11px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:var(--P)}
+.btn[aria-pressed="true"]{background:var(--P);border-color:var(--P);color:var(--panel)}
+.btn:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--P);outline-offset:2px}
+.ctl{display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr) 7.4em;gap:4px 10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.ctl input{width:100%;min-width:0;accent-color:var(--P)}
+.ctl output{font:500 12.5px var(--f-mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kpi{border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:var(--panel)}
+.kpi span{display:block;font-size:12px;color:var(--ink3);line-height:1.4}
+.kpi b{font:700 22px/1.2 var(--f-num);font-variant-numeric:tabular-nums}
+.kpi small{font:400 12px var(--f-cn);color:var(--ink3);margin-left:2px}
+.calc{font:400 13.5px/1.75 var(--f-mono);background:var(--panel2);border-radius:5px;padding:8px 11px;overflow-x:auto;white-space:nowrap;color:var(--ink2)}
+.calc div{min-width:max-content}
+.calc b{color:var(--ink)}
+.calc .note{font-family:var(--f-cn);font-size:12.5px;color:var(--ink3)}
+.guess{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:.3em 0 .9em;display:flex;flex-direction:column;gap:7px;max-width:38em}
+.guess .q{font-weight:500;margin:0}
+.guess .tag{font:500 12px/1 var(--f-mono);color:var(--P);letter-spacing:.05em}
+.guess .btn{background:var(--panel2);text-align:left}
+.guess .btn.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.guess .btn.wrong{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.guess .r{margin:0;font-size:14.5px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-weight:500;color:var(--ink3);white-space:nowrap}
+td{min-width:80px}
+td.f{font-family:var(--f-mono);font-size:13px;white-space:nowrap}
+.faq{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 30px}
+.faq h3{margin:0 0 .25em;font-size:16px}
+.faq p{margin:0;font-size:15px}
+.end{border-top:1px solid var(--line);padding-top:24px;display:flex;flex-direction:column;gap:18px}
+.end h2{margin:0}
+a{color:var(--P)}
+@media (max-width:920px){
+  .wrap{gap:34px}
+  .sec{grid-template-columns:minmax(0,1fr);grid-template-areas:"a" "f" "b";grid-template-rows:auto;gap:12px}
+  .sec>.f{position:static}
+  .faq{grid-template-columns:minmax(0,1fr)}
+  .ctl{grid-template-columns:minmax(64px,auto) minmax(0,1fr) 6.6em}
+}
+@media (max-width:420px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">零基础动力课 · 九步，从一把扳手讲到发动机和电机</div>
+    <h1><span class="nw"><span class="qP">功率</span> = <span class="qF">力</span> × <span class="qv">速度</span></span> <span class="nw">= <span class="qT">扭矩</span> × <span class="qn">转速</span></span></h1>
+    <p>车为什么要变速箱，电动车为什么不用？发动机和电机的功率又是谁决定的？这九步一步只多讲一个东西。每一步先猜一题，再拖滑块看数字怎么变，下面的算式会把当前的数字代进去。</p>
+    <ul class="legend5" aria-label="五个量的颜色">
+      <li><i style="background:var(--F)"></i>力 F（N）</li><li><i style="background:var(--T)"></i>扭矩 T（N·m）</li>
+      <li><i style="background:var(--n)"></i>转速 n（rpm）</li><li><i style="background:var(--v)"></i>速度 v（m/s、km/h）</li><li><i style="background:var(--P)"></i>功率 P（kW）</li>
+    </ul>
+    <div class="fig">
+      <canvas id="h" aria-label="发动机、一对齿轮、车轮、路面连成一串，每一段都标着扭矩和转速，底下一条功率带从头到尾差不多一样宽"></canvas>
+      <div class="ctl"><label for="h-i">总减速比</label><input id="h-i" type="range" min="2" max="16" step="0.1" value="6"><output id="h-io"></output></div>
+      <p class="cap" id="h-cap"></p>
+    </div>
+    <ul class="steps" aria-label="九个步骤">
+      <li><a href="#s1"><b>1</b>扳手：扭矩</a></li><li><a href="#s2"><b>2</b>车轮：车速</a></li><li><a href="#s3"><b>3</b>功率</a></li>
+      <li><a href="#s4"><b>4</b>齿轮</a></li><li><a href="#s5"><b>5</b>车轮推力</a></li><li><a href="#s6"><b>6</b>发动机的功率</a></li>
+      <li><a href="#s7"><b>7</b>电机的曲线</a></li><li><a href="#s8"><b>8</b>电机的功率</a></li><li><a href="#s9"><b>9</b>油车和电车</a></li>
+    </ul>
+  </header>
+
+  <section class="sec" id="s1">
+    <div class="a">
+      <span class="num">第 1 步</span><h2>扳手：<span class="qT">扭矩</span> = <span class="qF">力</span> × 力臂</h2>
+      <p><span class="qF">力</span>就是推或拉，单位是牛顿（N）。1 kg 的东西压在手上，大约是 9.8 N。</p>
+      <p>拧螺栓光看力不够：同样的手劲，握在扳手末端比握在根部好拧得多。让东西转起来的效果叫<span class="qT">扭矩</span>，等于力乘上<b>力臂</b>（转轴到用力那一点的距离），单位 N·m。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f1" aria-label="一把扳手套在螺栓上，手在扳手上往下压。扭矩够了螺栓就转"></canvas>
+      <div class="ctl"><label for="f1-F">手上的力</label><input id="f1-F" type="range" min="50" max="500" step="10" value="300"><output id="f1-Fo"></output></div>
+      <div class="ctl"><label for="f1-r">握的位置</label><input id="f1-r" type="range" min="0.08" max="0.45" step="0.01" value="0.30"><output id="f1-ro"></output></div>
+      <div class="calc" id="f1-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g1">
+        <span class="tag">先猜一下</span>
+        <p class="q">同样的手劲，扳手换成两倍长、握在末端，拧螺栓的扭矩变成多少？</p>
+        <div class="row"><button class="btn" type="button">和原来一样</button><button class="btn" type="button">两倍</button><button class="btn" type="button">四倍</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">车轮也是一根扳手：轴上有<span class="qT">扭矩</span>，车轮外沿推地面的<span class="qF">力</span> = 扭矩 ÷ 车轮半径。第 5 步会用到。</p>
+      <p class="lim"><span class="ev a">公认</span>扭矩 = 力 × 力臂（力和扳手垂直时）。<span class="ev c">本页简化</span>螺栓要 110 N·m 才拧得动，是轿车轮毂螺栓常见的量级。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s2">
+    <div class="a">
+      <span class="num">第 2 步</span><h2>车轮：<span class="qv">车速</span> = <span class="qn">转速</span> × 半径</h2>
+      <p><span class="qn">转速</span>常用 rpm 表示，就是每分钟转多少圈。车轮转一圈，车往前走一个周长 2πr。所以车速 = 每秒转几圈 × 周长。</p>
+      <p>物理书里常写成 <b>v = ω × r</b>。ω 叫角速度，单位 rad/s，就是把“每分钟多少圈”换成“每秒转过多少弧度”：ω = rpm × 2π ÷ 60。两种写法算出来是同一个数。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f2" aria-label="一个车轮在路上滚，轮子上有一条标记线，路面往后走"></canvas>
+      <div class="ctl"><label for="f2-n">车轮转速</label><input id="f2-n" type="range" min="0" max="1500" step="10" value="800"><output id="f2-no"></output></div>
+      <div class="ctl"><label for="f2-r">车轮半径</label><input id="f2-r" type="range" min="0.25" max="0.40" step="0.005" value="0.30"><output id="f2-ro"></output></div>
+      <div class="calc" id="f2-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g2">
+        <span class="tag">先猜一下</span>
+        <p class="q">车轮每分钟转 800 圈，半径 0.30 m，车速大约多少？</p>
+        <div class="row"><button class="btn" type="button">50 km/h</button><button class="btn" type="button">90 km/h</button><button class="btn" type="button">150 km/h</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">同样的<span class="qn">转速</span>，轮子越大跑得越快。km/h 和 m/s 差 3.6 倍：1 m/s = 3.6 km/h。</p>
+      <p class="lim"><span class="ev a">公认</span>车轮不打滑时，车速 = 角速度 × 半径。<span class="ev c">本页简化</span>真轮胎被压扁一点，滚动半径比量出来的半径小一些。图里的转动放慢了 20 倍，不然只看得到一团影子。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s3">
+    <div class="a">
+      <span class="num">第 3 步</span><h2><span class="qP">功率</span>：每秒做多少功</h2>
+      <p>用力推着东西走一段路叫<b>做功</b>：功 = 力 × 距离，单位焦耳（J）。<span class="qP">功率</span>是每秒做多少功，单位瓦（W），1 kW = 1000 W。每秒走的距离就是速度，所以 <b>功率 = <span class="qF">力</span> × <span class="qv">速度</span></b>。</p>
+      <p>转动的东西也一样：<b>功率 = <span class="qT">扭矩</span> × 角速度</b>。用 rpm 算更方便：功率（kW）= 扭矩（N·m）× rpm ÷ 9549。9549 就是 60000 ÷ 2π，只是在换单位。车的参数常写“马力”，1 马力（PS）约等于 0.7355 kW。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f3" aria-label="卷扬机的卷筒转着收绳子，把重物匀速吊上去"></canvas>
+      <div class="ctl"><label for="f3-m">重物</label><input id="f3-m" type="range" min="20" max="200" step="5" value="100"><output id="f3-mo"></output></div>
+      <div class="ctl"><label for="f3-v">往上的速度</label><input id="f3-v" type="range" min="0.2" max="3" step="0.1" value="1"><output id="f3-vo"></output></div>
+      <div class="calc" id="f3-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g3">
+        <span class="tag">先猜一下</span>
+        <p class="q">两台卷扬机：A 每秒把 100 kg 吊高 1 m，B 每秒把 50 kg 吊高 2 m。谁的功率大？</p>
+        <div class="row"><button class="btn" type="button">A</button><button class="btn" type="button">B</button><button class="btn" type="button">一样大</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">只说“<span class="qT">扭矩</span>大”或者“<span class="qn">转速</span>高”，都还不知道它到底有多大劲。两个乘起来才是<span class="qP">功率</span>。</p>
+      <p class="lim"><span class="ev a">公认</span>功率 = 力 × 速度 = 扭矩 × 角速度。<span class="ev c">本页简化</span>卷筒半径固定 0.10 m，不算绳子和轴承的摩擦。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s4">
+    <div class="a">
+      <span class="num">第 4 步</span><h2>齿轮：功率不变，拿<span class="qn">转速</span>换<span class="qT">扭矩</span></h2>
+      <p>小齿轮带大齿轮：小的转一圈，大的只转一部分，<span class="qn">转速</span>按齿数比降下来，大齿轮上的<span class="qT">扭矩</span>按同样的比例涨上去。</p>
+      <p>齿轮自己不出力，所以进去多少<span class="qP">功率</span>，出来就有多少，只扣掉一点摩擦（一对齿轮约 2%）。变速箱就是一组可以换的齿比，CVT 是能连续地换。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f4" aria-label="小齿轮带大齿轮，两边标着扭矩和转速，底下两条功率条几乎一样长"></canvas>
+      <div class="ctl"><label for="f4-z1">小齿轮齿数</label><input id="f4-z1" type="range" min="10" max="40" step="1" value="20"><output id="f4-z1o"></output></div>
+      <div class="ctl"><label for="f4-z2">大齿轮齿数</label><input id="f4-z2" type="range" min="20" max="80" step="1" value="60"><output id="f4-z2o"></output></div>
+      <div class="ctl"><label for="f4-n">输入转速</label><input id="f4-n" type="range" min="500" max="6000" step="100" value="3000"><output id="f4-no"></output></div>
+      <div class="ctl"><label for="f4-T">输入扭矩</label><input id="f4-T" type="range" min="20" max="200" step="5" value="100"><output id="f4-To"></output></div>
+      <div class="calc" id="f4-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g4">
+        <span class="tag">先猜一下</span>
+        <p class="q">20 齿的小齿轮带 60 齿的大齿轮。小齿轮 3000 rpm、100 N·m，大齿轮大约是多少？</p>
+        <div class="row"><button class="btn" type="button">1000 rpm、300 N·m</button><button class="btn" type="button">9000 rpm、33 N·m</button><button class="btn" type="button">1000 rpm、100 N·m</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">齿轮不生产功率，只把它换成“转得慢、劲大”，或者“转得快、劲小”。</p>
+      <p class="lim"><span class="ev a">公认</span>齿比 = 齿数比；理想齿轮输入功率 = 输出功率。<span class="ev c">本页简化</span>效率固定 98%。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s5">
+    <div class="a">
+      <span class="num">第 5 步</span><h2>车轮推地面的力 = <span class="qP">功率</span> ÷ <span class="qv">车速</span></h2>
+      <p>把前面串起来：发动机的扭矩经过变速箱和主减速放大，到了车轮上；车轮扭矩 ÷ 车轮半径，就是推地面的<span class="qF">力</span>（第 1 步的扳手）。</p>
+      <p>再把“功率 = 力 × 速度”倒过来：<b>推力 = 功率 ÷ 车速</b>。到了某个车速，车轮能推出多大的力，只看送到车轮上的功率。变速箱怎么换比例，都改不了这一点。</p>
+      <p>例子车是<a href="../汽车模拟器/index.html">汽车模拟器</a>里那台：1325 kg，1.5 L 发动机最大 80 kW（约 6000 rpm），最大扭矩 142 N·m（约 4200 rpm），配 CVT。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f5" aria-label="横轴车速、纵轴车轮推力的图。金色曲线是发动机守在最大功率转速时的推力，虚线是守在最大扭矩转速时的；红线是轮胎抓地力上限，灰线是风阻加滚阻"></canvas>
+      <div class="row" role="group" aria-label="发动机守在哪个转速"><span class="cap">发动机守在：</span><button class="btn" type="button" id="f5-p" aria-pressed="true">最大功率 6000 rpm</button><button class="btn" type="button" id="f5-t" aria-pressed="false">最大扭矩 4200 rpm</button></div>
+      <div class="ctl"><label for="f5-v">车速</label><input id="f5-v" type="range" min="5" max="190" step="1" value="60"><output id="f5-vo"></output></div>
+      <div class="kpis" id="f5-k"></div>
+      <div class="calc" id="f5-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g5">
+        <span class="tag">先猜一下</span>
+        <p class="q">地板油加速时，CVT 应该让发动机守在哪个转速上？</p>
+        <div class="row"><button class="btn" type="button">最大扭矩的转速（约 4200 rpm）</button><button class="btn" type="button">最大功率的转速（约 6000 rpm）</button><button class="btn" type="button">越低越好，省油</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">低速时推力被<b>轮胎抓地力</b>封顶（再大就打滑），高速时被<b>风阻</b>吃掉。中间那一大段，推力 = 功率 ÷ 车速。金色曲线和灰色阻力线相交的地方就是极速。</p>
+      <p class="lim"><span class="ev a">公认</span>车速一定时，推力只由送到车轮的功率决定。<span class="ev c">本页简化</span>从曲轴到车轮的效率按 84% 的常数；抓地力 = 0.9 × 压在前轮上的 58% 车重。实际低速段还有变矩器和最低挡的限制，第 9 步再说。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s6">
+    <div class="a">
+      <span class="num">第 6 步</span><h2>发动机的<span class="qP">功率</span>：每秒吸进多少空气</h2>
+      <p>油很好喷，想喷多少都行，但油要有氧气才能烧。汽油 1 kg 要配 14.7 kg 空气才烧得干净，所以<b>吸进来多少空气，就只能烧多少油</b>。</p>
+      <p>1 kg 空气能陪着烧出约 2.9 MJ 的热（43 MJ ÷ 14.7）。汽油机满负荷时，大约三成多的热变成了功，其余从排气和冷却水里跑掉。</p>
+      <p>四冲程发动机曲轴转两圈，每个缸吸一次气。缸不一定吸得满：低转速时气流慢，高转速时气门开的时间太短。吸满的程度叫<b>充气效率</b>，它让扭矩曲线中间鼓、两头低。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f6a" aria-label="空气从左边进来，和喷进去的油一起在气缸里烧，右边分成两股：金色的是功率，灰色的是排气和冷却带走的热"></canvas>
+      <canvas id="f6b" aria-label="这台发动机全开时，扭矩和功率随转速变化的曲线，当前转速有一条竖线"></canvas>
+      <div class="ctl"><label for="f6-d">排量</label><input id="f6-d" type="range" min="0.66" max="3" step="0.02" value="1.5"><output id="f6-do"></output></div>
+      <div class="ctl"><label for="f6-n">转速</label><input id="f6-n" type="range" min="1000" max="7000" step="100" value="6000"><output id="f6-no"></output></div>
+      <div class="ctl"><label for="f6-t">节气门</label><input id="f6-t" type="range" min="0.05" max="1" step="0.01" value="1"><output id="f6-to"></output></div>
+      <div class="ctl"><label for="f6-b">增压</label><input id="f6-b" type="range" min="1" max="2" step="0.05" value="1"><output id="f6-bo"></output></div>
+      <div class="ctl"><label for="f6-e">热效率</label><input id="f6-e" type="range" min="0.25" max="0.40" step="0.01" value="0.34"><output id="f6-eo"></output></div>
+      <div class="kpis" id="f6-k"></div>
+      <div class="calc" id="f6-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g6">
+        <span class="tag">先猜一下</span>
+        <p class="q">1.5 L 的发动机在 6000 rpm，每秒大约吸进多少空气？</p>
+        <div class="row"><button class="btn" type="button">约 8 g</button><button class="btn" type="button">约 80 g</button><button class="btn" type="button">约 800 g</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">想要更大的功率只有四条路：<b>排量大</b>（每圈吸得多）、<b>转速高</b>（每秒吸的次数多）、<b>增压</b>（压缩了再塞进去，1.5 T 能顶 2.0 L 就是这个道理）、<b>效率高</b>。平时开车用不到这么大的功率，因为节气门在限制空气。</p>
+      <p class="lim"><span class="ev a">公认</span>理论空燃比 14.7 : 1，汽油热值约 43 MJ/kg，四冲程两圈吸一次。<span class="ev d">估算</span>充气效率曲线（1000 rpm 78%，4000 rpm 95%，7000 rpm 76%）。<span class="ev c">本页简化</span>热效率按常数，真发动机高转速时摩擦更大，效率还会再掉一点；节气门当成按比例放空气。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s7">
+    <div class="a">
+      <span class="num">第 7 步</span><h2>电机：先恒<span class="qT">扭矩</span>，再恒<span class="qP">功率</span></h2>
+      <p>电机的扭矩来自电流：<b>扭矩 = k × 电流</b>。k 由磁铁、绕组匝数和电机大小决定。电流有上限（再大线圈会过热，逆变器也扛不住），所以扭矩也有上限。</p>
+      <p>电机一转起来，自己也在发电，这叫<b>反电动势</b>：反电动势 = k × 角速度。转得越快，它越接近电池电压，能推进去的电流就越少。顶到电池电压的那个转速叫<b>基速</b>。</p>
+      <p>基速以下，电流开满，扭矩是平的。基速以上，控制器用“弱磁”把反电动势压下去，电机还能往上转，但只能保持恒定的功率，扭矩 = 功率 ÷ 角速度，随转速往下掉。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f7" aria-label="电机的扭矩和功率随转速变化的曲线：扭矩先平后降，功率先升后平；旁边一根电压条，反电动势往上涨，碰到电池电压就开始弱磁"></canvas>
+      <div class="ctl"><label for="f7-n">电机转速</label><input id="f7-n" type="range" min="0" max="16000" step="100" value="3000"><output id="f7-no"></output></div>
+      <div class="row"><button class="btn" type="button" id="f7-run">从 0 转到最高</button><button class="btn" type="button" id="f7-w" aria-pressed="true">弱磁：开</button></div>
+      <div class="kpis" id="f7-k"></div>
+      <div class="calc" id="f7-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g7">
+        <span class="tag">先猜一下</span>
+        <p class="q">电机从静止刚开始转的那一刻，扭矩是多少？</p>
+        <div class="row"><button class="btn" type="button">零，转起来才有</button><button class="btn" type="button">最大</button><button class="btn" type="button">最大的一半</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">电机从 0 转就有满扭矩，过了基速功率一直是平的，所以电动车大多只用一个固定齿比，不用变速箱。</p>
+      <p class="lim"><span class="ev a">公认</span>扭矩正比于电流，反电动势正比于转速，过基速靠弱磁保持恒功率。<span class="ev c">本页简化</span>理想电机：不算损失和磁饱和，k 把三相的系数都折算进去了；关掉弱磁时扭矩掉到零的那一段画成直线。这台电机是 400 V、400 A、k = 0.75 N·m/A。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s8">
+    <div class="a">
+      <span class="num">第 8 步</span><h2>电机的<span class="qP">功率</span> ≈ 电压 × 电流</h2>
+      <p>把上一步的两件事乘起来：扭矩上限 = k × 电流，基速 = 电压 ÷ k，所以基速时的功率 = (k × 电流) × (电压 ÷ k) = <b>电压 × 电流</b>。k 被约掉了。</p>
+      <p>绕组多绕几匝（k 变大），扭矩大了，基速同比变低，功率不变。绕组就像电机里面的一个齿比。要更大的功率，只能提高<b>电压</b>（电池串更多电芯，比如 800 V 平台）或者<b>电流</b>（逆变器、电池能放多大电流）。</p>
+      <p>所以同样 160 kW，可以做成“力优先”或者“速度优先”。下面是一台虚构的电动车：1600 kg，后轮驱动，一个固定齿比。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f8" aria-label="横轴车速、纵轴车轮推力。实线是现在这套电机和齿比，虚线是另一种做法；红线是轮胎抓地力上限，灰线是阻力"></canvas>
+      <div class="row" role="group" aria-label="两种做法"><button class="btn" type="button" id="f8-a" aria-pressed="true">力优先</button><button class="btn" type="button" id="f8-b" aria-pressed="false">速度优先</button></div>
+      <div class="ctl"><label for="f8-U">电池电压</label><input id="f8-U" type="range" min="200" max="800" step="10" value="400"><output id="f8-Uo"></output></div>
+      <div class="ctl"><label for="f8-I">最大电流</label><input id="f8-I" type="range" min="100" max="600" step="10" value="400"><output id="f8-Io"></output></div>
+      <div class="ctl"><label for="f8-k">k（匝数）</label><input id="f8-k" type="range" min="0.3" max="1.2" step="0.01" value="0.75"><output id="f8-ko"></output></div>
+      <div class="ctl"><label for="f8-g">齿比</label><input id="f8-g" type="range" min="3" max="12" step="0.01" value="8.13"><output id="f8-go"></output></div>
+      <div class="kpis" id="f8-k2"></div>
+      <div class="calc" id="f8-c"></div>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g8">
+        <span class="tag">先猜一下</span>
+        <p class="q">电池电压、最大电流都不变，绕组匝数加一倍（k 翻倍），电机的最大功率怎么变？</p>
+        <div class="row"><button class="btn" type="button">翻倍</button><button class="btn" type="button">不变</button><button class="btn" type="button">减半</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">改 k：拐点在横轴上前后挪，但电机最高转速对应的车速不变。改齿比：连最高车速一起变。力优先做过头，推力超过红线，起步只会打滑。</p>
+      <p class="lim"><span class="ev a">公认</span>理想电机基速时的功率 = 电压 × 电流。<span class="ev c">本页简化</span>不算损失（真电机和逆变器还要扣掉约 5%～10%）；电机最高转速固定 16000 rpm。真电机还分<b>峰值功率</b>和<b>持续功率</b>：线圈发热和电流的平方成正比，峰值只能撑几十秒，持续功率常常只有峰值的一半左右，差在散热。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="s9">
+    <div class="a">
+      <span class="num">第 9 步</span><h2>放在一起：发动机 + CVT 和电机</h2>
+      <p>最后把两种动力装进同一辆车（还是第 5 步那台，1325 kg，前驱）。为了公平，让两者送到车轮上的最大功率一样，都是约 68 kW。</p>
+      <p>中高速时两条线都贴着同一条“功率 ÷ 车速”的曲线，一模一样。差别只在低速：发动机怠速以下转不动，要靠变矩器打滑放大扭矩、CVT 停在最低挡；电机从 0 转就有满扭矩，推力只看电机扭矩上限 × 齿比。两种都被轮胎抓地力封顶。</p>
+      <p>发动机只在一个转速附近才出最大功率，所以要 CVT 一直帮它守在那儿；电机从基速到最高转速都是最大功率，一个齿比就够了。</p>
+    </div>
+    <div class="f"><div class="fig">
+      <canvas id="f9" aria-label="同一张推力对车速的图上画着油车和电车两条线，中高速重合在同一条功率曲线上，低速各自被不同的东西限制"></canvas>
+      <div class="ctl"><label for="f9-v">车速</label><input id="f9-v" type="range" min="0" max="190" step="1" value="30"><output id="f9-vo"></output></div>
+      <div class="ctl"><label for="f9-g">电车的齿比</label><input id="f9-g" type="range" min="5" max="12" step="0.1" value="8"><output id="f9-go"></output></div>
+      <div class="kpis" id="f9-k"></div>
+      <p class="cap" id="f9-cap"></p>
+    </div></div>
+    <div class="b">
+      <div class="guess" data-guess="g9">
+        <span class="tag">先猜一下</span>
+        <p class="q">电动车为什么一个固定齿比就够，油车却要变速箱？</p>
+        <div class="row"><button class="btn" type="button">电机出最大功率的转速范围宽</button><button class="btn" type="button">电机的扭矩比发动机大得多</button><button class="btn" type="button">电机比发动机轻</button></div>
+        <p class="r" hidden></p>
+      </div>
+      <p class="key">速度和推力的关系，两种动力服从同一个式子。另一个差别在能量上：从油到车轮，发动机车大约只有两三成；从电池到车轮，电动车大约八九成。</p>
+      <p class="lim"><span class="ev a">公认</span>车速一定时推力只看车轮上的功率。<span class="ev c">本页简化</span>油车这条线是全油门、所有速比里挑出的最大推力，低速段的变矩器用的是汽车模拟器里同一个模型；电车是理想电机（扭矩上限 250 N·m，最高 14000 rpm，齿轮效率 97%）。</p>
+    </div>
+  </section>
+
+  <section class="end" id="end">
+    <h2>一张表记住</h2>
+    <div class="tw"><table>
+      <thead><tr><th>量</th><th>单位</th><th>怎么算</th><th>本页的例子</th></tr></thead>
+      <tbody>
+        <tr><td class="qF">力 F</td><td>N</td><td class="f">F = T ÷ r；F = P ÷ v</td><td>60 km/h 时车轮推地面约 4070 N</td></tr>
+        <tr><td class="qT">扭矩 T</td><td>N·m</td><td class="f">T = F × r；T = P ÷ ω</td><td>1.5 L 发动机最大 142 N·m</td></tr>
+        <tr><td class="qn">转速 n</td><td>rpm</td><td class="f">ω = n × 2π ÷ 60</td><td>最大功率在约 6000 rpm</td></tr>
+        <tr><td class="qv">速度 v</td><td>m/s</td><td class="f">v = ω × r；km/h = m/s × 3.6</td><td>车轮 800 rpm、半径 0.30 m ≈ 90 km/h</td></tr>
+        <tr><td class="qP">功率 P</td><td>kW</td><td class="f">P = F × v = T × n ÷ 9549</td><td>128 N·m × 6000 rpm ≈ 80 kW</td></tr>
+      </tbody>
+    </table></div>
+    <div class="faq">
+      <div><h3>扭矩大，加速就快？</h3><p>不一定。到了车轮上，同一个车速下推力只看功率。扭矩大但转速上不去的发动机，配上齿比以后不一定比扭矩小、转速高的推得更猛。</p></div>
+      <div><h3>电机功率看电机多大？</h3><p>主要看电压 × 电流，也就是电池和逆变器。电机本体管的是扛不扛得住这么大的电流（发热）和转不转得了这么快。哪一样最弱，哪一样就是上限。</p></div>
+      <div><h3>为什么低速大扭矩的车好开？</h3><p>城里开车常用的是低速段，那里推力被扭矩上限 × 齿比限制，还没碰到功率线。低速扭矩大，轻踩油门就有力，不用把发动机拉到高转速。</p></div>
+    </div>
+    <p class="lim">接着看：<a href="../汽车模拟器/index.html">汽车模拟器</a>（这页例子车的真身，能踩油门开）、<a href="../踏板摩托车动力系统/index.html">踏板摩托车动力系统</a>（“油门”“转速和功率”“热值和油耗”三章）、<a href="../电流怎么转动磁场/index.html">电流怎么转动磁场</a>（电机零基础）、<a href="../电动车电机调速/index.html">电动车电机调速</a>（弱磁和外特性的细节）。</p>
+    <p class="lim">标签的意思：<span class="ev a">公认</span>教科书和工程上通用的结论；<span class="ev c">本页简化</span>为了讲清楚故意省掉的东西；<span class="ev d">估算</span>我按常见范围取的数，不是哪台真机的实测。例子车、电动车都是虚构的。</p>
+  </section>
+</div>
+
+<script>(()=>{var sn=Object.defineProperty;var on=(t,e)=>{for(var s in e)sn(t,s,{get:e[s],enumerable:!0})};var Jt={};on(Jt,{AFR:()=>me,BOLT:()=>O,CAR:()=>X,EV:()=>ke,EV9:()=>nt,G:()=>ct,GEAR_ETA:()=>Ue,HEAT_PER_AIR:()=>rn,K9549:()=>ce,LHV:()=>pe,RHO:()=>re,TAU:()=>Bt,VE:()=>He,bestPower:()=>dt,clamp:()=>Re,converter:()=>le,engineAir:()=>$e,engineEnvelope:()=>fe,engineRpm:()=>Yt,ev9:()=>Kt,evPush:()=>Gt,gearPair:()=>jt,hoist:()=>_t,kmh:()=>an,motor:()=>wt,ms:()=>ln,pushAt:()=>Tt,rad:()=>G,resist:()=>B,rpm:()=>K,table:()=>he,torque:()=>Dt,tqWot:()=>st,traction:()=>xt,ve:()=>Ce,wheelSpeed:()=>yt});var Bt=Math.PI*2,ct=9.81,re=1.2,ce=6e4/Bt,Re=(t,e,s)=>Math.max(e,Math.min(s,t)),G=t=>t*Bt/60,K=t=>t*60/Bt,an=t=>t*3.6,ln=t=>t/3.6;function he(t){return e=>{if(e<=t[0][0])return t[0][1];for(let s=1;s<t.length;s++)if(e<=t[s][0]){let[n,i]=t[s-1],[a,l]=t[s];return i+(l-i)*(e-n)/(a-n)}return t[t.length-1][1]}}var Dt=(t,e)=>t*e,O=110,yt=(t,e)=>G(t)*e;function _t(t,e,s){let n=t*ct,i=n*e,a=n*s,l=e/s;return{F:n,P:i,T:a,w:l,n:K(l),P2:a*l}}var Ue=.98;function jt(t,e,s,n,i=Ue){let a=e/t,l=s/a,r=n*a*i;return{i:a,n2:l,T2:r,P1:n*G(s),P2:r*G(l)}}var X={mass:1325,r:.305,cd:.4,area:2.05,crr:.012,final:5.895,low:2.484,high:.403,eta:.87*.97,mu:.9,front:.58,limit:6500,tq:[[600,70],[800,96],[1500,120],[2500,133],[3500,140],[4200,142],[5e3,138],[6e3,128],[6500,110],[6800,60]],tcK0:230,tcStall:1.9,tcCouple:.85},st=he(X.tq),B=(t,e=X)=>.5*re*e.cd*e.area*t*t+e.crr*e.mass*ct,xt=(t=X)=>t.mu*t.front*t.mass*ct;function dt(t,e){let s=0,n=t;for(let i=0;i<=200;i++){let a=t+(e-t)*i/200,l=st(a)*G(a);l>s&&(s=l,n=a)}return{P:s,n}}var Yt=(t,e,s=X)=>K(t/s.r*e*s.final);function Tt(t,e,s=X){let n=st(e)*G(e)*s.eta;return{P:n,F:t>.3?n/t:1/0}}function le(t,e,s=X){let n=Re(e/t,0,1);return{tp:(t/s.tcK0)**2*(1-n**3),tr:n<s.tcCouple?s.tcStall-(s.tcStall-1)*n/s.tcCouple:1}}function fe(t,e=X){let s=xt(e),n=Yt(t,e.high,e),i=Yt(t,e.low,e),a=Math.max(n,1e3),l=Math.min(i,e.limit),r=0,m="";l>a&&t>.05&&(r=dt(a,l).P*e.eta/t,m=i<5950?"\u6700\u4F4E\u6321\u5C01\u9876":"\u8D34\u7740\u529F\u7387\u7EBF");let c=Yt(t,e.low,e),h=0;if(c<e.limit){let u=Math.max(c,300)+1,P=6800;for(let v=0;v<60;v++){let y=(u+P)/2;st(y)>le(y,c,e).tp?u=y:P=y}let k=(u+P)/2,b=le(k,c,e);h=b.tr*b.tp*e.low*e.final*e.eta/e.r}let p=Math.max(r,h);return h>r&&(m="\u53D8\u77E9\u5668\u5728\u653E\u5927\u626D\u77E9"),p>s&&(p=s,m="\u6293\u5730\u529B\u5C01\u9876"),{F:p,Flock:r,Ftc:h,why:m}}var me=14.7,pe=43e6,rn=pe/me,He=[[1e3,.78],[2e3,.85],[3e3,.91],[4e3,.95],[5e3,.94],[6e3,.9],[6500,.85],[7e3,.76]],Ce=he(He);function $e({disp:t,n:e,thr:s=1,boost:n=1,eta:i=.34,vol:a=Ce(e)}){let l=t/1e3*e/120,r=l*a*re*n*s,m=r/me,c=m*pe,h=c*i;return{vs:l,vol:a,air:r,fuel:m,heat:c,P:h,T:e>0?h/G(e):0,loss:c-h}}function wt({U:t,I:e,k:s,n,weak:i=!0,nMax:a=16e3}){let l=G(n),r=s*e,m=t/s,c=K(m),h=t*e,p;return n>a?p=0:l<=m?p=r:i?p=h/l:p=r*Math.max(0,1-(l-m)/(.12*m)),{T:p,P:p*l,Tmax:r,nb:c,Pmax:h,emf:s*l,I:p/s}}function Gt(t,{U:e,I:s,k:n,gear:i,r:a,eta:l=1,nMax:r=16e3}){let m=K(t/a*i),c=wt({U:e,I:s,k:n,n:m,nMax:r});return{F:c.T*i*l/a,n:m,T:c.T}}var ke={mass:1600,r:.305,cd:.28,area:2.3,crr:.01,mu:.9,front:.5},nt={Tmax:250,nMax:14e3,eta:.97};function Kt({gear:t,v:e}){let s=dt(1e3,X.limit).P*X.eta,n=s/nt.eta,i=1,a=nt.Tmax,l=n/a;return{...Gt(e,{U:l,I:a,k:i,gear:t,r:X.r,eta:nt.eta,nMax:nt.nMax}),Pw:s,nb:K(l/i)}}var{TAU:S,clamp:L,rad:ut,kmh:E,ms:q}=Jt,A=t=>document.getElementById(t),cn=matchMedia("(prefers-reduced-motion: reduce)").matches,o={},hn=["panel","panel2","ink","ink2","ink3","line","F","T","n","v","P","grip","drag","ok","no"],Lt=[],Xe='"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif',w='"Barlow Condensed","Arial Narrow",sans-serif',Oe="#79A7CC",ue="#D2742C";function ye(){let t=getComputedStyle(document.documentElement);for(let e of hn)o[e]=t.getPropertyValue(`--${e}`).trim();Lt.forEach(e=>{e.dirty=!0})}var Ve="IntersectionObserver"in window?new IntersectionObserver(t=>t.forEach(e=>{e.target._fig.visible=e.isIntersecting}),{rootMargin:"60px"}):null,V=class{constructor(e,{ratio:s=.62,maxH:n=420,minH:i=200}={}){this.c=A(e),this.g=this.c.getContext("2d"),this.ratio=s,this.maxH=n,this.minH=i,this.visible=!0,this.dirty=!0,this.c._fig=this,Ve&&Ve.observe(this.c),window.ResizeObserver&&new ResizeObserver(()=>{this.size()&&(this.dirty=!0)}).observe(this.c.parentElement),Lt.push(this)}size(){let e=this.c.parentElement.clientWidth-20;if(e<=0)return!1;let s=typeof this.ratio=="function"?this.ratio(e):this.ratio,n=L(Math.round(e*s),this.minH,this.maxH),i=Math.min(window.devicePixelRatio||1,2);return this.w===e&&this.h===n?!1:(this.w=e,this.h=n,this.c.style.height=`${n}px`,this.c.width=Math.round(e*i),this.c.height=Math.round(n*i),this.dpr=i,!0)}render(){let e=this.g;e.setTransform(this.dpr,0,0,this.dpr,0,0),e.clearRect(0,0,this.w,this.h),e.fillStyle=o.panel,e.fillRect(0,0,this.w,this.h),this.draw(e,this.w,this.h)}step(){return!1}},f=t=>Math.round(t).toString(),x=t=>(+t).toFixed(1),T=t=>(+t).toFixed(2),d=(t,e)=>`<span class="q${t}">${e}</span>`,g=(t,e)=>{let s=e.map(n=>`<div>${n}</div>`).join("");A(t).innerHTML!==s&&(A(t).innerHTML=s)},It=(t,e)=>{A(t).innerHTML=e.map(([s,n,i,a])=>`<div class="kpi"><span>${s}</span><b${a?` class="q${a}"`:""}>${n}</b><small>${i||""}</small></div>`).join("")};function z(t,e,s){let n=A(t),i=A(`${t}o`),a=()=>{i.textContent=e(+n.value),s?.()};return n.addEventListener("input",a),i.textContent=e(+n.value),{get v(){return+n.value},set(l){n.value=l,a()},el:n,upd:a}}function $(t,e,s,n,{c:i=o.ink,size:a=13,w:l=500,a:r="left",b:m="alphabetic",f:c=Xe}={}){c===w&&/[\u4e00-\u9fff]/.test(e)&&(c=Xe,a*=.9),e.includes("\xB7")&&(c=`"Helvetica Neue",Arial,"Liberation Sans","DejaVu Sans",${c}`),t.fillStyle=i,t.font=`${l} ${a}px ${c}`,t.textAlign=r,t.textBaseline=m,t.fillText(e,s,n)}function j(t,e,s,n,i,a,l=3,r=9){let m=Math.atan2(i-s,n-e);t.strokeStyle=a,t.fillStyle=a,t.lineWidth=l,t.lineCap="round",t.beginPath(),t.moveTo(e,s),t.lineTo(n-Math.cos(m)*r*.6,i-Math.sin(m)*r*.6),t.stroke(),t.beginPath(),t.moveTo(n,i),t.lineTo(n-r*Math.cos(m-.45),i-r*Math.sin(m-.45)),t.lineTo(n-r*Math.cos(m+.45),i-r*Math.sin(m+.45)),t.closePath(),t.fill()}function U(t,e,s,n,i,a){t.beginPath(),t.roundRect?t.roundRect(e,s,n,i,a):t.rect(e,s,n,i)}function $t(t,e,s,n,i,a,l,r){let m=Math.min(n*.16,7),c=S/i;t.beginPath();for(let h=0;h<i;h++){let p=a+h*c;[[p-c*.5,n-m],[p-c*.28,n-m],[p-c*.17,n+m],[p+c*.17,n+m],[p+c*.28,n-m],[p+c*.5,n-m]].forEach(([P,k],b)=>{let v=e+k*Math.cos(P),y=s+k*Math.sin(P);h===0&&b===0?t.moveTo(v,y):t.lineTo(v,y)})}t.closePath(),t.fillStyle=l,t.fill(),t.strokeStyle=r,t.lineWidth=1,t.stroke(),t.beginPath(),t.arc(e,s,Math.max(4,n*.2),0,S),t.fillStyle=o.panel,t.fill(),t.stroke(),t.strokeStyle=r,t.lineWidth=2,t.beginPath(),t.moveTo(e+n*.25*Math.cos(a),s+n*.25*Math.sin(a)),t.lineTo(e+n*.8*Math.cos(a),s+n*.8*Math.sin(a)),t.stroke()}function Rt(t,e,s){let{x:n,y:i,w:a,h:l}=e,r=h=>n+(h-(s.x0||0))/(s.xmax-(s.x0||0))*a,m=h=>i+l-h/s.ymax*l;t.lineWidth=1,t.strokeStyle=o.line,t.beginPath();for(let h=s.x0||0;h<=s.xmax+1e-9;h+=s.xstep)t.moveTo(r(h),i),t.lineTo(r(h),i+l);for(let h=0;h<=s.ymax+1e-9;h+=s.ystep)t.moveTo(n,m(h)),t.lineTo(n+a,m(h));t.stroke();for(let h=s.x0||0;h<=s.xmax+1e-9;h+=s.xstep*(s.xlabEvery||1))$(t,s.xfmt?s.xfmt(h):f(h),r(h),i+l+14,{c:o.ink3,size:11,a:"center",f:w});for(let h=0;h<=s.ymax+1e-9;h+=s.ystep)$(t,s.yfmt?s.yfmt(h):f(h),n-5,m(h)+4,{c:s.yc||o.ink3,size:11,a:"right",f:w});$(t,s.xlab,n+a,i+l+28,{c:o.ink3,size:11.5,a:"right"}),$(t,s.ylab,n-4,i-8,{c:s.yc||o.ink3,size:11.5,a:"left"});let c=null;if(s.y2max){c=h=>i+l-h/s.y2max*l;for(let h=0;h<=s.y2max+1e-9;h+=s.y2step)$(t,f(h),n+a+5,c(h)+4,{c:s.y2c,size:11,f:w});$(t,s.y2lab,n+a+4,i-8,{c:s.y2c,size:11.5,a:"right"})}return{X:r,Y:m,Y2:c}}function R(t,e,s,n,i,a,l,{c:r,lw:m=2.5,dash:c=null,alpha:h=1,n:p=160}={}){t.save(),t.beginPath(),t.rect(l.x,l.y-2,l.w,l.h+2),t.clip(),t.strokeStyle=r,t.lineWidth=m,t.globalAlpha=h,t.setLineDash(c||[]),t.lineJoin="round",t.beginPath();let u=!1;for(let P=0;P<=p;P++){let k=s+(n-s)*P/p,b=e(k);if(!Number.isFinite(b)){u=!1;continue}let v=i(k),y=Math.max(l.y-40,a(b));u?t.lineTo(v,y):(t.moveTo(v,y),u=!0)}t.stroke(),t.restore()}var _=(t,e,s,n,i=5)=>{t.beginPath(),t.arc(e,s,i,0,S),t.fillStyle=n,t.fill(),t.strokeStyle=o.panel,t.lineWidth=2,t.stroke()},Ut=(t,e,s=46,n=14,i=26,a=34)=>({x:s,y:i,w:t-s-n,h:e-i-a});function kt(t,e,s,n=o.ink3){t.strokeStyle=n,t.lineWidth=1,t.setLineDash([3,4]),t.beginPath(),t.moveTo(e,s.y),t.lineTo(e,s.y+s.h),t.stroke(),t.setLineDash([])}function fn(t,e,s,n,i,a="left"){$(t,e,s,n,{c:i,size:12,w:700,a})}var H=X,tt=6e3,Ht=st(tt),xe=Ht*ut(tt),se=new V("h",{ratio:t=>t<560?.9:.4,maxH:330,minH:230});se.ang=0;var mn=z("h-i",t=>`${x(t)} \u500D`,()=>{se.dirty=!0,De()});function de(){let t=mn.v,e=Ht*t*H.eta,s=tt/t,n=yt(s,H.r),i=e/H.r;return{i:t,Tw:e,nw:s,v:n,F:i,Pw:i*n}}function De(){let t=de();A("h-cap").innerHTML=`\u53D1\u52A8\u673A\u5B88\u5728 ${tt} rpm\u3001${f(Ht)} N\xB7m\uFF08${x(xe/1e3)} kW\uFF09\u3002\u51CF\u901F\u6BD4 ${x(t.i)}\uFF1A\u8F66\u8F6E ${d("T",`${f(t.Tw)} N\xB7m`)}\u3001${d("n",`${f(t.nw)} rpm`)}\uFF0C\u63A8\u5730\u9762 ${d("F",`${f(t.F)} N`)}\uFF0C\u8F66\u901F ${d("v",`${f(E(t.v))} km/h`)}\u3002\u62D6\u4E00\u62D6\uFF1A\u63A8\u529B\u548C\u8F66\u901F\u6B64\u6D88\u5F7C\u957F\uFF0C\u4E58\u8D77\u6765\u4E00\u76F4\u662F ${d("P",`${x(t.Pw/1e3)} kW`)}\uFF08\u6263\u6389\u4E00\u8DEF\u4E0A 16% \u7684\u635F\u5931\uFF09\u3002\u8F66\u901F\u662F\u201C\u53D1\u52A8\u673A\u5B88\u5728 6000 rpm \u65F6\u8F66\u8F6E\u5BF9\u5E94\u7684\u901F\u5EA6\u201D\uFF0C\u771F\u80FD\u4E0D\u80FD\u8DD1\u5230\u8981\u770B\u963B\u529B\uFF0C\u7B2C 5 \u6B65\u518D\u8BF4\u3002`}se.step=function(t){return this.ang+=t*ut(tt)/300,!0};se.draw=function(t,e,s){if(e<560){pn.call(this,t,e,s);return}let n=de(),i=s*.42,a=Math.min(s*.27,e*.1),l=i+a,r=e*.03,m=e*.17,c=s*.36;U(t,r,i-c/2,m,c,6),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.line,t.stroke(),$(t,"\u53D1\u52A8\u673A",r+m/2,i-c/2+18,{c:o.ink2,size:13,w:700,a:"center"}),$(t,`${f(Ht)} N\xB7m`,r+m/2,i+4,{c:o.T,size:15,w:700,a:"center",f:w}),$(t,`${tt} rpm`,r+m/2,i+22,{c:o.n,size:15,w:700,a:"center",f:w});let h=Math.min(s*.11,e*.045),p=h*L(Math.sqrt(n.i)*1.05,1.4,3.2),u=e*.3,P=u+h+p;t.strokeStyle=o.ink3,t.lineWidth=4,t.beginPath(),t.moveTo(r+m,i),t.lineTo(u,i),t.stroke();let k=12,b=Math.round(k*p/h);$t(t,u,i,h,k,this.ang,o.panel2,o.ink3),$t(t,P,i,p,b,-this.ang*k/b+Math.PI+Math.PI/b,o.panel2,o.ink3),$(t,`\xD7 ${x(n.i)}`,(u+P)/2,i-p-10,{c:o.ink2,size:14,w:700,a:"center",f:w});let v=e*.78;t.strokeStyle=o.ink3,t.lineWidth=4,t.beginPath(),t.moveTo(P,i),t.lineTo(v,i),t.stroke(),$(t,`${f(n.Tw)} N\xB7m`,(P+v)/2+6,i-10,{c:o.T,size:15,w:700,a:"center",f:w}),$(t,`${f(n.nw)} rpm`,(P+v)/2+6,i+20,{c:o.n,size:15,w:700,a:"center",f:w});let y=-this.ang/n.i;t.beginPath(),t.arc(v,i,a,0,S),t.fillStyle=o.ink2,t.fill(),t.beginPath(),t.arc(v,i,a*.62,0,S),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=3;for(let I=0;I<5;I++){let bt=y+I*S/5;t.beginPath(),t.moveTo(v,i),t.lineTo(v+a*.6*Math.cos(bt),i+a*.6*Math.sin(bt)),t.stroke()}t.strokeStyle=o.ink3,t.lineWidth=2,t.beginPath(),t.moveTo(e*.52,l),t.lineTo(e,l),t.stroke();let M=26,N=(-y*a%M+M)%M;t.lineWidth=3,t.strokeStyle=o.line;for(let I=e*.52+M-N;I<e;I+=M)t.beginPath(),t.moveTo(I,l+5),t.lineTo(I-10,l+5),t.stroke();j(t,v-a*.1,l-2,v-a*.1-L(n.F/6800,.12,1)*e*.14,l-2,o.F,4),$(t,`\u63A8\u5730\u9762 ${f(n.F)} N`,v-a*.1-e*.02,l-12,{c:o.F,size:13,w:700,a:"right"}),j(t,v+a+8,i-a*.55,v+a+8+L(E(n.v)/290,.12,1)*e*.12,i-a*.55,o.v,4),$(t,`${f(E(n.v))} km/h`,v+a+8,i-a*.55-10,{c:o.v,size:15,w:700,f:w});let W=s*.86,Y=s*.07,et=H.eta;t.fillStyle=o.P,t.globalAlpha=.9,t.beginPath(),t.moveTo(r,W-Y/2),t.lineTo(P,W-Y/2),t.lineTo(P+30,W-Y/2*et),t.lineTo(e-10,W-Y/2*et),t.lineTo(e-10,W+Y/2*et),t.lineTo(P+30,W+Y/2*et),t.lineTo(P,W+Y/2),t.lineTo(r,W+Y/2),t.closePath(),t.fill(),t.globalAlpha=1,$(t,`\u529F\u7387 ${x(xe/1e3)} kW`,r+6,W+4,{c:o.panel,size:12.5,w:700}),$(t,`\u5230\u8DEF\u9762 ${x(n.Pw/1e3)} kW = \u529B \xD7 \u901F\u5EA6`,e-16,W+4,{c:o.panel,size:12.5,w:700,a:"right"})};function pn(t,e,s){let n=de(),i=s*.24,a=4,l=e*.3,r=s*.26;U(t,a,i-r/2,l,r,6),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.line,t.stroke(),$(t,"\u53D1\u52A8\u673A",a+l/2,i-r/2+16,{c:o.ink2,size:12,w:700,a:"center"}),$(t,`${f(Ht)} N\xB7m`,a+l/2,i+6,{c:o.T,size:14,w:700,a:"center",f:w}),$(t,`${tt} rpm`,a+l/2,i+23,{c:o.n,size:14,w:700,a:"center",f:w});let m=s*.07,c=m*L(Math.sqrt(n.i)*1.05,1.4,2.6),h=l+16+m,p=h+m+c;t.strokeStyle=o.ink3,t.lineWidth=3,t.beginPath(),t.moveTo(a+l,i),t.lineTo(h,i),t.stroke();let u=10,P=Math.round(u*c/m);$t(t,h,i,m,u,this.ang,o.panel2,o.ink3),$t(t,p,i,c,P,-this.ang*u/P+Math.PI+Math.PI/P,o.panel2,o.ink3),$(t,`\xD7 ${x(n.i)}`,p,i-c-6,{c:o.ink2,size:13,w:700,a:"center",f:w});let k=s*.13,b=p,v=s*.6,y=v+k;t.strokeStyle=o.ink3,t.lineWidth=3,t.beginPath(),t.moveTo(p,i),t.lineTo(b,v),t.stroke(),$(t,`${f(n.Tw)} N\xB7m`,b-k-10,v-6,{c:o.T,size:14,w:700,a:"right",f:w}),$(t,`${f(n.nw)} rpm`,b-k-10,v+12,{c:o.n,size:14,w:700,a:"right",f:w});let M=-this.ang/n.i;t.beginPath(),t.arc(b,v,k,0,S),t.fillStyle=o.ink2,t.fill(),t.beginPath(),t.arc(b,v,k*.62,0,S),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=2.5;for(let I=0;I<5;I++){let bt=M+I*S/5;t.beginPath(),t.moveTo(b,v),t.lineTo(b+k*.6*Math.cos(bt),v+k*.6*Math.sin(bt)),t.stroke()}t.strokeStyle=o.ink3,t.lineWidth=2,t.beginPath(),t.moveTo(0,y),t.lineTo(e,y),t.stroke();let N=22,W=(-M*k%N+N)%N;t.lineWidth=3,t.strokeStyle=o.line;for(let I=N-W;I<e;I+=N)t.beginPath(),t.moveTo(I,y+5),t.lineTo(I-9,y+5),t.stroke();j(t,b-4,y-3,b-4-L(n.F/6800,.15,1)*e*.3,y-3,o.F,4),$(t,`\u63A8\u5730\u9762 ${f(n.F)} N`,6,y+22,{c:o.F,size:13,w:700}),j(t,b+k+6,v-k*.4,b+k+6+L(E(n.v)/290,.15,1)*(e-b-k-14),v-k*.4,o.v,4),$(t,`${f(E(n.v))} km/h`,e-4,v-k*.4-8,{c:o.v,size:14,w:700,a:"right",f:w});let Y=s*.93,et=s*.065;U(t,4,Y-et/2,e-8,et,3),t.fillStyle=o.P,t.fill(),$(t,`${x(xe/1e3)} kW \u2192 \u5230\u8DEF\u9762 ${x(n.Pw/1e3)} kW`,e/2,Y+4,{c:o.panel,size:12,w:700,a:"center"})}var ie=new V("f1",{ratio:.6,maxH:380});ie.turn=0;var Ft=z("f1-F",t=>`${f(t)} N`,()=>Te()),At=z("f1-r",t=>`${T(t)} m`,()=>Te());function Te(){let t=Dt(Ft.v,At.v),e=t>=O;g("f1-c",[`${d("T","T")} = ${d("F","F")} \xD7 \u529B\u81C2 = ${Ft.v} N \xD7 ${T(At.v)} m = <b class="qT">${f(t)} N\xB7m</b>`,`<span class="note">${e?`\u591F ${O} N\xB7m \u4E86\uFF0C\u87BA\u6813\u62E7\u52A8\u4E86\u3002`:`\u8FD8\u5DEE ${f(O-t)} N\xB7m\uFF1A\u7528\u66F4\u5927\u7684\u529B\uFF0C\u6216\u8005\u63E1\u5F97\u66F4\u9760\u5916\u3002`}</span>`]),ie.dirty=!0}ie.step=function(t){return Dt(Ft.v,At.v)>=O?(this.turn+=t*.9,this.turn>.75&&(this.turn=0),!0):this.turn?(this.turn=0,!0):!1};ie.draw=function(t,e,s){let n=Ft.v,i=At.v,a=n*i,l=e*.14,r=s*.4,m=.47,c=e*.8/m,h=this.turn;t.save(),t.translate(l,r),t.rotate(h),t.beginPath();for(let N=0;N<6;N++){let W=N*S/6;t.lineTo(18*Math.cos(W),18*Math.sin(W))}t.closePath(),t.fillStyle=o.ink3,t.fill(),U(t,-26,-13,m*c+26,26,13),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=1.5,t.stroke(),t.beginPath(),t.arc(0,0,26,0,S),t.fillStyle=o.panel2,t.fill(),t.stroke(),t.beginPath();for(let N=0;N<6;N++){let W=N*S/6;t.lineTo(13*Math.cos(W),13*Math.sin(W))}t.closePath(),t.fillStyle=o.ink3,t.fill();let p=i*c;t.beginPath(),t.ellipse(p,0,18,22,0,0,S),t.fillStyle=o.ink2,t.globalAlpha=.25,t.fill(),t.globalAlpha=1;let u=L(n/500,.1,1)*s*.38;j(t,p,-u-6,p,-6,o.F,4,11),$(t,`\u529B ${n} N`,p+10,-u/2-6,{c:o.F,size:14,w:700}),t.strokeStyle=o.ink3,t.lineWidth=1,t.beginPath(),t.moveTo(0,30),t.lineTo(p,30),t.moveTo(0,24),t.lineTo(0,36),t.moveTo(p,24),t.lineTo(p,36),t.stroke(),$(t,`\u529B\u81C2 ${T(i)} m`,p/2,48,{c:o.ink2,size:13,a:"center"}),t.restore();let P=L(a/150,.05,1)*Math.PI*1.4;t.strokeStyle=o.T,t.lineWidth=5,t.lineCap="round",t.beginPath(),t.arc(l,r,46,Math.PI*.75-P,Math.PI*.75),t.stroke();let k=Math.PI*.75-P;j(t,l+46*Math.cos(k+.15),r+46*Math.sin(k+.15),l+46*Math.cos(k),r+46*Math.sin(k),o.T,5,12),$(t,`\u626D\u77E9 ${f(a)} N\xB7m`,l-4,r+80,{c:o.T,size:15,w:700,a:"left"});let b=e*.1,v=e*.8,y=s*.86,M=v/225;U(t,b,y-7,v,14,7),t.fillStyle=o.panel2,t.fill(),U(t,b,y-7,Math.min(a,225)*M,14,7),t.fillStyle=a>=O?o.ok:o.T,t.fill(),t.strokeStyle=o.ink,t.lineWidth=2,t.beginPath(),t.moveTo(b+O*M,y-12),t.lineTo(b+O*M,y+12),t.stroke(),$(t,`\u62E7\u52A8\u8981 ${O} N\xB7m`,b+O*M+6,y-12,{c:o.ink2,size:12}),$(t,a>=O?"\u8F6C\u4E86":"\u62E7\u4E0D\u52A8",b,y-12,{c:a>=O?o.ok:o.ink3,size:12,w:700})};var Ct=new V("f2",{ratio:.55,maxH:340});Ct.ang=0;Ct.road=0;var Z=z("f2-n",t=>`${f(t)} rpm`,()=>Me()),ft=z("f2-r",t=>`${we(t)} m`,()=>Me());function we(t){return(+t).toFixed(3).replace(/0$/,"")}function Me(){let t=yt(Z.v,ft.v);g("f2-c",[`${d("v","v")} = ${d("n","\u8F6C\u901F")} \xF7 60 \xD7 2\u03C0 \xD7 r = ${Z.v} \xF7 60 \xD7 6.283 \xD7 ${we(ft.v)} = <b class="qv">${x(t)} m/s</b>`,`<span class="note">\xD7 3.6 =</span> <b class="qv">${f(E(t))} km/h</b><span class="note">\u3000\u3000\u8F66\u8F6E\u8F6C\u4E00\u5708\u8D70 2\u03C0r = ${T(S*ft.v)} m</span>`]),Ct.dirty=!0}Ct.step=function(t){let e=ut(Z.v);return this.ang+=e*t/20,this.road+=e*ft.v*t/20,Z.v>0};Ct.draw=function(t,e,s){let n=ft.v,i=s*.82,a=s*.26*n/.3,l=a/n,r=e*.42,m=i-a;t.strokeStyle=o.ink3,t.lineWidth=2,t.beginPath(),t.moveTo(0,i),t.lineTo(e,i),t.stroke();let c=.5*l,h=(this.road*l%c+c)%c;t.strokeStyle=o.line,t.lineWidth=4;for(let P=-h;P<e;P+=c)t.beginPath(),t.moveTo(P,i+8),t.lineTo(P+c*.45,i+8),t.stroke();t.beginPath(),t.arc(r,m,a,0,S),t.fillStyle=o.ink2,t.fill(),t.beginPath(),t.arc(r,m,a*.7,0,S),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=3;for(let P=0;P<6;P++){let k=this.ang+P*S/6;t.beginPath(),t.moveTo(r,m),t.lineTo(r+a*.68*Math.cos(k),m+a*.68*Math.sin(k)),t.stroke()}t.strokeStyle=o.F,t.lineWidth=4,t.beginPath(),t.moveTo(r+a*.72*Math.cos(this.ang),m+a*.72*Math.sin(this.ang)),t.lineTo(r+a*Math.cos(this.ang),m+a*Math.sin(this.ang)),t.stroke(),t.beginPath(),t.arc(r,m,6,0,S),t.fillStyle=o.ink,t.fill(),t.strokeStyle=o.ink,t.lineWidth=1,t.setLineDash([4,3]),t.beginPath(),t.moveTo(r,m),t.lineTo(r,i),t.stroke(),t.setLineDash([]),$(t,`\u534A\u5F84 r = ${we(n)} m`,r,i+26,{c:o.ink2,size:12,a:"center"}),t.strokeStyle=o.n,t.lineWidth=4,t.beginPath(),t.arc(r,m,a+12,-Math.PI*.95,-Math.PI*.35),t.stroke();let p=-Math.PI*.35;j(t,r+(a+12)*Math.cos(p-.12),m+(a+12)*Math.sin(p-.12),r+(a+12)*Math.cos(p),m+(a+12)*Math.sin(p),o.n,4,11),$(t,`${f(Z.v)} rpm`,r-a-8,m-a-2,{c:o.n,size:16,w:700,a:"right",f:w});let u=yt(Z.v,n);j(t,r+a+18,m,r+a+18+L(u/45,.05,1)*e*.3,m,o.v,5,13),$(t,`${f(E(u))} km/h`,r+a+22,m-12,{c:o.v,size:20,w:700,f:w}),$(t,`${x(u)} m/s`,r+a+22,m+26,{c:o.v,size:13}),$(t,"\u753B\u9762\u653E\u6162 20 \u500D",e-8,16,{c:o.ink3,size:11.5,a:"right"})};var Xt=new V("f3",{ratio:.62,maxH:380});Xt.y=0;Xt.ang=0;var Qt=.1,St=z("f3-m",t=>`${f(t)} kg`,()=>Se()),Q=z("f3-v",t=>`${x(t)} m/s`,()=>Se());function Se(){let t=_t(St.v,Q.v,Qt);g("f3-c",[`${d("P","P")} = ${d("F","F")} \xD7 ${d("v","v")} = ${f(t.F)} N \xD7 ${x(Q.v)} m/s = <b class="qP">${f(t.P)} W</b>`,`${d("P","P")} = ${d("T","T")} \xD7 \u03C9 = (${f(t.F)} \xD7 ${T(Qt)}) N\xB7m \xD7 ${x(t.w)} rad/s = ${x(t.T)} \xD7 ${x(t.w)} = <b class="qP">${f(t.P2)} W</b>`,`<span class="note">\u5377\u7B52 ${f(t.n)} rpm\uFF1A</span>${x(t.T)} \xD7 ${f(t.n)} \xF7 9549 = <b class="qP">${T(t.T*t.n/ce)} kW</b><span class="note">\uFF08\u62C9\u529B = \u8D28\u91CF \xD7 9.81\uFF09</span>`]),Xt.dirty=!0}Xt.step=function(t){return this.y+=Q.v*t,this.ang+=Q.v/Qt*t,this.y>2.2&&(this.y=0),!0};Xt.draw=function(t,e,s){let n=_t(St.v,Q.v,Qt),i=e*.34,a=s*.16,l=Math.min(32,s*.09),r=a+l+20,m=s*.9,c=m-r,h=c/2.6;t.fillStyle=o.panel2,t.fillRect(i-l-30,a-8,(l+30)*2,10),t.beginPath(),t.arc(i,a+6,l,0,S),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=2,t.stroke();for(let M=0;M<4;M++){let N=this.ang+M*S/4;t.beginPath(),t.moveTo(i,a+6),t.lineTo(i+l*Math.cos(N),a+6+l*Math.sin(N)),t.stroke()}let p=m-this.y*h,u=24+Math.cbrt(St.v)*7;t.strokeStyle=o.ink2,t.lineWidth=2,t.beginPath(),t.moveTo(i+l,a+6),t.lineTo(i+l,p-u),t.stroke(),U(t,i+l-u/2,p-u,u,u,4),t.fillStyle=o.ink3,t.fill(),$(t,`${St.v} kg`,i+l,p-u/2+5,{c:o.panel,size:13,w:700,a:"center"}),j(t,i+l+14,p-u-4,i+l+14,p-u-4-L(n.F/2e3,.15,1)*s*.26,o.F,4),$(t,`\u62C9\u529B ${f(n.F)} N`,i+l+22,p-u-20,{c:o.F,size:13.5,w:700}),j(t,i+l-u/2-14,p-4,i+l-u/2-14,p-4-L(Q.v/3,.15,1)*s*.22,o.v,4),$(t,`${x(Q.v)} m/s`,i+l-u/2-20,p-10,{c:o.v,size:13.5,w:700,a:"right"}),$(t,`${x(n.T)} N\xB7m`,i-l-10,a+2,{c:o.T,size:14,w:700,a:"right",f:w}),$(t,`${f(n.n)} rpm`,i-l-10,a+20,{c:o.n,size:14,w:700,a:"right",f:w});let P=e*.74,k=e*.12,b=s*.12,v=s*.72,y=L(n.P/6e3,0,1)*v;U(t,P,b,k,v,5),t.fillStyle=o.panel2,t.fill(),U(t,P,b+v-y,k,y,5),t.fillStyle=o.P,t.fill(),$(t,"\u529F\u7387",P+k/2,b-6,{c:o.ink2,size:12,a:"center"}),$(t,`${f(n.P)} W`,P+k/2,b+v+16,{c:o.P,size:15,w:700,a:"center",f:w})};var oe=new V("f4",{ratio:.62,maxH:380});oe.ang=0;var Zt=z("f4-z1",t=>`${t} \u9F7F`,()=>Ot()),gt=z("f4-z2",t=>`${t} \u9F7F`,()=>Ot()),ot=z("f4-n",t=>`${t} rpm`,()=>Ot()),mt=z("f4-T",t=>`${t} N\xB7m`,()=>Ot());function Ot(){let t=jt(Zt.v,gt.v,ot.v,mt.v);g("f4-c",[`\u9F7F\u6BD4 = ${gt.v} \xF7 ${Zt.v} = <b>${T(t.i)}</b>`,`${d("n","\u8F93\u51FA\u8F6C\u901F")} = ${ot.v} \xF7 ${T(t.i)} = <b class="qn">${f(t.n2)} rpm</b>`,`${d("T","\u8F93\u51FA\u626D\u77E9")} = ${mt.v} \xD7 ${T(t.i)} \xD7 98% = <b class="qT">${x(t.T2)} N\xB7m</b>`,`${d("P","\u529F\u7387")}\uFF1A\u8FDB\u53BB ${mt.v} \xD7 ${ot.v} \xF7 9549 = <b class="qP">${T(t.P1/1e3)} kW</b>\uFF0C\u51FA\u6765 ${x(t.T2)} \xD7 ${f(t.n2)} \xF7 9549 = <b class="qP">${T(t.P2/1e3)} kW</b>`]),oe.dirty=!0}oe.step=function(t){return this.ang+=ut(ot.v)*t/100,!0};oe.draw=function(t,e,s){let n=Zt.v,i=gt.v,a=jt(n,i,ot.v,mt.v),l=Math.min(e*.74/(n+i),s*.56/i),r=n*l/2,m=i*l/2,c=s*.4,h=e/2-(r+m)/2,p=h+r+m;$t(t,h,c,r,n,this.ang,o.panel2,o.ink3),$t(t,p,c,m,i,-this.ang*n/i+Math.PI+Math.PI/i,o.panel2,o.ink3),$(t,`${n} \u9F7F`,h,c-r-12,{c:o.ink2,size:12,a:"center"}),$(t,`${i} \u9F7F`,p,c-m-12,{c:o.ink2,size:12,a:"center"});let u=c+m+22;$(t,`${ot.v} rpm`,h,u,{c:o.n,size:16,w:700,a:"center",f:w}),$(t,`${mt.v} N\xB7m`,h,u+18,{c:o.T,size:16,w:700,a:"center",f:w}),$(t,`${f(a.n2)} rpm`,p,u,{c:o.n,size:16,w:700,a:"center",f:w}),$(t,`${f(a.T2)} N\xB7m`,p,u+18,{c:o.T,size:16,w:700,a:"center",f:w});let P=e*.08,k=e*.84,b=s*.9,v=k/63e3;for(let[y,M,N]of[[0,a.P1,"\u8FDB"],[1,a.P2,"\u51FA"]]){let W=b-16+y*14;U(t,P+16,W-5,Math.max(2,M*v),10,5),t.fillStyle=o.P,t.globalAlpha=y?.75:1,t.fill(),t.globalAlpha=1,$(t,N,P,W+4,{c:o.ink2,size:11.5}),$(t,`${T(M/1e3)} kW`,P+22+M*v,W+4,{c:o.P,size:12.5,w:700,f:w})}};var _e=new V("f5",{ratio:.68,maxH:430,minH:260}),C=xt(),te="p",J=z("f5-v",t=>`${t} km/h`,()=>ze());function je(t){te=t,A("f5-p").setAttribute("aria-pressed",t==="p"),A("f5-t").setAttribute("aria-pressed",t==="t"),ze()}A("f5-p").addEventListener("click",()=>je("p"));A("f5-t").addEventListener("click",()=>je("t"));var Pe={p:tt,t:4200};function Ge(t,e){let s=1,n=120;for(let i=0;i<60;i++){let a=(s+n)/2;t/a>e(a)?s=a:n=a}return s}function ze(){let t=q(J.v),e=Pe[te],s=Tt(t,e),n=Math.min(s.F,C),i=B(t),a=(n-i)/H.mass,l=e/(t/H.r*60/S),r=H.low*H.final;It("f5-k",[["\u8F66\u8F6E\u63A8\u529B",f(n),"N","F"],["\u98CE\u963B + \u6EDA\u963B",f(i),"N"],["\u52A0\u901F\u5EA6",T(a),`m/s\xB2\uFF08${T(a/ct)} g\uFF09`]]),g("f5-c",[`\u53D1\u52A8\u673A ${e} rpm \xD7 ${f(st(e))} N\xB7m \xF7 9549 = ${d("P",`${x(s.P/H.eta/1e3)} kW`)}\uFF0C\u5230\u8F66\u8F6E \xD7 84% = <b class="qP">${x(s.P/1e3)} kW</b>`,`${d("F","\u63A8\u529B")} = ${d("P","\u529F\u7387")} \xF7 ${d("v","\u8F66\u901F")} = ${f(s.P)} W \xF7 ${x(t)} m/s = <b class="qF">${f(s.F)} N</b>${s.F>C?`<span class="note">\u3000\u8D85\u8FC7\u6293\u5730\u529B\uFF0C\u53EA\u80FD\u7528\u5230 ${f(C)} N</span>`:""}`,`\u52A0\u901F\u5EA6 = (\u63A8\u529B \u2212 \u963B\u529B) \xF7 \u8D28\u91CF = (${f(n)} \u2212 ${f(i)}) \xF7 ${H.mass} = <b>${T(a)} m/s\xB2</b>`,`<span class="note">\u8981\u5B88\u4F4F ${e} rpm\uFF0C\u603B\u51CF\u901F\u6BD4\u5F97\u662F ${x(l)}${l>r?`\uFF0C\u53EF\u8FD9\u53F0\u8F66\u6700\u591A ${x(r)}\uFF1A\u8FD9\u4E48\u4F4E\u7684\u8F66\u901F\u5176\u5B9E\u5B88\u4E0D\u4F4F\uFF0C\u7B2C 9 \u6B65\u770B\u771F\u5B9E\u7684\u60C5\u51B5`:`\uFF08\u8FD9\u53F0\u8F66\u80FD\u5728 ${x(H.high*H.final)}\uFF5E${x(r)} \u4E4B\u95F4\u8FDE\u7EED\u53D8\uFF09`}</span>`]),_e.dirty=!0}_e.draw=function(t,e,s){let n=Ut(e,s,48,14,28,36),i=Rt(t,n,{xmax:200,xstep:20,xlabEvery:2,ymax:8e3,ystep:2e3,xlab:"\u8F66\u901F km/h",ylab:"\u8F66\u8F6E\u63A8\u529B N"}),{X:a,Y:l}=i,r=u=>B(q(u));t.fillStyle=o.grip,t.globalAlpha=.07,t.fillRect(n.x,n.y,n.w,l(C)-n.y),t.globalAlpha=1,R(t,()=>C,0,200,a,l,n,{c:o.grip,lw:1.5,dash:[6,4],n:2}),$(t,`\u6293\u5730\u529B\u4E0A\u9650 ${f(C)} N\uFF0C\u518D\u5F80\u4E0A\u8F6E\u80CE\u6253\u6ED1`,n.x+n.w-4,l(C)-6,{c:o.grip,size:11.5,a:"right"}),R(t,r,0,200,a,l,n,{c:o.drag,lw:2}),$(t,"\u98CE\u963B + \u6EDA\u963B",a(118),l(r(118))+16,{c:o.drag,size:11.5,a:"center"});for(let u of["t","p"]){let P=Tt(10,Pe[u]).P,k=u===te;R(t,y=>P/q(y),4,200,a,l,n,{c:u==="p"?o.P:o.T,lw:k?3:1.6,dash:k?null:[5,4],alpha:k?1:.8});let b=70,v=l(P/q(b))+(u==="p"?-10:18);n.w<420||$(t,`${u==="p"?"\u5B88\u5728 6000 rpm":"\u5B88\u5728 4200 rpm"}\uFF1A${x(P/1e3)} kW \xF7 \u8F66\u901F`,a(b)+4,v,{c:u==="p"?o.P:o.T,size:11.5,w:k?700:400})}let m=Tt(10,Pe[te]).P,c=Ge(m,B);_(t,a(E(c)),l(B(c)),o.ink,4),$(t,`\u6781\u901F\u7EA6 ${f(E(c))} km/h`,a(E(c))-6,l(B(c))-12,{c:o.ink2,size:11.5,a:"right"});let h=q(J.v),p=Math.min(m/h,C);kt(t,a(J.v),n),_(t,a(J.v),l(p),o.F,6),_(t,a(J.v),l(B(h)),o.drag,4),fn(t,`${f(p)} N`,a(J.v)+8,l(p)-8,o.F)};var Pt=new V("f6a",{ratio:.42,maxH:260,minH:190}),Ke=new V("f6b",{ratio:.5,maxH:300,minH:200});Pt.dots=Array.from({length:70},()=>({x:Math.random(),y:Math.random()}));Pt.drops=Array.from({length:14},()=>({y:Math.random()}));Pt.t=0;var Ne=z("f6-d",t=>`${T(t)} L`,()=>vt()),rt=z("f6-n",t=>`${t} rpm`,()=>vt()),zt=z("f6-t",t=>`${f(t*100)}%`,()=>vt()),Nt=z("f6-b",t=>t>1.001?`${T(t)} \u500D\u5927\u6C14\u538B`:"\u6CA1\u6709\u589E\u538B",()=>vt()),We=z("f6-e",t=>`${f(t*100)}%`,()=>vt()),qt=(t=rt.v,e=zt.v)=>$e({disp:Ne.v,n:t,thr:e,boost:Nt.v,eta:We.v});function vt(){let t=qt();It("f6-k",[["\u6BCF\u79D2\u5438\u8FDB\u7A7A\u6C14",f(t.air*1e3),"g"],["\u529F\u7387",x(t.P/1e3),"kW","P"],["\u626D\u77E9",f(t.T),"N\xB7m","T"]]);let e=[],s=[];zt.v<1&&(e.push(`\u8282\u6C14\u95E8 ${f(zt.v*100)}%`),s.push(T(zt.v))),Nt.v>1.001&&(e.push(`\u589E\u538B ${T(Nt.v)} \u500D`),s.push(T(Nt.v))),g("f6-c",[`\u2460 \u6BCF\u79D2\u626B\u8FC7\u7684\u4F53\u79EF = ${T(Ne.v)} L \xD7 ${rt.v} \xF7 2 \xF7 60 = <b>${x(t.vs*1e3)} L/s</b><span class="note">\uFF08\u4E24\u5708\u5438\u4E00\u6B21\uFF09</span>`,`\u2461 \u5438\u8FDB\u7684\u7A7A\u6C14 = ${x(t.vs*1e3)} \xD7 \u5145\u6C14\u6548\u7387 ${f(t.vol*100)}% \xD7 1.2 g/L${s.length?` \xD7 ${s.join(" \xD7 ")}`:""} = <b>${x(t.air*1e3)} g/s</b>${e.length?`<span class="note">\uFF08${e.join("\uFF0C")}\uFF09</span>`:""}`,`\u2462 \u80FD\u70E7\u7684\u6CB9 = ${x(t.air*1e3)} \xF7 14.7 = <b>${T(t.fuel*1e3)} g/s</b>`,`\u2463 \u653E\u51FA\u7684\u70ED = ${T(t.fuel*1e3)} g/s \xD7 43 kJ/g = <b>${f(t.heat/1e3)} kW</b>`,`\u2464 ${d("P","\u529F\u7387")} = ${f(t.heat/1e3)} \xD7 ${f(We.v*100)}% = <b class="qP">${x(t.P/1e3)} kW</b>\uFF0C${d("T","\u626D\u77E9")} = ${x(t.P/1e3)} \xD7 9549 \xF7 ${rt.v} = <b class="qT">${f(t.T)} N\xB7m</b>`]),Pt.dirty=Ke.dirty=!0}Pt.step=function(t){let e=qt(),s=L(e.air/.08,.05,3.5);for(let n of this.dots)n.x+=t*.35*s,n.x>1&&(n.x-=1,n.y=Math.random());for(let n of this.drops)n.y+=t*.9*L(e.fuel/.0055,.1,3.5),n.y>1&&(n.y-=1);return this.t+=t*rt.v/60/8,!0};Pt.draw=function(t,e,s){let n=qt(),i=s*.48,a=s*.7/3e5,l=L(n.air/.3,.04,1)*s*.55,r=0,m=e*.36,c=e*.36,h=e*.56;t.fillStyle=Oe,t.globalAlpha=.18,t.fillRect(r,i-l/2,m-r,l),t.globalAlpha=1,t.fillStyle=Oe;for(let y of this.dots){let M=r+y.x*(m-r),N=i-l/2+y.y*l;t.beginPath(),t.arc(M,N,2.4,0,S),t.fill()}$(t,`\u7A7A\u6C14 ${f(n.air*1e3)} g/s`,6,i-l/2-8,{c:o.ink2,size:12.5,w:700});let p=(c+h)/2;t.fillStyle=o.ink3,t.fillRect(p-4,4,8,i-s*.2-4),t.fillStyle=ue;for(let y of this.drops){let M=6+y.y*(i-s*.2-8);t.beginPath(),t.arc(p+10,M,2.6,0,S),t.fill()}$(t,`\u6CB9 ${T(n.fuel*1e3)} g/s`,p+18,18,{c:ue,size:12.5,w:700});let u=.35+.3*Math.max(0,Math.sin(this.t*S));U(t,c,i-s*.2,h-c,s*.4,8),t.fillStyle=o.panel2,t.fill(),t.strokeStyle=o.ink3,t.lineWidth=1.5,t.stroke(),U(t,c+6,i-s*.2+6,h-c-12,s*.4-12,6),t.fillStyle=ue,t.globalAlpha=u*L(n.heat/15e4,.15,1),t.fill(),t.globalAlpha=1,$(t,"\u6C14\u7F38",(c+h)/2,i+5,{c:o.ink,size:13,w:700,a:"center"}),$(t,`\u70ED ${f(n.heat/1e3)} kW`,(c+h)/2,i+s*.2+16,{c:o.ink2,size:12,a:"center"});let P=Math.max(2,n.P*a),k=Math.max(2,n.loss*a),b=h,v=e*.72;t.fillStyle=o.P,t.beginPath(),t.moveTo(b,i-P-2),t.lineTo(e-10,i-P-2),t.lineTo(e-10,i-2),t.lineTo(b,i-2),t.closePath(),t.fill(),$(t,`\u529F\u7387 ${x(n.P/1e3)} kW`,e-12,i-P-8,{c:o.P,size:13,w:700,a:"right"}),t.fillStyle=o.drag,t.globalAlpha=.45,t.beginPath(),t.moveTo(b,i+2),t.lineTo(v,i+2),t.quadraticCurveTo(v+30,i+2,v+30,i+30),t.lineTo(v+30,s),t.lineTo(v+30-k,s),t.lineTo(v+30-k,i+30+k*.3),t.lineTo(b,i+2+k),t.closePath(),t.fill(),t.globalAlpha=1,$(t,`\u6392\u6C14\u548C\u51B7\u5374 ${f(n.loss/1e3)} kW`,v+36,s-10,{c:o.ink2,size:12})};Ke.draw=function(t,e,s){let n=k=>qt(k).T,i=k=>qt(k).P/1e3,a=0,l=0;for(let k=1e3;k<=7e3;k+=100)a=Math.max(a,n(k)),l=Math.max(l,i(k));let r=Math.max(100,Math.ceil(a*1.15/50)*50),m=Math.max(50,Math.ceil(l*1.15/25)*25),c=Ut(e,s,44,44,26,34),h=Rt(t,c,{x0:1e3,xmax:7e3,xstep:1e3,ymax:r,ystep:r/4,y2max:m,y2step:m/4,xlab:"\u8F6C\u901F rpm",ylab:"\u626D\u77E9 N\xB7m",yc:o.T,y2lab:"\u529F\u7387 kW",y2c:o.P,xfmt:k=>`${k/1e3}k`});R(t,n,1e3,7e3,h.X,h.Y,c,{c:o.T,lw:2.5}),R(t,i,1e3,7e3,h.X,h.Y2,c,{c:o.P,lw:2.5});let p=1e3,u=0;for(let k=1e3;k<=7e3;k+=50)i(k)>u&&(u=i(k),p=k);$(t,`\u529F\u7387\u6700\u5927\u5728 ${p} rpm`,h.X(p),h.Y2(u)-8,{c:o.P,size:11.5,a:"center"});let P=rt.v;kt(t,h.X(P),c),_(t,h.X(P),h.Y(n(P)),o.T),_(t,h.X(P),h.Y2(i(P)),o.P)};var F={U:400,I:400,k:.75},Fe=new V("f7",{ratio:.62,maxH:400,minH:250}),D=!0,ht=null,at=z("f7-n",t=>`${t} rpm`,()=>Ae());A("f7-w").addEventListener("click",()=>{D=!D,A("f7-w").setAttribute("aria-pressed",D),A("f7-w").textContent=`\u5F31\u78C1\uFF1A${D?"\u5F00":"\u5173"}`,Ae()});A("f7-run").addEventListener("click",()=>{ht=0});function Ae(){let t=wt({...F,n:at.v,weak:D}),e=ut(at.v),s=at.v<=t.nb;It("f7-k",[["\u626D\u77E9",f(t.T),"N\xB7m","T"],["\u529F\u7387",x(t.P/1e3),"kW","P"],["\u53CD\u7535\u52A8\u52BF",f(t.emf),`V\uFF08\u7535\u6C60 ${F.U} V\uFF09`]]),g("f7-c",[`${d("T","\u626D\u77E9\u4E0A\u9650")} = k \xD7 \u7535\u6D41 = ${F.k} \xD7 ${F.I} A = <b class="qT">${f(t.Tmax)} N\xB7m</b>`,`\u53CD\u7535\u52A8\u52BF = k \xD7 \u03C9 = ${F.k} \xD7 ${f(e)} rad/s = <b>${f(t.emf)} V</b>${s?'<span class="note">\u3000\u8FD8\u6CA1\u5230\u7535\u6C60\u7535\u538B\uFF0C\u7535\u6D41\u80FD\u5F00\u6EE1</span>':D?'<span class="note">\u3000\u8D85\u8FC7\u7535\u6C60\u7535\u538B\u4E86\uFF0C\u9760\u5F31\u78C1\u538B\u56DE\u6765</span>':'<span class="note">\u3000\u8D85\u8FC7\u7535\u6C60\u7535\u538B\uFF0C\u7535\u6D41\u63A8\u4E0D\u8FDB\u53BB\u4E86</span>'}`,`\u57FA\u901F = \u7535\u538B \xF7 k = ${F.U} \xF7 ${F.k} = ${f(F.U/F.k)} rad/s \u2248 <b class="qn">${f(t.nb)} rpm</b>`,s?`${d("P","\u529F\u7387")} = ${d("T","T")} \xD7 \u03C9 = ${f(t.T)} \xD7 ${f(e)} = <b class="qP">${x(t.P/1e3)} kW</b><span class="note">\uFF08\u57FA\u901F\u4EE5\u4E0B\uFF0C\u8F6C\u5F97\u8D8A\u5FEB\u529F\u7387\u8D8A\u5927\uFF09</span>`:D?`${d("P","\u529F\u7387")} \u4FDD\u6301 ${F.U} V \xD7 ${F.I} A = <b class="qP">${f(t.Pmax/1e3)} kW</b>\uFF0C${d("T","\u626D\u77E9")} = ${f(t.Pmax)} \xF7 ${f(e)} = <b class="qT">${f(t.T)} N\xB7m</b>`:'<span class="note">\u6CA1\u6709\u5F31\u78C1\uFF1A\u8FC7\u4E86\u57FA\u901F\u4E00\u70B9\u70B9\uFF0C\u626D\u77E9\u5C31\u6389\u5230\u96F6</span>']),Fe.dirty=!0}Fe.step=function(t){return ht===null?!1:(ht+=t,at.set(Math.min(16e3,Math.round(ht/5*16e3/100)*100)),ht>=5&&(ht=null),!0)};Fe.draw=function(t,e,s){let n=Math.max(54,e*.13),i=Ut(e-n-10,s,46,44,26,34),a=Rt(t,i,{xmax:16e3,xstep:2e3,xlabEvery:2,ymax:400,ystep:100,y2max:200,y2step:50,xlab:"\u7535\u673A\u8F6C\u901F rpm",ylab:"\u626D\u77E9 N\xB7m",yc:o.T,y2lab:"\u529F\u7387 kW",y2c:o.P,xfmt:y=>`${y/1e3}k`}),l=y=>wt({...F,n:y,weak:D});R(t,y=>l(y).T,0,16e3,a.X,a.Y,i,{c:o.T,lw:2.8,n:320}),R(t,y=>l(y).P/1e3,0,16e3,a.X,a.Y2,i,{c:o.P,lw:2.8,n:320});let r=l(0).nb;kt(t,a.X(r),i,o.n),$(t,`\u57FA\u901F ${f(r)} rpm`,a.X(r)+4,i.y+12,{c:o.n,size:11.5,w:700}),$(t,"\u6052\u626D\u77E9",a.X(r/2),a.Y(300)-8,{c:o.T,size:12,w:700,a:"center"}),D&&$(t,"\u6052\u529F\u7387\uFF08\u5F31\u78C1\uFF09",a.X(11e3),a.Y2(160)-8,{c:o.P,size:12,w:700,a:"center"});let m=at.v,c=l(m);kt(t,a.X(m),i),_(t,a.X(m),a.Y(c.T),o.T),_(t,a.X(m),a.Y2(c.P/1e3),o.P);let h=e-n,p=i.y,u=i.h,P=800,k=y=>p+u-y/P*u;U(t,h+8,p,n-16,u,5),t.fillStyle=o.panel2,t.fill();let b=c.emf,v=Math.min(b,P);U(t,h+8,k(v),n-16,p+u-k(v),5),t.fillStyle=o.n,t.globalAlpha=b>F.U?.3:.85,t.fill(),t.globalAlpha=1,b>F.U&&D&&(U(t,h+8,k(F.U),n-16,p+u-k(F.U),5),t.fillStyle=o.n,t.globalAlpha=.85,t.fill(),t.globalAlpha=1),t.strokeStyle=o.ink,t.lineWidth=2,t.beginPath(),t.moveTo(h+2,k(F.U)),t.lineTo(e-2,k(F.U)),t.stroke(),$(t,`\u7535\u6C60 ${F.U} V`,h+n/2,k(F.U)-6,{c:o.ink,size:11,w:700,a:"center"}),$(t,"\u53CD\u7535\u52A8\u52BF",h+n/2,p-8,{c:o.n,size:11.5,a:"center"}),$(t,`${f(b)} V`,h+n/2,p+u+16,{c:o.n,size:13,w:700,a:"center",f:w}),b>F.U&&$(t,D?"\u5F31\u78C1\u538B\u56DE":"\u9876\u4F4F\u4E86",h+n/2,k(Math.min(b,P))+(b>P?14:-6),{c:o.ink2,size:10.5,a:"center"})};var Je=new V("f8",{ratio:.7,maxH:440,minH:270}),lt=ke,it=xt(lt),qe=16e3,Et={a:{U:400,I:400,k:.75,g:8.13},b:{U:400,I:400,k:.75,g:4.07}},pt="a",ve=z("f8-U",t=>`${t} V`,()=>Vt()),be=z("f8-I",t=>`${t} A`,()=>Vt()),ee=z("f8-k",t=>`${T(t)} N\xB7m/A`,()=>Vt()),ne=z("f8-g",t=>`${T(t)}`,()=>Vt());function Ee(t){let e=Et[t];pt=t,ve.el.value=e.U,be.el.value=e.I,ee.el.value=e.k,ne.el.value=e.g,[ve,be,ee,ne].forEach(s=>s.upd())}A("f8-a").addEventListener("click",()=>Ee("a"));A("f8-b").addEventListener("click",()=>Ee("b"));var Ye=(t,e)=>Gt(t,{U:e.U,I:e.I,k:e.k,gear:e.g,r:lt.r,nMax:qe}),Qe=()=>({U:ve.v,I:be.v,k:ee.v,g:ne.v});function Ze(t){let e=t.k*t.I*t.g/lt.r,s=t.U*t.I,n=s/e,i=ut(qe)/t.g*lt.r,a=r=>B(r,lt),l=Ge(s,a);return{Fm:e,Pm:s,knee:n,vRpm:i,vTop:Math.min(i,l),why:i<l?"\u7535\u673A\u8F6C\u901F\u5230\u9876":"\u88AB\u98CE\u963B\u6321\u4F4F"}}function Vt(){let t=Qe(),e=Ze(t),s=n=>Object.keys(n).every(i=>Math.abs(n[i]-t[i])<1e-6);pt=s(Et.a)?"a":s(Et.b)?"b":"",A("f8-a").setAttribute("aria-pressed",pt==="a"),A("f8-b").setAttribute("aria-pressed",pt==="b"),It("f8-k2",[["\u7535\u529F\u7387 U \xD7 I",f(e.Pm/1e3),"kW","P"],["\u8F66\u8F6E\u6700\u5927\u63A8\u529B",f(e.Fm),e.Fm>it?"N \u4F1A\u6253\u6ED1":"N","F"],["\u62D0\u70B9\u8F66\u901F",f(E(e.knee)),"km/h","v"]]),g("f8-c",[`${d("P","\u529F\u7387")} = \u7535\u538B \xD7 \u7535\u6D41 = ${t.U} V \xD7 ${t.I} A = <b class="qP">${f(e.Pm/1e3)} kW</b>`,`${d("T","\u7535\u673A\u6700\u5927\u626D\u77E9")} = k \xD7 \u7535\u6D41 = ${T(t.k)} \xD7 ${t.I} = <b class="qT">${f(t.k*t.I)} N\xB7m</b>\uFF1B\u57FA\u901F = ${t.U} \xF7 ${T(t.k)} = ${f(t.U/t.k)} rad/s \u2248 ${d("n",`${f(K(t.U/t.k))} rpm`)}`,`${d("F","\u8F66\u8F6E\u6700\u5927\u63A8\u529B")} = ${f(t.k*t.I)} \xD7 \u9F7F\u6BD4 ${T(t.g)} \xF7 ${lt.r} m = <b class="qF">${f(e.Fm)} N</b>${e.Fm>it?`<span class="note">\u3000\u6BD4\u6293\u5730\u529B ${f(it)} N \u5927\uFF0C\u8D77\u6B65\u4F1A\u6253\u6ED1</span>`:""}`,`${d("v","\u62D0\u70B9\u8F66\u901F")} = ${f(e.Pm/1e3)} kW \xF7 ${f(e.Fm)} N = ${x(e.knee)} m/s = <b class="qv">${f(E(e.knee))} km/h</b>`,`<span class="note">\u6700\u9AD8\u8F66\u901F\u7EA6 ${f(E(e.vTop))} km/h\uFF08${e.why}\uFF1B\u7535\u673A ${qe} rpm \u5BF9\u5E94 ${f(E(e.vRpm))} km/h\uFF09</span>`]),Je.dirty=!0}Je.draw=function(t,e,s){let n=Ut(e,s,50,14,28,36),i=12e3,a=Rt(t,n,{xmax:250,xstep:25,xlabEvery:2,ymax:i,ystep:2e3,xlab:"\u8F66\u901F km/h",ylab:"\u8F66\u8F6E\u63A8\u529B N"}),{X:l,Y:r}=a,m=Qe(),c=Ze(m);t.fillStyle=o.grip,t.globalAlpha=.07,t.fillRect(n.x,n.y,n.w,r(it)-n.y),t.globalAlpha=1,R(t,()=>it,0,250,l,r,n,{c:o.grip,lw:1.5,dash:[6,4],n:2}),$(t,`\u6293\u5730\u529B\u4E0A\u9650 ${f(it)} N`,n.x+n.w-4,r(it)-6,{c:o.grip,size:11.5,a:"right"}),R(t,u=>B(q(u),lt),0,250,l,r,n,{c:o.drag,lw:2}),R(t,u=>c.Pm/q(u),5,250,l,r,n,{c:o.P,lw:1.5,dash:[2,4]}),$(t,`${f(c.Pm/1e3)} kW \xF7 \u8F66\u901F`,l(235),r(c.Pm/q(235))-8,{c:o.P,size:11.5,a:"right"});let h=pt==="a"?Et.b:Et.a;R(t,u=>Ye(q(u),h).F||NaN,0,250,l,r,n,{c:o.ink3,lw:1.8,dash:[6,4],n:400}),R(t,u=>Ye(q(u),m).F||NaN,0,250,l,r,n,{c:o.ink,lw:3,n:400});let p=Math.min(E(c.knee),250);_(t,l(p),r(Math.min(c.Fm,i)),o.v,5),$(t,`\u62D0\u70B9 ${f(E(c.knee))} km/h`,l(p)+8,r(Math.min(c.Fm,i))-8,{c:o.v,size:12,w:700}),$(t,pt==="a"?"\u865A\u7EBF\uFF1A\u901F\u5EA6\u4F18\u5148":"\u865A\u7EBF\uFF1A\u529B\u4F18\u5148",n.x+6,n.y+14,{c:o.ink3,size:11.5}),c.vRpm<q(250)&&(kt(t,l(E(c.vRpm)),n,o.n),$(t,"\u7535\u673A\u8F6C\u901F\u5230\u9876",l(E(c.vRpm))-4,n.y+n.h-6,{c:o.n,size:11,a:"right"}))};var ge=new V("f9",{ratio:.7,maxH:440,minH:270}),Le=z("f9-v",t=>`${t} km/h`,()=>Ie()),ae=z("f9-g",t=>x(t),()=>{Mt=null,Ie()}),Mt=null,Wt=dt(1e3,H.limit).P*H.eta,tn=t=>fe(q(t)),en=t=>{let e=Kt({gear:ae.v,v:q(t)});return Math.min(e.F,C)};function $n(t){let e=Kt({gear:ae.v,v:q(t)});return e.n>nt.nMax?"\u7535\u673A\u8F6C\u901F\u5230\u9876":e.F>=C?"\u6293\u5730\u529B\u5C01\u9876":e.n<=e.nb?"\u7535\u673A\u626D\u77E9\u4E0A\u9650 \xD7 \u9F7F\u6BD4":"\u8D34\u7740\u529F\u7387\u7EBF"}function Ie(){let t=Le.v,e=tn(t),s=en(t),n=t>0?Wt/q(t):1/0;It("f9-k",[["\u6CB9\u8F66\u63A8\u529B",f(e.F),"N","P"],["\u7535\u8F66\u63A8\u529B",f(s),"N","n"],[`\u529F\u7387\u7EBF ${f(Wt/1e3)} kW \xF7 \u8F66\u901F`,t>0?f(Math.min(n,99999)):"\u221E","N"]]),A("f9-cap").innerHTML=`${t} km/h\uFF1A\u6CB9\u8F66\u88AB\u300C${e.why}\u300D\u9650\u5236\uFF0C\u7535\u8F66\u88AB\u300C${$n(t)}\u300D\u9650\u5236\u3002${t>=55&&t<=170?"\u8FD9\u4E00\u6BB5\u4E24\u6761\u7EBF\u90FD\u8D34\u7740\u540C\u4E00\u6761\u529F\u7387\u7EBF\u3002":""}`,ge.dirty=!0}ge.draw=function(t,e,s){let n=Ut(e,s,48,14,28,36),i=Rt(t,n,{xmax:200,xstep:20,xlabEvery:2,ymax:8e3,ystep:2e3,xlab:"\u8F66\u901F km/h",ylab:"\u8F66\u8F6E\u63A8\u529B N"}),{X:a,Y:l}=i;if(!Mt){Mt=[];for(let c=0;c<=200;c+=1)Mt.push([c,tn(c).F,en(c)])}t.fillStyle=o.grip,t.globalAlpha=.07,t.fillRect(n.x,n.y,n.w,l(C)-n.y),t.globalAlpha=1,R(t,()=>C,0,200,a,l,n,{c:o.grip,lw:1.5,dash:[6,4],n:2}),$(t,`\u6293\u5730\u529B\u4E0A\u9650 ${f(C)} N`,n.x+n.w-4,l(C)-6,{c:o.grip,size:11.5,a:"right"}),R(t,c=>B(q(c)),0,200,a,l,n,{c:o.drag,lw:2}),R(t,c=>Wt/q(c),3,200,a,l,n,{c:o.ink3,lw:1.5,dash:[2,4]}),$(t,`\u529F\u7387\u7EBF\uFF1A${f(Wt/1e3)} kW \xF7 \u8F66\u901F`,a(190),l(Wt/q(190))-10,{c:o.ink3,size:11.5,a:"right"});let r=(c,h)=>Mt[Math.round(L(c,0,200))][h];R(t,c=>r(c,2),0,200,a,l,n,{c:o.n,lw:3,n:200}),R(t,c=>r(c,1),0,200,a,l,n,{c:o.P,lw:3,n:200}),$(t,"\u6CB9\u8F66\uFF08\u53D1\u52A8\u673A + \u53D8\u77E9\u5668 + CVT\uFF09",n.x+6,l(1700),{c:o.P,size:12,w:700}),$(t,`\u7535\u8F66\uFF08\u4E00\u4E2A\u9F7F\u6BD4 ${x(ae.v)}\uFF09`,n.x+6,l(1700)+17,{c:o.n,size:12,w:700});let m=Le.v;kt(t,a(m),n),_(t,a(m),l(r(m,1)),o.P,6),_(t,a(m),l(r(m,2)),o.n,5)};var kn={g1:{right:1,text:"\u4E24\u500D\u3002\u626D\u77E9 = \u529B \xD7 \u529B\u81C2\uFF0C\u529B\u81C2\u7FFB\u500D\uFF0C\u626D\u77E9\u5C31\u7FFB\u500D\u3002\u62E7\u4E0D\u52A8\u7684\u65F6\u5019\u5728\u6273\u624B\u4E0A\u5957\u4E00\u6839\u957F\u7BA1\u5B50\uFF0C\u5C31\u662F\u8FD9\u4E2A\u9053\u7406\u3002"},g2:{right:1,text:"\u7EA6 90 km/h\u3002800 \xF7 60 \xD7 2\u03C0 \xD7 0.30 \u2248 25.1 m/s\uFF0C\u518D \xD7 3.6 \u2248 90 km/h\u3002",run:()=>{Z.set(800),ft.set(.3)}},g3:{right:2,text:"\u4E00\u6837\u5927\u3002A\uFF1A981 N \xD7 1 m/s = 981 W\uFF1BB\uFF1A490 N \xD7 2 m/s = 981 W\u3002\u529B\u5927\u901F\u5EA6\u6162\u3001\u529B\u5C0F\u901F\u5EA6\u5FEB\uFF0C\u53EF\u4EE5\u662F\u540C\u4E00\u4E2A\u529F\u7387\u3002",run:()=>{St.set(50),Q.set(2)}},g4:{right:0,text:"\u9F7F\u6BD4 60 \xF7 20 = 3\uFF1A\u8F6C\u901F\u964D\u5230\u4E09\u5206\u4E4B\u4E00\uFF081000 rpm\uFF09\uFF0C\u626D\u77E9\u6DA8\u5230 3 \u500D\uFF08300 N\xB7m\uFF0C\u6263\u6389 2% \u7684\u6469\u64E6\u7EA6 294 N\xB7m\uFF09\u3002\u529F\u7387\u8FDB\u53BB 31.4 kW\uFF0C\u51FA\u6765 30.8 kW\u3002",run:()=>{Zt.set(20),gt.set(60),ot.set(3e3),mt.set(100)}},g5:{right:1,text:"\u6700\u5927\u529F\u7387\u90A3\u4E2A\u300260 km/h \u65F6\uFF1A\u5B88\u5728 4200 rpm\uFF0C\u8F66\u8F6E\u63A8\u529B\u7EA6 3160 N\uFF1B\u5B88\u5728 6000 rpm\uFF0C\u7EA6 4070 N\u3002\u626D\u77E9\u5C0F\u4E86\u4E00\u70B9\uFF0C\u53EF\u8F6C\u901F\u9AD8\u5F97\u591A\uFF0CCVT \u518D\u591A\u51CF\u4E00\u70B9\u901F\uFF0C\u5230\u8F66\u8F6E\u4E0A\u53CD\u800C\u66F4\u5927\u3002\u56FE\u5DF2\u7ECF\u5207\u5230 60 km/h\uFF0C\u70B9\u4E0A\u9762\u4E24\u4E2A\u6309\u94AE\u5BF9\u6BD4\u3002",run:()=>{J.set(60)}},g6:{right:1,text:"\u7EA6 80 g\u30021.5 L \xD7 6000 \xF7 2 \xF7 60 = 75 L/s\uFF0C6000 rpm \u65F6\u7F38\u5438\u6EE1\u7EA6\u4E5D\u6210\uFF0C\u5C31\u662F 67.5 L\uFF1B\u6BCF\u5347\u7A7A\u6C14\u7EA6 1.2 g\uFF0C\u5408 81 g\u3002",run:()=>{Ne.set(1.5),rt.set(6e3),zt.set(1),Nt.set(1),We.set(.34)}},g7:{right:1,text:"\u6700\u5927\u3002\u53EA\u8981\u7535\u6D41\u63A8\u5F97\u8FDB\u53BB\uFF0C\u626D\u77E9\u5C31\u6709\uFF0C\u8F6C\u901F\u662F\u96F6\u4E5F\u4E00\u6837\u3002\u53D1\u52A8\u673A\u505A\u4E0D\u5230\uFF1A\u6020\u901F\u4EE5\u4E0B\u5B83\u6839\u672C\u8F6C\u4E0D\u8D77\u6765\uFF0C\u8D77\u6B65\u5F97\u9760\u79BB\u5408\u5668\u6216\u8005\u53D8\u77E9\u5668\u3002",run:()=>{at.set(0)}},g8:{right:1,text:"\u4E0D\u53D8\u3002k \u7FFB\u500D\uFF0C\u626D\u77E9\u4E0A\u9650\u7FFB\u500D\uFF0C\u57FA\u901F\u51CF\u534A\uFF0C\u4E58\u8D77\u6765\u8FD8\u662F\u7535\u538B \xD7 \u7535\u6D41\u3002\u62D6\u4E00\u4E0B k \u6ED1\u5757\u8BD5\u8BD5\uFF1A\u62D0\u70B9\u5F80\u5DE6\u632A\u3001\u6700\u5927\u63A8\u529B\u5F80\u4E0A\u6DA8\uFF0C\u201C\u7535\u529F\u7387\u201D\u90A3\u4E00\u683C\u4E00\u76F4\u6CA1\u53D8\u3002"},g9:{right:0,text:"\u7535\u673A\u8FC7\u4E86\u57FA\u901F\uFF0C\u4E00\u76F4\u5230\u6700\u9AD8\u8F6C\u901F\u90FD\u662F\u6700\u5927\u529F\u7387\uFF0C\u8986\u76D6\u4E86\u5927\u534A\u4E2A\u8F66\u901F\u8303\u56F4\uFF1B\u53D1\u52A8\u673A\u53EA\u5728 6000 rpm \u9644\u8FD1\u624D\u51FA\u6700\u5927\u529F\u7387\uFF0C\u8F66\u901F\u4E00\u53D8\u5C31\u5F97\u6362\u9F7F\u6BD4\u628A\u5B83\u62C9\u56DE\u53BB\u3002\u626D\u77E9\u5927\u5C0F\u548C\u91CD\u91CF\u90FD\u4E0D\u662F\u539F\u56E0\uFF1A\u53D1\u52A8\u673A\u914D\u4E0A\u53D8\u901F\u7BB1\uFF0C\u8F66\u8F6E\u4E0A\u7684\u626D\u77E9\u4E00\u6837\u80FD\u5F88\u5927\u3002"}};document.querySelectorAll(".guess").forEach(t=>{let e=kn[t.dataset.guess],s=[...t.querySelectorAll(".btn")],n=t.querySelector(".r");s.forEach((i,a)=>i.addEventListener("click",()=>{s.forEach((l,r)=>{l.classList.toggle("right",r===e.right),l.classList.toggle("wrong",r===a&&a!==e.right)}),n.hidden=!1,n.textContent=(a===e.right?"\u731C\u5BF9\u4E86\u3002":"\u4E0D\u5BF9\u3002")+e.text,e.run?.()}))});ye();matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",ye);new MutationObserver(ye).observe(document.documentElement,{attributes:!0,attributeFilter:["data-theme"]});De();Te();Me();Se();Ot();ze();vt();Ae();Vt();Ie();for(let t of Lt)t.size(),t.render(),t.dirty=!1;var Be=performance.now();function nn(t){let e=Math.min(.05,(t-Be)/1e3);Be=t;for(let s of Lt){if(!s.visible)continue;(!cn&&s.step(e)||s.dirty)&&(s.size(),s.render(),s.dirty=!1)}requestAnimationFrame(nn)}requestAnimationFrame(nn);window.__lesson={P:Jt,figs:Lt,s1F:Ft,s1r:At,s2n:Z,s5v:J,s6n:rt,s7n:at,s8k:ee,s8g:ne,s9v:Le,s9g:ae,f8apply:Ee};})();
+</script>
+</body></html>
