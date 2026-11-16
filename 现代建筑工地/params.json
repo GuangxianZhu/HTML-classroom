@@ -1,0 +1,77 @@
+{
+  "_说明": "唯一参数表。单位：米。楼层号：地上 1..54，地下 -1..-4。level n 的竖向构件从 z[n] 到 z[n+1]，水平构件（钢梁/楼承板/楼板）在 z[n+1]。依据见 参考资料.md",
+  "tower": {
+    "floors": 54,
+    "f1_height": 6.6,
+    "typ_height": 4.4,
+    "roof_screen": 8.0,
+    "core": {
+      "half": 12.0,
+      "inner_line": 4.0,
+      "zones": [
+        {"from": -4, "to": 12, "outer_t": 1.1, "inner_t": 0.5},
+        {"from": 13, "to": 24, "outer_t": 0.9, "inner_t": 0.45},
+        {"from": 25, "to": 38, "outer_t": 0.7, "inner_t": 0.4},
+        {"from": 39, "to": 55, "outer_t": 0.5, "inner_t": 0.35}
+      ],
+      "door_outer": [1.5, 2.7],
+      "door_inner": [1.2, 2.4]
+    },
+    "frame": {
+      "half": 24.0,
+      "bays": 4,
+      "col_d": [
+        {"from": -4, "to": 12, "d": 1.4},
+        {"from": 13, "to": 24, "d": 1.25},
+        {"from": 25, "to": 38, "d": 1.1},
+        {"from": 39, "to": 54, "d": 0.9}
+      ],
+      "edge_beam": [0.7, 0.3, 0.028, 0.016],
+      "main_beam": [0.7, 0.3, 0.026, 0.014],
+      "diag_beam": [0.6, 0.3, 0.024, 0.014],
+      "sec_beam": [0.4, 0.2, 0.014, 0.008],
+      "sec_offsets": [3.0, 6.0, 9.0]
+    },
+    "slab": {"t": 0.12, "deck_t": 0.02, "edge": 24.9},
+    "curtain": {"plane": 25.3, "module": 1.5, "spandrel_below": 0.5, "spandrel_above": 0.3, "fin_depth": 0.35, "fin_every": 2},
+    "refuge": [11, 22, 33, 44],
+    "outrigger": [22, 44],
+    "basement": {
+      "heights": [5.5, 4.5, 4.5, 4.5],
+      "center": [10.0, 6.0],
+      "size": [96.0, 84.0],
+      "wall_t": 0.8,
+      "raft_t": 4.0,
+      "raft_t_outer": 1.6,
+      "raft_tower_half": 28.0,
+      "grid": 8.4,
+      "col": 0.8,
+      "slab_t": 0.25,
+      "roof_t": 0.3
+    }
+  },
+  "platform": {
+    "ref_floor": 30,
+    "bottom": 5.6,
+    "bailey_h": 2.134,
+    "bailey_panel": 3.048,
+    "bailey_rows_gap": 0.45,
+    "lines": [-12.9, -4.0, 0.0, 4.0, 12.9],
+    "edge": 13.9,
+    "hang_levels": 7,
+    "hang_step": 2.2,
+    "walk_in": 0.35,
+    "walk_out": 1.75,
+    "cell_walk": 1.0,
+    "guard_h": 1.8,
+    "support_offset": 0.9,
+    "col_size": 0.8,
+    "col_len": 15.0,
+    "bar_pitch": 0.4,
+    "seat_z": [-5.6, -9.2],
+    "cyl": {"bore": 0.28, "rod": 0.2, "stroke": 1.6, "closed": 2.4, "ext": 0.3},
+    "form_h": 4.5,
+    "boom": {"arms": [12.6, 8.8, 6.1], "pos": [[-7.8, 0.0], [7.8, 0.0]], "slew": [90.0, 270.0], "pose": [75.0, -125.0, -45.0]}
+  },
+  "state_preview": {"core": 30, "column": 25, "steel": 24, "deck": 23, "slab": 21, "curtain": 13}
+}

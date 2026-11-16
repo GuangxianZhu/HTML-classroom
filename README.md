@@ -36,6 +36,7 @@
 
 | 预览 | 项目 |
 | --- | --- |
+| <a href="%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/"><img src="%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/blender/out/view_construction.jpg" width="360" alt="现代建筑工地"></a> | **[现代建筑工地](%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/)**<br><br>原创 248 m 超高层（2026 年的工程）：Blender 脚本建模的主楼（筏板、地下室、核心筒、钢管混凝土柱、钢梁、楼承板、幕墙、加强层，每层每类单独一个物体）和造楼机（贝雷片钢平台、12 个支点和液压油缸、7 层挂架、大钢模、布料机，参照公开资料里的集成平台参数）；4D 进度网页制作中，模型已在 `blender/out/` |
 | <a href="%E6%97%A0%E5%88%B7%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/"><img src="%E6%97%A0%E5%88%B7%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/preview/render_exploded.jpg" width="360" alt="无刷电机爆炸图"></a> | **[无刷电机爆炸图](%E6%97%A0%E5%88%B7%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/)**<br><br>57 型无刷直流电机：结构 / 原理 / 模型 |
 | <a href="%E4%B8%89%E7%9B%B8%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/"><img src="%E4%B8%89%E7%9B%B8%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/preview/render_exploded.jpg" width="360" alt="三相电机爆炸图"></a> | **[三相电机爆炸图](%E4%B8%89%E7%9B%B8%E7%94%B5%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/)**<br><br>三相鼠笼式异步电机：结构 / 原理 / 电动 / 发电 |
 | <a href="%E6%B6%B5%E9%81%93%E6%97%A0%E4%BA%BA%E6%9C%BA/"><img src="%E6%B6%B5%E9%81%93%E6%97%A0%E4%BA%BA%E6%9C%BA/preview/render_flight.jpg" width="360" alt="涵道无人机"></a> | **[涵道无人机](%E6%B6%B5%E9%81%93%E6%97%A0%E4%BA%BA%E6%9C%BA/)**<br><br>原创 3 寸涵道穿越机：飞行演示 + 差速原理 + 爆炸图 |

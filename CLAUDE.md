@@ -34,6 +34,7 @@
 | `一条指令到手指/` | whj_MCU 项目的全程课：跟着一条指令“食指弯到 45°”从电脑走到指尖，零基础十五关（标定、数据包、UART、M7C 转发、电平转换、241 合线、ID 认领、TXEN 松手时机、舵机闭环、线轴腱绳、预紧回差、时间账、六块 M7C、排查题）；Blender 脚本建模三个（桌面全景 / 舵机剖视 / 一根手指，`blender/out/layout.json` 给网页坐标），`web/src/core.js` 是唯一的数字来源，`web/test_core.mjs` 拿 whj_MCU 里的已知数据包和时间表校验；每关末尾的“依据”分公认 / 手册 / 仓库实测 / 推断 / 估算，改文案时保持；关卡顺序只在 `web/src/main.js` 的 `CHAPTERS` 里定，文案里提到别的关用 `lv('key')`，不要写死数字；`规划.md` 是动手前确认的方案和后来的改动记录 |
 | `车钻铣三合一机床/` | 参照 CT125E 的车钻铣三合一微型机床：Blender 脚本建模（运动组 G_Spin / G_LeadScrew / G_Carriage / G_Cross / G_Head 等，推测件 extras 里 guess=1）+ 九章讲车削、挂轮、电子挂轮（DDA 整数算法）、车螺纹对零点、钻铣、做零件（M6 螺栓 / M6 螺母 / 1/4″-20 相机螺丝，`web/src/work.js` 工件模型 + `jobs.js` 工艺步骤，切削都是取最小 / 最大所以跳步 = 前面每步 play(c,1)）、参数、11 件公开专利；`web/src/core.js` 是唯一的数字来源，`web/test_core.mjs` 自检（含三个零件的尺寸）；每章“依据”分公认 / 参数表 / 推测 / 假设 |
 | `行星锥盘无级变速器/` | MB / UDL 型机械无级变速器（照片里带手轮的那种）：Blender 脚本建模电机 + 变速器（`params.json` 是 Blender 和网页共用的唯一参数表），转的件在网页里用裁剪平面剖开、不转的件出 `__cut` 剖切版；`web/src/core.js` 几何 / Willis 速比 / 碟簧 + 离心力 / 两圈接触打滑 / 电机限制，`web/test_core.mjs` 校验（含零件间隙）；七章 + 11 件专利卡片，结论分公认 / 资料 / 推断 / 估算，单文件页面 |
+| `现代建筑工地/` | 原创 248 m 超高层工地（2026 年，守 250 m 限高）：Blender 脚本建模，`params.json` 是唯一参数表；`blender/tower.py` 主楼（每层每类一个物体，extras `stage` / `floor`，楼层号约定见 README），`blender/zaoloji.py` 造楼机（参照中建三局长江中心轻量化集成平台：贝雷片平台、12 支点、7 层挂架、大钢模、布料机，原点在墙顶 TOC），`blender/build_site.py` 总入口（导出 `tower.glb` / `zaoloji.glb` / `site.blend` / `spec.json`，`--render` 出预览图，`--views` 只渲指定机位）；`建模清单.md` 是 A~G 七类模型的清单和完成状态，`参考资料.md` 写每个尺寸的依据（资料 / 推断 / 假设）；4D 进度网页还没做 |
 
 通用约定：
 - 回答用中文。
