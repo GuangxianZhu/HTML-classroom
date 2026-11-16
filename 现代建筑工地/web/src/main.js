@@ -3,6 +3,7 @@ import P from '../../params.json';
 import spec from '../../blender/out/spec.json';
 import towerGlb from '../dist/tower.glb';
 import zljGlb from '../dist/zaoloji.glb';
+import machGlb from '../dist/machines.glb';
 import { makeSchedule, stateAt, STEPS, TRADES, TRADE_NAME } from './core.js';
 import { Stage } from './stage.js';
 
@@ -18,42 +19,49 @@ const PHASE = {
   site: {
     view: 'pit', color: '#7d7a70',
     text: () => `<p>先把工地圈起来：装配式围挡、大门、洗车槽，场地硬化，接水接电，搭项目部板房。这些叫“三通一平”和临建。</p>
+      <p class="mach">现场：项目部板房、门卫、洗车台、五牌一图、钢筋加工棚、充电站陆续就位，管理人员的皮卡进进出出。</p>
       <p class="basis">〔常规做法〕</p>`,
   },
   dwall: {
     view: 'pit', color: '#8f8e88',
     text: () => `<p>还没开挖，先沿基坑一圈在地下“浇”出一道 1 m 厚的混凝土墙：成槽机挖一条深槽，槽里灌泥浆撑住土，放进钢筋笼，再从底下往上灌混凝土把泥浆挤出来。一幅一幅接成一圈，叫<b>地下连续墙</b>。</p>
       <p>它先当挡土挡水的围护墙，之后和里面的内衬墙一起当地下室外墙。顶上一圈是把各幅连成整体的冠梁。</p>
+      <p class="mach">现场：<b>液压抓斗成槽机</b>沿基坑一幅幅抓槽（抓斗宽 2.8 m、厚 0.8 m），旁边的<b>履带吊</b>把钢筋笼竖着吊进槽里；塔楼底下一台<b>旋挖钻机</b>在打工程桩，打完的桩孔口留着钢护筒。渣土车把槽里的土运走，罐车来浇墙。</p>
       <p class="basis">〔常规做法；墙深 36 m、每幅 6 m 是假设〕</p>`,
   },
   excavate: {
     view: 'pit', color: '#7a6650',
     text: (st) => `<p>围护墙圈好了才往下挖。现在挖到 <b class="num">${(-st.pit.depth).toFixed(1)} m</b>。</p>
       <p>坑越深，外面的土把墙往里推得越厉害，所以挖到第一层就要加<b>内支撑</b>：沿墙一圈围檩，四个角用斜撑顶住。真实项目常有好几道支撑，这里只画了一道。</p>
+      <p class="mach">现场：坑里两台 30 t 级挖机把土倒到坑边，北边坑沿上的<b>长臂挖机</b>（臂长约 20 m）一斗斗把土装进<b>纯电渣土车</b>，车装满就走，下一辆接着进。电动渣土车多是换电式，驾驶室后面那个箱子就是电池仓。</p>
       <p class="basis">〔坑底 -20.6 m = 地下 4 层 + 1.6 m 底板，见参数表〕</p>`,
   },
   raft: {
     view: 'pit', color: '#5f5e5a',
     text: () => `<p>坑底浇<b>筏板</b>：塔楼底下 ${T.basement.raft_t} m 厚，其余 ${T.basement.raft_t_outer} m。整栋楼的重量最后都落到这块板上，再传给下面的桩和土。</p>
       <p>这么厚的混凝土叫“大体积混凝土”，一般连续浇几十个小时不停，免得出现冷缝；水泥水化发热，里外温差大会开裂，所以要预埋测温点、控制降温速度。</p>
+      <p class="mach">现场：南边坑沿停着<b>混凝土泵车</b>，五节臂伸进坑里；罐车一辆接一辆把混凝土喂进泵车后面的料斗。</p>
       <p class="basis">〔超高层筏板常见 3 ~ 5 m：推断；连续浇筑和控温：常规做法〕</p>`,
   },
   basement: {
     view: 'pit', color: '#8a8a86',
     text: () => `<p>地下室从最底层往上做（<b>顺作法</b>）：每层先做墙和柱，再做顶板。核心筒和钢管柱也从筏板上开始往上长。</p>
       <p>地下室顶板做完以后，楼板就能接替内支撑顶住四周的墙，这时才把内支撑拆掉，叫<b>换撑</b>。看基坑里那圈支撑什么时候消失。</p>
+      <p class="mach">现场：两台<b>动臂塔吊</b>已经立在核心筒的两个角筒格里（站在筏板上），把钢柱、钢筋吊进坑里；平板车把钢构件运到两个堆场。</p>
       <p class="basis">〔每层 ${S.basement_level} 天是假设〕</p>`,
   },
   low: {
     view: 'all', color: '#b8b3a6',
     text: () => `<p>地上头 ${S.low_floors} 层还没装造楼机，核心筒用常规模板一层层做，大约 ${S.low_cycle} 天一层。首层是大堂，层高 ${T.f1_height} m。</p>
       <p>先把这几层核心筒做出来，是为了给造楼机留出“抓手”：它的支点要挂在已经硬了的墙上。</p>
+      <p class="mach">现场：从这里开始用<b>超高压地泵</b>：罐车把混凝土倒进地泵，地泵沿地面的泵管、再沿核心筒里竖着的泵管把混凝土一路打上去。</p>
       <p class="basis">〔${S.low_cycle} 天一层：普通爬模约 7 天一层（科技日报报道）〕</p>`,
   },
   install: {
     view: 'zlj', color: '#ff7a2f',
     text: () => `<p>在核心筒上组装<b>造楼机</b>（顶模集成平台）：先装墙上的附墙支座、油缸和 12 根支撑立柱，再拼贝雷片钢平台，然后挂架、大钢模、防护网，最后上布料机和集装箱。</p>
       <p>新一代平台像搭积木一样用标准模块拼，资料里安装约 20 天。</p>
+      <p class="mach">现场：两台塔吊跟造楼机做成一体：塔身穿过平台的角筒格，用爬升框固定在平台上，以后平台顶升时塔吊跟着一起升。</p>
       <p class="basis">〔资料：泰康金融中心新一代平台“仅用 20 天即可完成”安装；组成照长江中心轻量化平台〕</p>`,
   },
   cycle: {
@@ -61,18 +69,21 @@ const PHASE = {
     text: (st) => `<p>超高层的施工顺序是<b>核心筒先行</b>：核心筒（混凝土）领先，钢柱、钢梁、楼承板、楼板、幕墙按顺序一层层跟在下面，每个工种都在不同的楼层同时干活，叫<b>竖向流水</b>。</p>
       <p>为什么核心筒先走？它是整栋楼抗风抗震的主心骨，造楼机和（之后要加的）塔吊都靠在它上面；外框钢结构安装时要以它为基准。</p>
       <p>造楼机罩住核心筒顶上 3.5 层，标准层 <b>${S.cycle} 天一层</b>。现在核心筒 <b class="num">${st.counts.core}F</b>，楼板 <b class="num">${st.counts.slab}F</b>。</p>
+      <p class="mach">现场：两台塔吊高低错开 8 m（回转时平衡臂才不会打架），一台管东北、一台管西南，从堆场吊钢柱、钢梁到正在装的那层，也往平台上吊钢筋；南立面的<b>双笼施工电梯</b>送人送料，每隔几层用附墙架拉在楼板边上。</p>
       <p class="basis">〔4 天一层：资料（武汉中心、泰康金融中心报道）；各工种落后的层数是假设：钢柱 ${S.lags.column}、钢梁 ${S.lags.steel}、楼承板 ${S.lags.deck}、楼板 ${S.lags.slab}、幕墙 ${S.lags.curtain}〕</p>`,
   },
   dismantle: {
     view: 'zlj', color: '#e4602a',
     text: () => `<p>核心筒浇到顶（包括屋顶机房层）就是<b>核心筒封顶</b>。造楼机按安装的反顺序拆：先拆布料机、防护网和附属设施，再拆挂架和模板，最后拆平台和支点，一件件用塔吊吊下去。</p>
       <p>拆完以后做屋顶：机房、冷却塔和一圈 ${T.roof_screen} m 高的幕墙屏风（塔冠）。</p>
+      <p class="mach">现场：塔吊把造楼机拆下来的部件一件件吊回地面堆场。</p>
       <p class="basis">〔拆除 ${S.dismantle} 天是假设〕</p>`,
   },
   curtain: {
     view: 'all', color: '#6fd3c8',
     text: () => `<p>结构已经到顶，外面还在挂幕墙。单元式幕墙的板块在工厂里把玻璃、铝框、竖翅拼好，运到现场一块块挂到楼板边上的挂件上，比楼板晚十几层。</p>
       <p>避难层（11、22、33、44 层）不装玻璃，装百叶，让火灾时的避难区能通风排烟。</p>
+      <p class="mach">现场：塔吊已经拆走，施工电梯还在，平板车把幕墙板块运进来；等最后几层幕墙装完，施工电梯拆掉，那一列的幕墙最后补上。</p>
       <p class="basis">〔避难层间距不超过 50 m：《建筑设计防火规范》；百叶：常见做法〕</p>`,
   },
   finish: {
@@ -101,6 +112,7 @@ const BASIS = [
 
 // ------------------------------------------------------------ 界面
 const stage = new Stage($('#gl'), sch, spec, P);
+window.__stage = stage;   // 调试用
 let day = 0;
 let playing = false;
 let speed = 6;
@@ -295,6 +307,7 @@ function bind() {
   tog('#tMesh', 'mesh');
   tog('#tCut', 'cut', (v) => stage.setCut(v));
   tog('#tFollow', 'follow');
+  tog('#tLife', 'life');
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
@@ -324,12 +337,13 @@ function loop(now) {
 async function start() {
   buildChapters();
   bind();
-  await stage.load(towerGlb, zljGlb);
+  await stage.load(towerGlb, zljGlb, machGlb);
   $('#loading').hidden = true;
   const q = new URLSearchParams(location.search);
   setDay(q.has('day') ? +q.get('day') : sch.cStart[30] + S.cycle * (S.split[0] + 0.5 * (S.split[1] - S.split[0])));
   setView(q.get('view') || 'all');
   stage.setView(q.get('view') || 'all', true);
+  if (q.has('cam')) stage.setCam(...q.get('cam').split(',').map(Number));
   if (q.has('cut')) $('#tCut').click();
   if (q.has('nomesh')) $('#tMesh').click();
   requestAnimationFrame(loop);

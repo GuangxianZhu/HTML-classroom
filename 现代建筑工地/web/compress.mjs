@@ -6,18 +6,18 @@ import { quantize, reorder, meshopt } from '@gltf-transform/functions';
 import { MeshoptEncoder } from 'meshoptimizer';
 import fs from 'fs';
 
-export async function compress(names = ['tower', 'zaoloji']) {
+export async function compress(names = ['tower', 'zaoloji', 'machines']) {
   await MeshoptEncoder.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
   fs.mkdirSync('dist', { recursive: true });
   for (const n of names) {
     const src = `../blender/out/${n}.glb`;
     const doc = await io.read(src);
-    await doc.transform(
-      reorder({ encoder: MeshoptEncoder }),
-      quantize({ quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 12 }),
-      meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
-    );
+    // machines：零件绕节点原点转，不量化（量化会给网格节点加缩放/平移）
+    const steps = [reorder({ encoder: MeshoptEncoder })];
+    if (n !== 'machines') steps.push(quantize({ quantizePosition: 14, quantizeNormal: 8, quantizeTexcoord: 12 }));
+    steps.push(meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+    await doc.transform(...steps);
     const out = `dist/${n}.glb`;
     await io.write(out, doc);
     console.log(`${n}.glb ${(fs.statSync(src).size / 1048576).toFixed(2)} MB -> ${(fs.statSync(out).size / 1048576).toFixed(2)} MB`);

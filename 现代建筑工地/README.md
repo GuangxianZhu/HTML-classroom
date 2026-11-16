@@ -2,23 +2,30 @@
 
 一栋原创虚构的 248 m 超高层，从挖基坑到竣工的 **4D 施工进度演示**：拖时间轴，楼一层层长出来，核心筒带着造楼机先往上爬，钢柱、钢梁、楼承板、楼板、幕墙一层层跟在下面（竖向流水）。造楼机每 4 天顶升一层，12 个油缸分三次顶，能切到支点特写看。
 
-**在线打开：[https://guangxianzhu.github.io/HTML-classroom/%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/index.html](https://guangxianzhu.github.io/HTML-classroom/%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/index.html)**（单文件 2.3 MB，手机也能看）
+工地是活的：成槽机抓槽、旋挖钻打桩、挖机在坑里挖土、长臂挖机往渣土车里装、罐车排队给泵车和地泵喂混凝土、两台动臂塔吊吊钢柱钢梁、施工电梯上上下下、平板车拉钢构件进场、工人在地面和楼上走动，车辆从市政路右转进大门、场内转一圈再出去。
+
+**在线打开：[https://guangxianzhu.github.io/HTML-classroom/%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/index.html](https://guangxianzhu.github.io/HTML-classroom/%E7%8E%B0%E4%BB%A3%E5%BB%BA%E7%AD%91%E5%B7%A5%E5%9C%B0/index.html)**（单文件约 2.9 MB，手机也能看；卡的话关掉“机械和人”）
 
 模型清单和完成状态见 [建模清单.md](建模清单.md)，每个尺寸和工期的来历见 [参考资料.md](参考资料.md)。
 
 ![网页：施工到第 30 层](preview/web_all.jpg)
 
-| 剖开一半看造楼机里面 | 基坑开挖和内支撑 |
+| 基坑开挖：坑里挖机倒土、长臂挖机装车 | 地下连续墙：成槽机、履带吊吊钢筋笼、旋挖钻打桩 |
 |---|---|
-| ![](preview/web_zaoloji.jpg) | ![](preview/web_pit.jpg) |
+| ![](preview/web_pit.jpg) | ![](preview/web_dwall.jpg) |
+| **地下室：塔吊立在核心筒里、泵车浇筑** | **塔吊和造楼机一体化顶升** |
+| ![](preview/web_basement.jpg) | ![](preview/web_crane.jpg) |
+| **剖开一半看造楼机里面** | |
+| ![](preview/web_zaoloji.jpg) | |
 
 ## 网页里能做什么
 
 - **时间轴**：第 0 天到第 637 天，11 个阶段（场地准备 → 地下连续墙 → 基坑开挖 → 筏板 → 地下室 → 低区核心筒 → 造楼机安装 → 标准层 → 封顶拆除 → 幕墙收尾 → 竣工）。播放速度 1 / 6 / 30 天每秒，空格键播放，左右方向键一天一天走（按住 Shift 一次 10 天）。
 - **核心筒一层的循环**：绑钢筋（线框钢筋笼）→ 拆模顶升（平台整体上升 4.4 m，油缸分 3 次）→ 合模浇筑（墙从下往上长出来，布料机摆动）→ 养护。
 - **竖向流水图**：六个工种各做到第几层、造楼机罩住哪几层、核心筒领先楼板几层。
+- **现场的机械和人**：每个阶段的讲解下面有一段“现场”，说这时候哪些机械在干什么。机械动作用真实时间跑，暂停时工地也在动；“机械和人”按钮可以关掉。
 - **机位**：全景 / 造楼机 / 支点油缸 / 钢结构 / 基坑；“剖开一半”看核心筒和造楼机内部，“防护网”可以关掉，“跟着长高”让镜头跟着楼走。
-- 网址后面加参数可以直接跳：`?day=411&view=support`（view 可选 all / zlj / support / floor / pit，另有 `&cut=1`、`&nomesh=1`）。
+- 网址后面加参数可以直接跳：`?day=411&view=support`（view 可选 all / zlj / support / floor / pit，另有 `&cut=1`、`&nomesh=1`；`&cam=x,y,z,目标x,目标y,目标z` 直接给机位，Blender 坐标）。
 
 ## Blender 模型
 
@@ -33,6 +40,12 @@
 | ![](blender/out/view_support.jpg) | ![](blender/out/view_floor.jpg) |
 | **大钢模和挂架走道** | **地下室和筏板** |
 | ![](blender/out/view_formwork.jpg) | ![](blender/out/view_basement.jpg) |
+| **30 t 级电动挖掘机** | **纯电渣土车、纯电搅拌车** |
+| ![](blender/out/view_mach_m.jpg) | ![](blender/out/view_mach_g.jpg) |
+| **成槽机、旋挖钻、履带吊** | **动臂塔吊（塔顶部分）** |
+| ![](blender/out/view_mach_c.jpg) | ![](blender/out/view_mach_d.jpg) |
+| **项目部板房、门卫室** | |
+| ![](blender/out/view_mach_l.jpg) | |
 
 ## 怎么打开
 
@@ -59,16 +72,19 @@ node build.mjs       # 压缩 glb → 打包成上一级的 index.html
 | `blender/build_site.py` | 总入口：建模 → 导出 GLB / .blend / spec.json → （可选）渲预览图 |
 | `blender/tower.py` | 主楼：筏板、地下室、核心筒、钢管混凝土柱、钢梁、楼承板、楼板、幕墙、加强层、屋顶 |
 | `blender/zaoloji.py` | 造楼机：贝雷片钢平台、12 个支点、7 层挂架、大钢模、防护网、布料机、附属设施 |
+| `blender/machines.py` | 机械、车辆、工人、临建的原型：挖机、长臂挖机、渣土车、搅拌车、泵车、地泵、平板车、成槽机、旋挖钻、履带吊、动臂塔吊、施工电梯、SUV / 皮卡、工人、板房、钢筋棚、灯塔、洗车台、五牌一图、充电站、堆场、箱变 |
 | `blender/sitekit.py` | 共用小工具：材质、把很多方块 / 圆柱攒成一个物体、矩形挖孔、导出 |
 | `blender/out/tower.glb` | 主楼（344 个物体，约 29 万三角面） |
 | `blender/out/zaoloji.glb` | 造楼机（约 10 万三角面） |
+| `blender/out/machines.glb` | 机械、车辆、工人、临建的原型（约 4 万三角面）；在 .blend 里排成一排放在 x = 320 m 往后 |
 | `blender/out/site.blend` | 两者合在一起，摆成施工到第 30 层 |
 | `blender/out/spec.json` | 给网页用的数字：各层标高、墙厚、柱径、支点位置、挂架标高 |
 | `blender/out/view_*.jpg` | Blender 预览图 |
 | `web/src/core.js` | 施工进度模型：给一个“第几天”，算出每类构件做到哪层、核心筒在循环的哪一步、造楼机在哪、顶了多少、基坑挖多深（纯函数） |
 | `web/src/stage.js` | three.js 舞台：载入两个 glb，按进度显隐；墙“长出来”、钢筋笼、活塞杆、布料机摆动；基坑、地连墙、内支撑、围挡现场生成；机位、剖切、楼上的标签 |
-| `web/src/main.js` | 页面：阶段讲解文案（每段带依据）、核心筒循环、竖向流水图、时间轴 |
-| `web/compress.mjs` | 用 meshopt 压缩 glb（13 MB → 0.3 MB，物体名和 extras 不动） |
+| `web/src/main.js` | 页面：阶段讲解文案（每段带依据 + “现场”一段）、核心筒循环、竖向流水图、时间轴 |
+| `web/src/life.js` | 工地上动的东西：车辆路线（市政路右转进大门 → 场内逆时针一圈 → 出门右转）、停靠点、挖机姿态循环、成槽机 / 履带吊 / 旋挖钻、泵车臂和支腿、地泵泵管、塔吊吊装循环（取料 → 落钩 → 起吊 → 回转变幅 → 落位）和钢丝绳、施工电梯、工人（实例化，手脚摆动） |
+| `web/compress.mjs` | 用 meshopt 压缩 glb（13 MB → 0.3 MB，物体名和 extras 不动；machines.glb 不量化，因为零件绕节点原点转） |
 | `web/test_core.mjs` | 进度模型自检：工种先后顺序、不倒退、顶升不跳变、油缸不超行程、标准层 4 天 |
 | `preview/` | 网页截图 |
 
@@ -107,6 +123,8 @@ node build.mjs       # 压缩 glb → 打包成上一级的 index.html
 
 模板（`ZLJ_Forms`）和筒格里的挂架是按第 30 层的墙厚（外墙 0.7 m、内墙 0.4 m）摆的，extras 里记了 `outer_t` / `inner_t`。墙厚分四段往内收，到别的段时内侧模板要跟着挪，网页里按 `spec.json` 的 `core_t` 算偏移。
 
+**机械（machines.glb）**：每台机器是一个根节点 `M_xxx`（临建是 `P_xxx`），原点在地面中心，车头朝 +X。会动的件是单独的节点，原点在转轴上，extras 写 `kind`（slew / boom / arm / bucket / jib / wheel / drum / tip / outrigger / grab / kelly / hook / load / cargo）和 `axis`（Blender 局部轴；搅拌罐用 `axis_vec`）。网页里转 Blender 的 y 轴等于转 three 的 −z 轴（`life.js` 的 `rot()`）。塔吊的标准节、施工电梯的标准节和附墙架、工人都用实例化画很多份。
+
 ## 已知的简化
 
 - 楼、造楼机都是原创的，尺寸按公开资料的比例定，不对应任何真实项目。
@@ -114,5 +132,7 @@ node build.mjs       # 压缩 glb → 打包成上一级的 index.html
 - 幕墙是整块玻璃 + 竖框竖翅，没有逐块开启扇。
 - 钢梁和柱的节点（牛腿、加劲板）没做；钢柱每三层一圈对接耳板当示意。
 - 防护网是半透明材质，不是真的冲孔。
-- 塔冠先用 8 m 高的幕墙屏风代替；裙楼、塔吊、施工电梯、场地机械属于后面几批，所以网页里构件是“自己出现”的。
+- 塔冠先用 8 m 高的幕墙屏风代替；裙楼还没做。
+- 塔吊吊的东西和楼层上构件“出现”没有一一对上，是示意；车辆不避让，偶尔会互相穿过；挖机、泵车臂的动作是按几个关键姿态插值的，不是真的反算。
+- 机械都按公开产品参数的主要尺寸原创建模，细节（液压管、灯、标识）大多省略。
 - 工期是示意：核心筒 4 天一层有资料，各工种落后几层、地下室每层 20 天等是假设，写在 `params.json` 的 `schedule` 里。

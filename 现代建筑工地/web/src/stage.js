@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { coreFill, visible } from './core.js';
+import { Life } from './life.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, z, -y);   // Blender 坐标 → three
 
@@ -70,11 +71,11 @@ export class Stage {
     this.camera.updateProjectionMatrix();
   }
 
-  async load(towerBuf, zljBuf) {
+  async load(towerBuf, zljBuf, machBuf) {
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
     const parse = (u8) => new Promise((res, rej) => loader.parse(u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength), '', res, rej));
-    const [tg, zg] = await Promise.all([parse(towerBuf), parse(zljBuf)]);
+    const [tg, zg, mg] = await Promise.all([parse(towerBuf), parse(zljBuf), parse(machBuf)]);
     this.tower = tg.scene;
     this.zlj = zg.scene;
     this.scene.add(this.tower, this.zlj);
@@ -117,6 +118,7 @@ export class Stage {
     this.cages = {};
     this.cageMat = new THREE.MeshBasicMaterial({ color: 0xb4602a, wireframe: true, transparent: true, opacity: 0.85 });
     this.mats.add(this.cageMat);
+    this.life = new Life(this, mg.scene);
     this.setCut(this.opts.cut);
   }
 
@@ -338,6 +340,7 @@ export class Stage {
     let z = st.counts.core > 0 ? this.sch.z[st.counts.core + 1] : 0;
     if (pl.show) z = Math.max(z, pl.rootZ + pl.lift + this.spec.zaoloji.deck + 2);
     if (st.day >= this.sch.roofDay) z = this.spec.tower.top;
+    if (this.life && this.life.craneTop) z = Math.max(z, this.life.craneTop + 13);
     return z;
   }
 
@@ -371,6 +374,15 @@ export class Stage {
         return { t: V(6, 2, h * 0.5), off: new THREE.Vector3(0.62, 0.30, 0.72).multiplyScalar(d) };
       }
     }
+  }
+
+  // 调试 / 截图：直接给机位（Blender 坐标）
+  setCam(x, y, z, tx, ty, tz) {
+    this.view = 'free';
+    this.tween = null;
+    this.camera.position.copy(V(x, y, z));
+    this.controls.target.copy(V(tx, ty, tz));
+    this.lastFocus = null;
   }
 
   setView(view, instant = false) {
@@ -418,6 +430,10 @@ export class Stage {
     if (this.state && this.state.plat.show && this.state.plat.build >= 1) {
       const meshOn = this.opts.mesh && !this.autoMeshOff;
       for (const o of this.meshObjs) o.visible = meshOn;
+    }
+    if (this.life) {
+      this.life.root.visible = this.opts.life !== false;
+      if (this.state && this.opts.life !== false) this.life.update(this.state, now / 1000);
     }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);

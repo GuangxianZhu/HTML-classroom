@@ -27,6 +27,7 @@ from mathutils import Vector  # noqa: E402
 import sitekit  # noqa: E402
 from tower import Tower  # noqa: E402
 from zaoloji import Zaoloji  # noqa: E402
+from machines import Kit  # noqa: E402
 
 
 def parse():
@@ -147,7 +148,7 @@ def hide_names(prefixes, flag):
             o.hide_render = flag
 
 
-def render_all(out_dir, tower, zl, P, only):
+def render_all(out_dir, tower, zl, P, only, kit=None):
     ground = setup_render()
     st = P["state_preview"]
     toc = tower.z[st["core"] + 1]
@@ -176,6 +177,17 @@ def render_all(out_dir, tower, zl, P, only):
     if want("view_formwork"):
         shoot("view_formwork", (9.0, -16.5, toc + 3.2), (5.0, -12.0, toc - 2.0), 26, out_dir)
     hide_names(("ZLJ_Mesh",), False)
+    # 机械一排（只在 .blend 里排着看；网页自己摆）
+    MV = [("view_mach_a", (342, -30, 9), (342, 0, 2.5), 32), ("view_mach_b", (419, -40, 11), (419, 0, 2.5), 32),
+          ("view_mach_c", (500, -62, 20), (500, 0, 12), 30), ("view_mach_d", (555, -62, 18), (562, 0, 9), 30),
+          ("view_mach_e", (672, -40, 6), (672, 0, 1.6), 35), ("view_mach_f", (848, -85, 28), (848, 0, 3), 30),
+          ("view_mach_g", (375, -24, 6), (375, 0, 1.8), 30), ("view_mach_h", (450, -22, 6), (450, 0, 1.8), 28),
+          ("view_mach_i", (632, -15, 5), (630, 0, 1.8), 30), ("view_mach_j", (705, -13, 3), (705, 0, 1.0), 30),
+          ("view_mach_k", (740.6, -2.4, 1.6), (738, 0, 1.0), 35), ("view_mach_l", (771, 36, 10), (771, 0, 2.5), 30),
+          ("view_mach_m", (327, -12, 5), (322, 0, 2.2), 30)]
+    for nm, loc, tgt, lens in MV:
+        if only and nm in only:
+            shoot(nm, loc, tgt, lens, out_dir)
     if want("view_basement"):
         ground.hide_render = True
         set_state(tower, dict(core=1, column=1, steel=0, deck=0, slab=0, curtain=0), zl.root)
@@ -204,16 +216,23 @@ def main():
     tower.build()
     zl = Zaoloji(P, tower)
     zl.build()
+    kit = Kit()
+    mroots = kit.build_all()
+    mroot = sitekit.empty("MACHINES", props=dict(kind="machines_root"))
+    for r in mroots:
+        r.parent = mroot
+    kit.root_obj = mroot
     bpy.context.view_layer.update()
     print(f"[build] {len(tower.objs)} tower objs, {len(zl.objs)} platform objs, {time.time() - t0:.1f}s", flush=True)
 
     def tris(objs):
         return sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs if o.type == "MESH")
 
-    print(f"[build] tris tower={tris(tower.objs)} platform={tris(zl.objs)}", flush=True)
+    print(f"[build] tris tower={tris(tower.objs)} platform={tris(zl.objs)} machines={tris(kit.objs)}", flush=True)
     if not args.noexport:
         sitekit.export_glb(os.path.join(out_dir, "tower.glb"), tower.root)
         sitekit.export_glb(os.path.join(out_dir, "zaoloji.glb"), zl.root)
+        sitekit.export_glb(os.path.join(out_dir, "machines.glb"), mroot)
         spec = dict(tower=tower.spec(), zaoloji=zl.spec(), state_preview=P["state_preview"])
         with open(os.path.join(out_dir, "spec.json"), "w", encoding="utf-8") as fp:
             json.dump(spec, fp, ensure_ascii=False, indent=1)
@@ -222,7 +241,7 @@ def main():
         print("[export] done", flush=True)
     if args.render:
         only = [v for v in args.views.split(",") if v]
-        render_all(out_dir, tower, zl, P, only)
+        render_all(out_dir, tower, zl, P, only, kit)
 
 
 main()

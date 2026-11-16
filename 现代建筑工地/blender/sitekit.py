@@ -39,6 +39,30 @@ MAT_DEF = {
     "black": ((0.05, 0.05, 0.05), 0.5, 0.3, 1.0),
     "rubber": ((0.08, 0.08, 0.08), 0.8, 0.0, 1.0),
     "ground": ((0.42, 0.40, 0.36), 0.95, 0.0, 1.0),
+    # 机械、车辆、工人
+    "mach_yellow": ((0.95, 0.66, 0.05), 0.45, 0.25, 1.0),
+    "crane_yellow": ((0.96, 0.74, 0.08), 0.45, 0.3, 1.0),
+    "mach_white": ((0.90, 0.91, 0.90), 0.4, 0.15, 1.0),
+    "truck_green": ((0.08, 0.52, 0.36), 0.45, 0.2, 1.0),
+    "truck_gray": ((0.44, 0.46, 0.47), 0.55, 0.5, 1.0),
+    "pump_red": ((0.78, 0.16, 0.08), 0.45, 0.3, 1.0),
+    "tire": ((0.035, 0.035, 0.035), 0.9, 0.0, 1.0),
+    "rim": ((0.62, 0.63, 0.65), 0.35, 0.85, 1.0),
+    "glass_dark": ((0.06, 0.09, 0.12), 0.06, 0.6, 1.0),
+    "lamp": ((0.95, 0.95, 0.85), 0.2, 0.1, 1.0),
+    "lamp_red": ((0.75, 0.05, 0.04), 0.3, 0.1, 1.0),
+    "dirt": ((0.40, 0.30, 0.20), 1.0, 0.0, 1.0),
+    "skin": ((0.74, 0.55, 0.43), 0.7, 0.0, 1.0),
+    "vest": ((1.0, 0.40, 0.04), 0.6, 0.0, 1.0),
+    "reflect": ((0.86, 0.87, 0.88), 0.25, 0.8, 1.0),
+    "workwear": ((0.18, 0.27, 0.42), 0.8, 0.0, 1.0),
+    "boots": ((0.09, 0.07, 0.06), 0.8, 0.0, 1.0),
+    "helmet": ((0.96, 0.96, 0.94), 0.35, 0.0, 1.0),
+    "hoist_mesh": ((0.55, 0.60, 0.66), 0.6, 0.5, 0.5),
+    "timber": ((0.55, 0.40, 0.24), 0.9, 0.0, 1.0),
+    "roof_blue": ((0.14, 0.36, 0.66), 0.5, 0.3, 1.0),
+    "red_white": ((0.82, 0.15, 0.10), 0.5, 0.1, 1.0),
+    "car_paint": ((0.92, 0.92, 0.92), 0.25, 0.5, 1.0),
 }
 
 # 有贴图的材质：UV 按世界米数除以这个周期
@@ -116,6 +140,10 @@ _BOX_FACES = ((1, 3, 7, 5), (0, 4, 6, 2), (2, 6, 7, 3), (0, 1, 5, 4), (4, 5, 7, 
 _BOX_UVAX = ((1, 2), (1, 2), (0, 2), (0, 2), (0, 1), (0, 1))
 
 
+def _area(poly):
+    return 0.5 * sum(poly[i][0] * poly[(i + 1) % len(poly)][1] - poly[(i + 1) % len(poly)][0] * poly[i][1] for i in range(len(poly)))
+
+
 class Acc:
     def __init__(self, uv=False):
         self.V = []      # list of (n,3) arrays
@@ -191,6 +219,8 @@ class Acc:
     # -- 棱柱（任意凸/凹多边形，逆时针）
     def prism(self, poly, z0, z1, m):
         poly = [(float(x), float(y)) for x, y in poly]
+        if _area(poly) < 0:
+            poly = poly[::-1]
         n = len(poly)
         bot = [(x, y, z0) for x, y in poly]
         top = [(x, y, z1) for x, y in poly]
@@ -203,6 +233,22 @@ class Acc:
         for i in range(n):
             j = (i + 1) % n
             self._face([b + i, b + j, t + j, t + i], m)
+
+    # -- 侧面轮廓拉伸：poly 是 x-z 平面里逆时针的多边形（x 向右、z 向上），沿 y 从 y0 拉到 y1
+    def prism_xz(self, poly, y0, y1, m):
+        poly = [(float(x), float(z)) for x, z in poly]
+        if _area(poly) < 0:          # 顺时针给的也行：自动翻成逆时针
+            poly = poly[::-1]
+        if y1 < y0:
+            y0, y1 = y1, y0
+        n = len(poly)
+        a = self._verts([(x, y0, z) for x, z in poly])
+        b = self._verts([(x, y1, z) for x, z in poly])
+        self._face([a + i for i in range(n)], m)                    # y0 一侧，法线 -y
+        self._face([b + i for i in reversed(range(n))], m)          # y1 一侧，法线 +y
+        for i in range(n):
+            j = (i + 1) % n
+            self._face([a + i, b + i, b + j, a + j], m)
 
     # -- 圆柱
     def cyl(self, p0, p1, r, m, seg=16, caps=True, smooth=True, r1=None):
