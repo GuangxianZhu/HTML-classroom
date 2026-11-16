@@ -73,5 +73,25 @@
     "form_h": 4.5,
     "boom": {"arms": [12.6, 8.8, 6.1], "pos": [[-7.8, 0.0], [7.8, 0.0]], "slew": [90.0, 270.0], "pose": [75.0, -125.0, -45.0]}
   },
+  "schedule": {
+    "_说明": "工期（天）。核心筒每层的循环按 split 分成 绑钢筋 | 拆模顶升 | 合模浇筑 | 养护；lags 是各工种落后核心筒几层。依据见 参考资料.md 第 5 节",
+    "start": "2026-03-02",
+    "site": 20,
+    "dwall": 55,
+    "excavate": 90,
+    "raft": 15,
+    "basement_level": 20,
+    "basement_vert": 0.6,
+    "low_floors": 3,
+    "low_cycle": 7,
+    "install": 20,
+    "cycle": 4,
+    "outrigger_cycle": 8,
+    "split": [0.4, 0.6, 0.8],
+    "strokes": 3,
+    "lags": {"column": 5, "steel": 6, "deck": 7, "slab": 9, "curtain": 16},
+    "dismantle": 25,
+    "finish": 60
+  },
   "state_preview": {"core": 30, "column": 25, "steel": 24, "deck": 23, "slab": 21, "curtain": 13}
 }

@@ -1,0 +1,17 @@
+{
+  "name": "construction-site-4d",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test_core.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0",
+    "@gltf-transform/functions": "^4.1.0",
+    "esbuild": "^0.24.0",
+    "meshoptimizer": "^0.22.0",
+    "three": "0.170.0"
+  }
+}

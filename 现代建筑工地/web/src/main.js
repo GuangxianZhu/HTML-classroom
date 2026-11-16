@@ -1,0 +1,338 @@
+// 页面：时间轴、阶段讲解、核心筒循环、竖向流水图。
+import P from '../../params.json';
+import spec from '../../blender/out/spec.json';
+import towerGlb from '../dist/tower.glb';
+import zljGlb from '../dist/zaoloji.glb';
+import { makeSchedule, stateAt, STEPS, TRADES, TRADE_NAME } from './core.js';
+import { Stage } from './stage.js';
+
+const sch = makeSchedule(P, spec);
+const $ = (s) => document.querySelector(s);
+const S = P.schedule;
+const Q = P.platform;
+const T = P.tower;
+
+// ------------------------------------------------------------ 文案
+// 每段末尾的〔〕是依据：资料 = 公开报道 / 论文 / 产品参数，推断 = 按资料比例推的，假设 = 本页定的
+const PHASE = {
+  site: {
+    view: 'pit', color: '#7d7a70',
+    text: () => `<p>先把工地圈起来：装配式围挡、大门、洗车槽，场地硬化，接水接电，搭项目部板房。这些叫“三通一平”和临建。</p>
+      <p class="basis">〔常规做法〕</p>`,
+  },
+  dwall: {
+    view: 'pit', color: '#8f8e88',
+    text: () => `<p>还没开挖，先沿基坑一圈在地下“浇”出一道 1 m 厚的混凝土墙：成槽机挖一条深槽，槽里灌泥浆撑住土，放进钢筋笼，再从底下往上灌混凝土把泥浆挤出来。一幅一幅接成一圈，叫<b>地下连续墙</b>。</p>
+      <p>它先当挡土挡水的围护墙，之后和里面的内衬墙一起当地下室外墙。顶上一圈是把各幅连成整体的冠梁。</p>
+      <p class="basis">〔常规做法；墙深 36 m、每幅 6 m 是假设〕</p>`,
+  },
+  excavate: {
+    view: 'pit', color: '#7a6650',
+    text: (st) => `<p>围护墙圈好了才往下挖。现在挖到 <b class="num">${(-st.pit.depth).toFixed(1)} m</b>。</p>
+      <p>坑越深，外面的土把墙往里推得越厉害，所以挖到第一层就要加<b>内支撑</b>：沿墙一圈围檩，四个角用斜撑顶住。真实项目常有好几道支撑，这里只画了一道。</p>
+      <p class="basis">〔坑底 -20.6 m = 地下 4 层 + 1.6 m 底板，见参数表〕</p>`,
+  },
+  raft: {
+    view: 'pit', color: '#5f5e5a',
+    text: () => `<p>坑底浇<b>筏板</b>：塔楼底下 ${T.basement.raft_t} m 厚，其余 ${T.basement.raft_t_outer} m。整栋楼的重量最后都落到这块板上，再传给下面的桩和土。</p>
+      <p>这么厚的混凝土叫“大体积混凝土”，一般连续浇几十个小时不停，免得出现冷缝；水泥水化发热，里外温差大会开裂，所以要预埋测温点、控制降温速度。</p>
+      <p class="basis">〔超高层筏板常见 3 ~ 5 m：推断；连续浇筑和控温：常规做法〕</p>`,
+  },
+  basement: {
+    view: 'pit', color: '#8a8a86',
+    text: () => `<p>地下室从最底层往上做（<b>顺作法</b>）：每层先做墙和柱，再做顶板。核心筒和钢管柱也从筏板上开始往上长。</p>
+      <p>地下室顶板做完以后，楼板就能接替内支撑顶住四周的墙，这时才把内支撑拆掉，叫<b>换撑</b>。看基坑里那圈支撑什么时候消失。</p>
+      <p class="basis">〔每层 ${S.basement_level} 天是假设〕</p>`,
+  },
+  low: {
+    view: 'all', color: '#b8b3a6',
+    text: () => `<p>地上头 ${S.low_floors} 层还没装造楼机，核心筒用常规模板一层层做，大约 ${S.low_cycle} 天一层。首层是大堂，层高 ${T.f1_height} m。</p>
+      <p>先把这几层核心筒做出来，是为了给造楼机留出“抓手”：它的支点要挂在已经硬了的墙上。</p>
+      <p class="basis">〔${S.low_cycle} 天一层：普通爬模约 7 天一层（科技日报报道）〕</p>`,
+  },
+  install: {
+    view: 'zlj', color: '#ff7a2f',
+    text: () => `<p>在核心筒上组装<b>造楼机</b>（顶模集成平台）：先装墙上的附墙支座、油缸和 12 根支撑立柱，再拼贝雷片钢平台，然后挂架、大钢模、防护网，最后上布料机和集装箱。</p>
+      <p>新一代平台像搭积木一样用标准模块拼，资料里安装约 20 天。</p>
+      <p class="basis">〔资料：泰康金融中心新一代平台“仅用 20 天即可完成”安装；组成照长江中心轻量化平台〕</p>`,
+  },
+  cycle: {
+    view: 'all', color: '#ffb52e',
+    text: (st) => `<p>超高层的施工顺序是<b>核心筒先行</b>：核心筒（混凝土）领先，钢柱、钢梁、楼承板、楼板、幕墙按顺序一层层跟在下面，每个工种都在不同的楼层同时干活，叫<b>竖向流水</b>。</p>
+      <p>为什么核心筒先走？它是整栋楼抗风抗震的主心骨，造楼机和（之后要加的）塔吊都靠在它上面；外框钢结构安装时要以它为基准。</p>
+      <p>造楼机罩住核心筒顶上 3.5 层，标准层 <b>${S.cycle} 天一层</b>。现在核心筒 <b class="num">${st.counts.core}F</b>，楼板 <b class="num">${st.counts.slab}F</b>。</p>
+      <p class="basis">〔4 天一层：资料（武汉中心、泰康金融中心报道）；各工种落后的层数是假设：钢柱 ${S.lags.column}、钢梁 ${S.lags.steel}、楼承板 ${S.lags.deck}、楼板 ${S.lags.slab}、幕墙 ${S.lags.curtain}〕</p>`,
+  },
+  dismantle: {
+    view: 'zlj', color: '#e4602a',
+    text: () => `<p>核心筒浇到顶（包括屋顶机房层）就是<b>核心筒封顶</b>。造楼机按安装的反顺序拆：先拆布料机、防护网和附属设施，再拆挂架和模板，最后拆平台和支点，一件件用塔吊吊下去。</p>
+      <p>拆完以后做屋顶：机房、冷却塔和一圈 ${T.roof_screen} m 高的幕墙屏风（塔冠）。</p>
+      <p class="basis">〔拆除 ${S.dismantle} 天是假设〕</p>`,
+  },
+  curtain: {
+    view: 'all', color: '#6fd3c8',
+    text: () => `<p>结构已经到顶，外面还在挂幕墙。单元式幕墙的板块在工厂里把玻璃、铝框、竖翅拼好，运到现场一块块挂到楼板边上的挂件上，比楼板晚十几层。</p>
+      <p>避难层（11、22、33、44 层）不装玻璃，装百叶，让火灾时的避难区能通风排烟。</p>
+      <p class="basis">〔避难层间距不超过 50 m：《建筑设计防火规范》；百叶：常见做法〕</p>`,
+  },
+  finish: {
+    view: 'all', color: '#5bd08c',
+    text: () => `<p>主体结构和幕墙都完成了。现实里接下来还有机电（电梯、空调、给排水、强弱电）、精装修、消防和各项验收，往往还要一年左右，这页不演示。</p>
+      <p>总高 ${spec.tower.top.toFixed(1)} m：2020 年以后国内严格限制新建 250 m 以上的楼，2026 年开工的超高层大多压在这条线下面。</p>
+      <p class="basis">〔资料：住建部、发改委 建科〔2020〕38 号〕</p>`,
+  },
+};
+
+const STEP_TEXT = [
+  (n) => `在刚浇好的墙顶上，绑第 ${n} 层核心筒墙的钢筋（钢筋绑扎层，线框是钢筋笼）。平台下面同时在养护下一层的墙。`,
+  (n, h) => `拆掉下面那层的模板，12 个液压油缸同步把整个平台往上顶一层（${h.toFixed(1)} m）。油缸行程只有 ${Q.cyl.stroke} m，所以分 ${S.strokes} 次顶：伸缸顶起平台 → 立柱挂到附墙支座上 → 缩缸把油缸支架提上来，再顶下一次。切到“支点油缸”机位看。`,
+  (n) => `大钢模跟着平台一起上来了，合模后布料机把从地面泵上来的混凝土浇进第 ${n} 层的墙模（浇筑层），墙从下往上“长”出来。`,
+  (n) => `第 ${n} 层的墙在模板里保湿养护（养护层），强度够了才能挂支座、承受平台的重量。`,
+];
+
+const BASIS = [
+  '造楼机组成、12 个支点、油缸 1500 kN / 内径 280 mm / 行程 1.6 m、挂架 7 层每层 2.2 m、覆盖 3.5 个结构层、标准层高 4.4 m：武汉长江中心轻量化集成平台（施工技术 2022 年第 10 期，参考网转载）',
+  '平台约 4 天一层、自重 500 t、全封闭、安装约 20 天：科技日报 2023-07-18 报道（泰康金融中心）',
+  '橘红色“金钢罩”、微凸支点、平均 4 天一个结构层：人民网 2015-02-11 报道（武汉中心）',
+  '布料机 HGY28D：大臂 12.6 m、中臂 8.8 m、小臂 6.1 m、泵管 Ø125：产品参数',
+  '限高 250 m：住建部、发改委 建科〔2020〕38 号',
+  '各尺寸的来历逐项写在仓库里的 参考资料.md（资料 / 推断 / 假设）',
+];
+
+// ------------------------------------------------------------ 界面
+const stage = new Stage($('#gl'), sch, spec, P);
+let day = 0;
+let playing = false;
+let speed = 6;
+let lastPhase = -1;
+
+function buildChapters() {
+  const box = $('#chapters');
+  sch.ph.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="i">${i + 1}</span><span>${p.name}</span><span class="d">${Math.round(p.t0)}–${Math.round(p.t1)} 天</span>`;
+    b.onclick = () => {
+      const off = p.key === 'cycle' ? (sch.cStart[30] - p.t0) + 1.0 : p.key === 'install' ? (p.t1 - p.t0) * 0.55 : (p.t1 - p.t0) * 0.5;
+      setDay(p.t0 + off);
+      setView(PHASE[p.key].view);
+    };
+    box.appendChild(b);
+  });
+  const tr = $('#track');
+  for (const p of sch.ph) {
+    const i = document.createElement('i');
+    i.style.width = `${((p.t1 - p.t0) / sch.end) * 100}%`;
+    i.style.background = PHASE[p.key].color;
+    i.title = p.name;
+    tr.appendChild(i);
+  }
+  const ul = $('#basis');
+  for (const t of BASIS) { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); }
+  const steps = $('#cycle .steps');
+  for (const s of STEPS) { const d = document.createElement('div'); d.className = 'st'; d.innerHTML = `${s.name}<i></i>`; steps.appendChild(d); }
+  const cnt = $('#counts');
+  for (const t of TRADES) {
+    const d = document.createElement('div');
+    d.className = 'cnt';
+    d.style.borderColor = `var(--c-${t})`;
+    d.innerHTML = `<span>${TRADE_NAME[t]}</span><b id="cnt-${t}">0</b>`;
+    cnt.appendChild(d);
+  }
+}
+
+function setView(v) {
+  for (const b of document.querySelectorAll('#views button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
+  stage.setView(v);
+}
+
+function setDay(d) {
+  day = Math.max(0, Math.min(sch.end, d));
+  $('#slider').value = String(day);
+  update();
+}
+
+const htmlCache = {};
+function setHTML(sel, html) {
+  if (htmlCache[sel] === html) return;
+  htmlCache[sel] = html;
+  $(sel).innerHTML = html;
+}
+
+function update() {
+  const st = stateAt(sch, day);
+  stage.apply(st);
+  const p = sch.ph[st.phase];
+  const info = PHASE[p.key];
+  $('#phaseName').textContent = p.name;
+  $('#phaseWhen').textContent = `第 ${Math.round(p.t0)} – ${Math.round(p.t1)} 天`;
+  setHTML('#phaseText', info.text(st));
+  $('#clockDay').textContent = `第 ${Math.floor(day)} 天`;
+  $('#clockDate').textContent = st.date;
+  for (const t of TRADES) $('#cnt-' + t).textContent = st.counts[t] ? `${st.counts[t]}F` : '—';
+  if (st.phase !== lastPhase) {
+    document.querySelectorAll('#chapters button').forEach((b, i) => b.setAttribute('aria-current', String(i === st.phase)));
+    lastPhase = st.phase;
+  }
+  // 核心筒循环
+  const c = st.core;
+  const showCycle = c.cur != null && c.cur <= sch.N + 1;
+  $('#cycle').hidden = !showCycle;
+  if (showCycle) {
+    const n = c.cur;
+    const h = sch.z[n + 1] - sch.z[n];
+    const withPlat = n > S.low_floors;
+    $('#cycleTitle').textContent = `核心筒第 ${n > sch.N ? '屋顶机房' : n} 层：${(sch.cEnd[n] - sch.cStart[n]).toFixed(0)} 天一个循环${withPlat ? '' : '（还没装造楼机）'}`;
+    document.querySelectorAll('#cycle .st').forEach((d, i) => {
+      d.className = 'st' + (i === c.step ? ' on' : i < c.step ? ' done' : '');
+      d.querySelector('i').style.width = i === c.step ? `${c.stepFrac * 100}%` : i < c.step ? '100%' : '0';
+    });
+    let txt = STEP_TEXT[c.step](n > sch.N ? '屋顶机房' : n, h);
+    if (!withPlat && c.step === 0) txt = `在刚浇好的墙顶上，绑第 ${n} 层核心筒墙的钢筋（线框是钢筋笼）。`;
+    if (!withPlat && c.step === 1) txt = `拆掉下面那层的模板，把常规模板一块块提到上一层装好（这几层还没有造楼机）。`;
+    setHTML('#cycleText', txt);
+  }
+  drawFlow(st);
+}
+
+// ------------------------------------------------------------ 竖向流水图
+function drawFlow(st) {
+  const cv = $('#flow');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement);
+  const fMin = -4, fMax = sch.N + 1;
+  const L = 34, R = W - 6, top = 8, bot = H - 22;
+  const y = (f) => bot - ((f - fMin) / (fMax - fMin)) * (bot - top);
+  g.font = '11px system-ui, sans-serif';
+  g.fillStyle = '#96a1ab';
+  g.strokeStyle = 'rgba(255,255,255,.07)';
+  g.lineWidth = 1;
+  for (const f of [0, 10, 20, 30, 40, 50]) {
+    g.beginPath(); g.moveTo(L, y(f) + 0.5); g.lineTo(R, y(f) + 0.5); g.stroke();
+    g.fillText(f === 0 ? '地面' : `${f}F`, 2, y(f) + 4);
+  }
+  g.fillStyle = 'rgba(122,102,80,.25)';
+  g.fillRect(L, y(0), R - L, y(fMin) - y(0));
+  g.setLineDash([3, 3]);
+  g.strokeStyle = 'rgba(255,181,46,.35)';
+  for (const f of T.outrigger) { g.beginPath(); g.moveTo(L, y(f) + 0.5); g.lineTo(R, y(f) + 0.5); g.stroke(); }
+  g.setLineDash([]);
+  const n = TRADES.length;
+  const bw = (R - L) / n;
+  // 地下室：所有工种一起
+  const bDone = [-4, -3, -2, -1].filter((f) => day >= sch.bSlab[f]).length;
+  TRADES.forEach((t, i) => {
+    const x = L + i * bw + bw * 0.18, w = bw * 0.64;
+    const col = css.getPropertyValue(`--c-${t}`).trim();
+    if ((t === 'core' || t === 'column' || t === 'slab') && bDone > 0) {
+      g.fillStyle = col + '88';
+      g.fillRect(x, y(fMin + bDone), w, y(fMin) - y(fMin + bDone));
+    }
+    const c = st.counts[t];
+    if (c > 0) {
+      g.fillStyle = col;
+      g.fillRect(x, y(c), w, y(0) - y(c));
+      g.fillStyle = '#ebe8e0';
+      g.textAlign = 'center';
+      g.fillText(String(c), x + w / 2, y(c) - 3);
+      g.textAlign = 'left';
+    }
+    g.fillStyle = '#96a1ab';
+    g.textAlign = 'center';
+    g.fillText(TRADE_NAME[t], x + w / 2, H - 6);
+    g.textAlign = 'left';
+  });
+  // 造楼机罩住的 3.5 层
+  const pl = st.plat;
+  if (pl.show) {
+    const zTop = pl.rootZ + pl.lift;
+    let f = 0;
+    for (let k = 1; k <= sch.topCore + 1; k++) if (sch.z[k] <= zTop + 1e-6) f = k;
+    const fl = f - 1 + (zTop - sch.z[f]) / (sch.z[f + 1] - sch.z[f] || 4.4);
+    const x = L + bw * 0.06, w = bw * 0.88;
+    g.strokeStyle = '#ff7a2f';
+    g.lineWidth = 2;
+    g.strokeRect(x, y(fl + 1 + 1.2), w, y(fl + 1 - 2.3) - y(fl + 1 + 1.2));
+    g.fillStyle = '#ff7a2f';
+    g.fillText('造楼机', x + w + 2 > R - 30 ? x : x + 2, y(fl + 1 + 1.2) - 3);
+  }
+  const lead = st.counts.core - st.counts.slab;
+  $('#lead').innerHTML = st.counts.core > 0
+    ? `核心筒领先楼板 <b>${lead}</b> 层，领先幕墙 <b>${st.counts.core - st.counts.curtain}</b> 层。虚线是加强层（${T.outrigger.join('、')} 层）。`
+    : '地上还没开始。棕色区域是地下室（4 层）。';
+}
+
+// ------------------------------------------------------------ 事件
+function bind() {
+  const sl = $('#slider');
+  sl.max = String(sch.end);
+  sl.addEventListener('input', () => { day = +sl.value; update(); });
+  $('#play').onclick = () => {
+    playing = !playing;
+    if (playing && day >= sch.end) day = 0;
+    $('#play').textContent = playing ? '❚❚' : '▶';
+    $('#play').setAttribute('aria-label', playing ? '暂停' : '播放');
+  };
+  for (const b of document.querySelectorAll('#speed button')) b.onclick = () => {
+    speed = +b.dataset.speed;
+    for (const c of document.querySelectorAll('#speed button')) c.setAttribute('aria-pressed', String(c === b));
+  };
+  for (const b of document.querySelectorAll('#views button')) b.onclick = () => setView(b.dataset.view);
+  const tog = (id, key, fn) => {
+    const b = $(id);
+    b.onclick = () => {
+      const v = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', String(v));
+      stage.opts[key] = v;
+      if (fn) fn(v);
+      update();
+    };
+  };
+  tog('#tMesh', 'mesh');
+  tog('#tCut', 'cut', (v) => stage.setCut(v));
+  tog('#tFollow', 'follow');
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' && e.key !== ' ') return;
+    if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
+    if (e.key === 'ArrowRight') setDay(day + (e.shiftKey ? 10 : 1));
+    if (e.key === 'ArrowLeft') setDay(day - (e.shiftKey ? 10 : 1));
+  });
+  window.addEventListener('resize', () => drawFlow(stateAt(sch, day)));
+}
+
+let tPrev = performance.now();
+function loop(now) {
+  const dt = Math.min(0.1, (now - tPrev) / 1000);
+  tPrev = now;
+  if (playing) {
+    // 顶升那一小段放慢，看得清油缸
+    const c = stateAt(sch, day).core;
+    const slow = c.cur > S.low_floors && c.step === 1 && speed <= 6 ? 0.35 : 1;
+    day += dt * speed * slow;
+    if (day >= sch.end) { day = sch.end; playing = false; $('#play').textContent = '▶'; }
+    $('#slider').value = String(day);
+    update();
+  }
+  stage.frame(now);
+  requestAnimationFrame(loop);
+}
+
+async function start() {
+  buildChapters();
+  bind();
+  await stage.load(towerGlb, zljGlb);
+  $('#loading').hidden = true;
+  const q = new URLSearchParams(location.search);
+  setDay(q.has('day') ? +q.get('day') : sch.cStart[30] + S.cycle * (S.split[0] + 0.5 * (S.split[1] - S.split[0])));
+  setView(q.get('view') || 'all');
+  stage.setView(q.get('view') || 'all', true);
+  if (q.has('cut')) $('#tCut').click();
+  if (q.has('nomesh')) $('#tMesh').click();
+  requestAnimationFrame(loop);
+}
+
+start().catch((e) => { $('#loading').textContent = '模型载入失败：' + e.message; console.error(e); });
