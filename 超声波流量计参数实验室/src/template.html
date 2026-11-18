@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>超声波流量计参数实验室</title>
+<style>
+:root{
+  --bg:#f3f5f8; --card:#fff; --ink:#1f2733; --mute:#667085; --line:#e3e7ee;
+  --blue:#1d4ed8; --blue2:#93c5fd; --red:#dc2626; --amber:#d97706; --green:#16a34a; --orange:#ea580c;
+  --hl:#fff7e6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC",system-ui,sans-serif;font-size:14px;line-height:1.6}
+header{padding:14px 18px 6px}
+header h1{margin:0;font-size:20px;letter-spacing:.5px}
+header p{margin:2px 0 0;color:var(--mute);font-size:13px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 12px 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.top{display:grid;grid-template-columns:1fr 330px;gap:12px;margin-top:8px}
+#view3d{position:relative;height:440px;overflow:hidden}
+#c3d{width:100%;height:100%;display:block;border-radius:12px;touch-action:none}
+.vbtns{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.vbtns button,.pill{border:1px solid var(--line);background:#ffffffd9;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+.vbtns button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.vnote{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--mute);background:#ffffffcc;padding:2px 8px;border-radius:6px}
+.lbl{position:absolute;transform:translate(-50%,-100%);font-size:11.5px;background:#1f2733e0;color:#fff;padding:1px 7px;border-radius:5px;white-space:nowrap;pointer-events:none}
+.lbl.flow{background:#1d4ed8e0}
+/* device panel */
+#panel{padding:12px}
+.lcd{background:#b7c8a1;border-radius:8px;padding:8px 12px;font-family:"Consolas","Menlo",monospace;color:#1d2a17;box-shadow:inset 0 2px 6px #0003}
+.lcd .big{font-size:38px;font-weight:700;text-align:right;line-height:1.1}
+.lcd .unit{font-size:13px;text-align:right;margin-top:-2px}
+.lcd .sub{display:flex;justify-content:space-between;font-size:13px;margin-top:4px}
+.leds{display:flex;justify-content:space-between;margin:10px 2px 6px}
+.led{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mute)}
+.led i{width:16px;height:16px;border-radius:50%;background:#d6d9de;border:1px solid #0002;margin-bottom:2px}
+.led.r.on i{background:#ef4444;box-shadow:0 0 10px #ef4444}
+.led.a.on i{background:#f59e0b;box-shadow:0 0 10px #f59e0b}
+.led.g.on i{background:#22c55e;box-shadow:0 0 10px #22c55e}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px;margin-top:6px}
+.kv span:nth-child(odd){color:var(--mute)}
+.kv span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.mabar{height:14px;background:#eef1f5;border-radius:7px;position:relative;margin:6px 0 2px;overflow:hidden}
+.mabar b{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#60a5fa,#1d4ed8);border-radius:7px}
+.mabar em{position:absolute;top:-1px;bottom:-1px;width:1px;background:#0005}
+.matick{display:flex;justify-content:space-between;font-size:10px;color:var(--mute)}
+.contacts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ct{flex:1;min-width:88px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:11.5px;text-align:center}
+.ct svg{display:block;margin:2px auto}
+.ct.closed{border-color:#16a34a;background:#f0fdf4}
+.warn{color:var(--red);font-weight:600}
+/* chain */
+#chain{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding:8px}
+.cb{flex:1;min-width:128px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:#fafbfc;position:relative}
+.cb:not(:last-child)::after{content:"▶";position:absolute;right:-9px;top:50%;transform:translateY(-50%);font-size:9px;color:#98a2b3}
+.cb h4{margin:0;font-size:12px;color:var(--mute);font-weight:600}
+.cb div{font-variant-numeric:tabular-nums;font-size:13px;font-weight:600}
+.cb.hl{background:var(--hl);border-color:#f5b041}
+.cb.hl h4{color:#9a5b00}
+/* chart */
+#chartCard{margin-top:12px;padding:8px 10px}
+#chart{width:100%;height:300px;display:block}
+.chartbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--mute)}
+/* process bar */
+#proc{margin-top:12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+#proc .ctl{min-width:300px}
+/* levels */
+#tabs{display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:4px}
+#tabs button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--ink)}
+#tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+#level{margin-top:8px;display:grid;grid-template-columns:1.15fr 1fr;gap:12px}
+#lvText{padding:14px 18px}
+#lvText h2{margin:0 0 6px;font-size:18px}
+#lvText p{margin:6px 0}
+#lvText ul,#lvText ol{margin:6px 0;padding-left:22px}
+#lvText code,.formula{font-family:"Consolas","Menlo",monospace;background:#f1f4f9;border-radius:5px;padding:1px 5px}
+.formula{display:block;padding:6px 10px;margin:6px 0;font-size:13.5px}
+.tasks{background:#f6f9ff;border:1px dashed #9db8f5;border-radius:10px;padding:8px 12px;margin-top:10px}
+.tasks b{color:var(--blue)}
+#lvCtl{padding:12px 14px}
+.ctl{display:grid;grid-template-columns:118px 1fr 78px;gap:8px;align-items:center;margin:5px 0;font-size:13px}
+.ctl input[type=range]{width:100%}
+.ctl .cv{text-align:right;font-variant-numeric:tabular-nums}
+.ctl select{width:100%;padding:3px;border-radius:6px;border:1px solid var(--line);font-size:13px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.btn{border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--blue)}
+.ro{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px}
+.ro div{background:#f7f8fa;border-radius:8px;padding:5px 8px}
+.ro small{display:block;color:var(--mute);font-size:11.5px}
+.ro b{font-variant-numeric:tabular-nums;font-size:14px}
+.msg{margin-top:8px;padding:6px 10px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:13px}
+.msg.bad{background:#fef2f2;border-color:#fecaca}
+.msg:empty{display:none}
+table.ptab{width:100%;border-collapse:collapse;font-size:12.5px}
+table.ptab th,table.ptab td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+table.ptab th{background:#f7f8fa;position:sticky;top:0}
+footer{color:var(--mute);font-size:12px;margin-top:16px;padding:0 4px}
+@media (max-width:900px){
+  .top,#level{grid-template-columns:1fr}
+  #view3d{height:340px}
+  .ctl{grid-template-columns:96px 1fr 70px}
+  #proc .ctl{min-width:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>超声波流量计参数实验室</h1>
+  <p>时间差式（传播时间差法）PFA 流量计 · 拖动参数，看信号从"两个声波的时间差"一路变成显示值、4-20 mA、脉冲和报警</p>
+</header>
+
+<div class="top">
+  <section class="card" id="view3d">
+    <canvas id="c3d"></canvas>
+    <div class="vbtns">
+      <button data-cam="all" class="on">全景</button>
+      <button data-cam="tube">测量管特写</button>
+      <button data-cam="conv">变换器特写</button>
+      <button id="xray" class="on">透视本体</button>
+      <button id="lblBtn" class="on">标签</button>
+    </div>
+    <div class="vnote" id="vnote">粒子慢放 1/25 · 声波速度差放大显示 · 粒子颜色=流速（红快蓝慢）</div>
+    <div id="labels"></div>
+  </section>
+
+  <section class="card" id="panel">
+    <div class="lcd">
+      <div class="sub"><span id="lcdTag">瞬时流量</span><span id="lcdFlags"></span></div>
+      <div class="big" id="lcdBig">0.00</div>
+      <div class="unit">L/min</div>
+      <div class="sub"><span>Σ <b id="lcdTot">0.000</b> L</span><span id="lcdState">RUN</span></div>
+    </div>
+    <div class="leds">
+      <div class="led r" id="ledH"><i></i>上限 H</div>
+      <div class="led a" id="ledL"><i></i>下限 L</div>
+      <div class="led r" id="ledE"><i></i>错误 ERR</div>
+      <div class="led g" id="ledP"><i></i>脉冲 P</div>
+    </div>
+    <div style="font-size:12px;color:var(--mute)">模拟输出 4-20 mA</div>
+    <div class="mabar"><b id="maBar"></b><em style="left:2.3%"></em><em style="left:94.8%"></em></div>
+    <div class="matick"><span>3.6</span><span>4</span><span>12</span><span>20</span><span>21</span></div>
+    <div class="kv">
+      <span>电流</span><span id="pvMA">4.00 mA</span>
+      <span>PLC 换算读到</span><span id="pvPLC">0.00 L/min</span>
+      <span>频率输出</span><span id="pvHz">0 Hz</span>
+      <span>积算脉冲（PLC 计数）</span><span id="pvCnt">0</span>
+      <span>真实流量（上帝视角）</span><span id="pvTrue">0.00 L/min</span>
+    </div>
+    <div class="contacts">
+      <div class="ct" id="ctH"></div>
+      <div class="ct" id="ctL"></div>
+      <div class="ct" id="ctE"></div>
+    </div>
+  </section>
+</div>
+
+<section class="card" id="chain"></section>
+
+<section class="card" id="proc"></section>
+
+<section class="card" id="chartCard">
+  <div class="chartbar">
+    <span>最近 20 秒趋势</span>
+    <button class="pill" id="zoomBtn">Y 轴放大到零点附近</button>
+    <button class="pill" id="pauseBtn">暂停</button>
+    <span>仿真速度</span>
+    <select id="speedSel" class="pill"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+  </div>
+  <canvas id="chart"></canvas>
+</section>
+
+<nav id="tabs"></nav>
+<section id="level">
+  <article class="card" id="lvText"></article>
+  <aside class="card" id="lvCtl"></aside>
+</section>
+
+<footer>
+  3D 模型为 Blender 脚本建模的原创通用造型，不对应任何厂家具体产品。仿真里的分布修正系数 K、药液物性、噪声大小都是教学示意值；参数范围引用自东京计装、东フロ、基恩士、富士电机、Levitronix 公开资料，实际以所用机型说明书为准。
+</footer>
+</div>
+<script>/*APP*/</script>
+</body>
+</html>

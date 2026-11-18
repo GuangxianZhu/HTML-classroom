@@ -1,0 +1,6 @@
+{
+  "name": "ultrasonic-flowmeter-lab",
+  "private": true,
+  "description": "超声波流量计参数实验室（HTML + Blender 教学演示）",
+  "devDependencies": { "three": "^0.187.0", "esbuild": "^0.28.2" }
+}

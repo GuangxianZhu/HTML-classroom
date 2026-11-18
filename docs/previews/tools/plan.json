@@ -746,5 +746,63 @@
     14000
    ]
   ]
+ },
+ "ultrasonic": {
+  "page": "超声波流量计参数实验室/index.html",
+  "colors": 64,
+  "loadWait": 4000,
+  "steps": [
+   [
+    "jsclick",
+    "[data-cam=all]"
+   ],
+   [
+    "wait",
+    2500
+   ],
+   [
+    "mark"
+   ],
+   [
+    "jsclick",
+    "#proc .btnrow button:nth-child(4)"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "jsclick",
+    "#tabs button:nth-child(5)"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "jsclick",
+    "#proc .btnrow button:nth-child(1)"
+   ],
+   [
+    "wait",
+    3000
+   ],
+   [
+    "jsclick",
+    "#tabs button:nth-child(8)"
+   ],
+   [
+    "wait",
+    800
+   ],
+   [
+    "jsclick",
+    "#proc .btnrow button:nth-child(3)"
+   ],
+   [
+    "wait",
+    3500
+   ]
+  ]
  }
 }
