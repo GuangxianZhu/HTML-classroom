@@ -1,0 +1,14 @@
+{
+  "name": "digital-factory-df01",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "qa": "node qa/campath.mjs && node qa/regress.mjs && node qa/tour.mjs && node qa/flicker.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "three": "0.160.0"
+  },
+  "description": "DF-01 数字工厂：单文件离线 3D 数字孪生（three.js r160 内联）"
+}

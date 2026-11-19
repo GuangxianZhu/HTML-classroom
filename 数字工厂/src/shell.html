@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DF-01 数字工厂 · 总装车间</title>
+<style>
+:root{
+  --amber:#f2a73b; --amber2:#f6c06a; --green:#9ed6b4; --red:#ff5638; --ink:#e9e3d5; --dim:#8f897d; --dim2:#5f5a52;
+  --line:rgba(233,222,198,.13); --line2:rgba(242,167,59,.34); --bg:rgba(9,10,11,.74); --bg2:rgba(9,10,11,.88);
+  --f-ui:"Bahnschrift","DIN Alternate","DIN Next","Barlow Semi Condensed","Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+  --f-cn:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Noto Sans SC",sans-serif;
+  --f-num:"Cascadia Mono","Consolas","JetBrains Mono","SF Mono","Roboto Mono","DejaVu Sans Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#060708;color:var(--ink);font-family:var(--f-ui);-webkit-font-smoothing:antialiased;letter-spacing:.01em}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab}
+canvas#c.drag{cursor:grabbing}
+.cap{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-family:var(--f-ui)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hair{border:1px solid var(--line)}
+.ui{position:fixed;z-index:10;pointer-events:none}
+.ui .pe, .ui button{pointer-events:auto}
+.panel{background:var(--bg);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--line)}
+.panel:not(.ui){position:relative}
+.panel::before{content:"";position:absolute;left:-1px;top:-1px;width:9px;height:9px;border-left:1px solid var(--amber);border-top:1px solid var(--amber)}
+.panel::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-right:1px solid var(--amber);border-bottom:1px solid var(--amber)}
+.ph{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px 6px;border-bottom:1px solid var(--line)}
+.ph b{font-weight:600;font-size:11.5px;letter-spacing:.04em;font-family:var(--f-cn)}
+.pb{padding:8px 10px}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+body.ready .stag{animation:rise .8s cubic-bezier(.2,.75,.2,1) both;animation-delay:var(--d,0s)}
+body:not(.ready) .stag{opacity:0}
+
+/* 顶栏 */
+#top{left:0;right:0;top:0;height:50px;display:flex;align-items:center;gap:22px;padding:0 16px;background:linear-gradient(#060708 0%,rgba(6,7,8,.82) 55%,rgba(6,7,8,0));}
+#brand{display:flex;align-items:center;gap:10px}
+#brand .mk{font-family:var(--f-ui);font-weight:700;font-size:17px;letter-spacing:.06em;color:#0b0b0c;background:var(--amber);padding:2px 7px 1px}
+#brand .t1{font-size:13.5px;font-weight:600;font-family:var(--f-cn);letter-spacing:.06em}
+#brand .t2{font-size:9.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin-top:1px}
+.tsep{width:1px;height:22px;background:var(--line)}
+.tkv{display:flex;flex-direction:column;gap:2px}
+.tkv .v{font-size:12px;font-family:var(--f-cn)}
+#clock{font-size:20px;font-family:var(--f-num);letter-spacing:.02em;color:var(--ink)}
+#rate{display:flex;gap:0}
+#rate button{font:600 10.5px var(--f-num);color:var(--dim);background:transparent;border:1px solid var(--line);padding:3px 7px;cursor:pointer;margin-left:-1px}
+#rate button.on{color:#0b0b0c;background:var(--amber);border-color:var(--amber)}
+#sync{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.14em;color:var(--green)}
+#sync i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.35}}
+
+/* 左：分区索引 */
+#left{left:14px;top:62px;width:224px}
+.zrow{display:grid;grid-template-columns:34px 1fr 40px;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid rgba(233,222,198,.06);cursor:pointer;pointer-events:auto}
+.zrow:hover,.zrow.on{background:rgba(242,167,59,.08)}
+.zrow.on .zid{color:var(--amber)}
+.zid{font:600 11px var(--f-num);color:var(--ink)}
+.zn{font:12px var(--f-cn);line-height:1.15}
+.zn small{display:block;font:9px var(--f-ui);letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-top:1px}
+.zu{font:10.5px var(--f-num);text-align:right;color:var(--ink)}
+.zbar{grid-column:1/4;height:2px;background:rgba(233,222,198,.08);position:relative;margin-top:-1px}
+.zbar i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);opacity:.85}
+.zst{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px;background:var(--green)}
+.zst.idle{background:var(--amber)} .zst.down{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+/* 右：KPI */
+#right{right:14px;top:62px;width:282px;max-height:calc(100% - 140px);overflow:hidden;display:flex;flex-direction:column;gap:10px}
+#oee{display:grid;grid-template-columns:108px 1fr;gap:10px;align-items:center}
+#oee svg{width:108px;height:108px}
+.apq{display:flex;flex-direction:column;gap:6px}
+.apq div{display:grid;grid-template-columns:16px 1fr 46px;align-items:center;gap:6px;font-size:10px}
+.apq div.cap{display:block;font-size:8.5px;white-space:nowrap}
+.apq b{font:600 10px var(--f-num);color:var(--dim)} .apq span{height:2px;background:rgba(233,222,198,.1);position:relative} .apq span i{position:absolute;left:0;top:0;bottom:0;background:var(--amber)}
+.apq em{font:normal 11px var(--f-num);text-align:right}
+.big{font:300 26px var(--f-num);letter-spacing:-.02em}
+.big small{font-size:12px;color:var(--dim);margin-left:4px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.kgrid>div{padding:8px 10px;border-right:1px solid var(--line)}
+.kgrid>div:last-child{border-right:0}
+.kv{font:400 17px var(--f-num)}
+.kv small{font-size:10px;color:var(--dim);margin-left:3px}
+#spark{width:100%;height:38px;display:block;margin-top:4px}
+.cells{display:flex;gap:2px;margin-top:6px}
+.cells i{flex:1;height:10px;background:rgba(233,222,198,.08);position:relative;overflow:hidden}
+.cells i b{position:absolute;left:0;right:0;bottom:0;background:var(--green)}
+.cells i.ch b{background:var(--amber)}
+.zbars{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.zbars div{display:grid;grid-template-columns:28px 1fr 42px;gap:6px;align-items:center;font:9.5px var(--f-num);color:var(--dim)}
+.zbars span{height:5px;background:rgba(233,222,198,.07);position:relative}
+.zbars span i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(242,167,59,.55),var(--amber))}
+.zbars em{font-style:normal;color:var(--ink);text-align:right}
+#events{display:flex;flex-direction:column}
+.ev{display:grid;grid-template-columns:40px 58px 1fr;gap:6px;padding:5px 10px;border-left:2px solid var(--dim2);font-size:11px;align-items:baseline;border-bottom:1px solid rgba(233,222,198,.05);animation:fadeIn .5s}
+.ev .t{font:10px var(--f-num);color:var(--dim)} .ev .i{font:600 10px var(--f-num)} .ev .m{font:11px var(--f-cn);color:#d8d2c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev.crit{border-left-color:var(--red)} .ev.crit .i{color:var(--red)}
+.ev.warn{border-left-color:var(--amber)} .ev.warn .i{color:var(--amber)}
+.ev.ok{border-left-color:var(--green)} .ev.ok .i{color:var(--green)}
+.ev.info .i{color:var(--ink)}
+
+/* 底部 dock */
+#dock{left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100vw - 28px);bottom:14px;display:flex;align-items:stretch;gap:0;background:var(--bg2);border:1px solid var(--line)}
+#dock button{pointer-events:auto;font:600 10.5px var(--f-ui);letter-spacing:.08em;color:var(--ink);background:transparent;border:0;border-right:1px solid var(--line);padding:7px 9px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px;white-space:nowrap}
+#dock button:last-child{border-right:0}
+#dock button,#dock .gap{flex-shrink:0}
+#dock button small{font:9px var(--f-cn);color:var(--dim);letter-spacing:.04em}
+#dock button:hover{background:rgba(242,167,59,.08)}
+#dock button.on{color:var(--amber)} #dock button.on small{color:var(--amber2)}
+#dock .gap{width:10px;border-right:1px solid var(--line)}
+#dock kbd{font:9px var(--f-num);color:var(--dim2)}
+
+/* 左下标题栏 */
+#tb{left:14px;bottom:14px;width:300px}
+#view{font:10px var(--f-ui);letter-spacing:.14em;color:var(--dim);margin-bottom:6px;text-transform:uppercase}
+#view b{color:var(--amber);font-weight:600;margin-left:6px;font-family:var(--f-cn);letter-spacing:.06em}
+#tbl{display:grid;grid-template-columns:62px 1fr;border:1px solid var(--line);background:var(--bg2)}
+#tbl div{padding:3px 7px;border-bottom:1px solid var(--line);font-size:10.5px;font-family:var(--f-cn)}
+#tbl div:nth-child(odd){font:9px var(--f-ui);letter-spacing:.14em;color:var(--dim);border-right:1px solid var(--line);text-transform:uppercase;padding-top:5px}
+#tbl div:nth-last-child(-n+2){border-bottom:0}
+
+/* 右下：指南针 + 比例尺 */
+#nav{right:14px;bottom:14px;display:flex;align-items:flex-end;gap:10px}
+#compass{width:58px;height:58px}
+#scale{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+#scale .bar{height:6px;border:1px solid var(--ink);border-top:0;width:80px}
+#scale .lab{font:10px var(--f-num)}
+#hint{font:9.5px var(--f-cn);color:var(--dim);letter-spacing:.04em;margin-top:4px;white-space:nowrap}
+@media (max-width:1700px){ #nav{flex-direction:column-reverse;align-items:flex-end;bottom:14px} #nav > div{display:flex;flex-direction:column;align-items:flex-end} #hint{display:none} }
+
+/* inspector */
+#insp{right:310px;top:62px;width:268px;display:none}
+#insp.on{display:block;animation:rise .35s both}
+#insp .x{cursor:pointer;color:var(--dim);font:14px var(--f-num);pointer-events:auto;background:none;border:0}
+.chip{display:inline-block;font:600 9.5px var(--f-ui);letter-spacing:.12em;padding:2px 6px 1px;border:1px solid currentColor}
+.chip.run{color:var(--green)} .chip.idle{color:var(--amber)} .chip.down{color:var(--red)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:8px -10px}
+.mgrid div{padding:6px 10px;border-right:1px solid var(--line)} .mgrid div:last-child{border-right:0}
+.mgrid .kv{font-size:15px}
+.slist{display:flex;flex-direction:column;max-height:200px;overflow:auto}
+.srow{display:grid;grid-template-columns:10px 64px 1fr 36px;gap:6px;align-items:center;padding:4px 0;font-size:11px;cursor:pointer;pointer-events:auto;border-bottom:1px solid rgba(233,222,198,.05)}
+.srow:hover{color:var(--amber)}
+.srow .i{font:600 10px var(--f-num)} .srow .n{font-family:var(--f-cn)} .srow .u{font:10px var(--f-num);text-align:right;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green)} .dot.idle{background:var(--amber)} .dot.down{background:var(--red)}
+#insp .act{margin-top:8px;display:flex;gap:6px}
+#insp .act button{font:600 10px var(--f-ui);letter-spacing:.1em;color:var(--ink);background:transparent;border:1px solid var(--line2);padding:5px 9px;cursor:pointer}
+#insp .act button:hover{background:rgba(242,167,59,.12)}
+
+/* 巡游字幕 */
+#cap{left:50%;bottom:74px;transform:translateX(-50%);text-align:center;display:none;width:min(520px,80vw);z-index:45}
+#cap.on{display:block}
+#cap .row{display:flex;justify-content:center;align-items:baseline;gap:14px;transition:opacity .6s}
+#cap .n{font:300 15px var(--f-num);color:var(--amber);letter-spacing:.06em}
+#cap .cn{font:600 22px var(--f-cn);letter-spacing:.16em;text-shadow:0 1px 18px rgba(0,0,0,.8)}
+#cap .en{font:10.5px var(--f-ui);letter-spacing:.3em;color:var(--dim)}
+#cap .prog{margin-top:9px;height:1px;background:rgba(233,222,198,.18);position:relative}
+#cap .prog i{position:absolute;left:0;top:-0.5px;height:2px;background:var(--amber);box-shadow:0 0 8px var(--amber)}
+#cap .prog s{position:absolute;top:-3px;width:1px;height:7px;background:rgba(233,222,198,.35)}
+body.film #cap{bottom:max(10px, calc((100vh - 100vw / 2.39) / 4 - 20px))} /* 录屏：字幕放在下遮幅黑边里，不压画面 */
+body.film #cap .prog{display:none}
+
+/* 投影标签 */
+#labels{position:fixed;inset:0;z-index:6;pointer-events:none}
+#labels svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.tag{position:absolute;left:0;top:0;white-space:nowrap;will-change:transform}
+.tag .card{background:rgba(9,10,11,.78);border:1px solid var(--line2);border-left:2px solid var(--amber);padding:4px 8px 4px 7px;font-size:11px;pointer-events:auto;cursor:pointer}
+.tag .card b{font:600 10.5px var(--f-num);color:var(--amber);margin-right:6px}
+.tag .card span{font:12px var(--f-cn);letter-spacing:.04em}
+.tag .card small{display:block;font:9px var(--f-ui);letter-spacing:.14em;color:var(--dim);margin-top:1px}
+.tag .card em{display:block;font:normal 10.5px var(--f-num);color:var(--ink);margin-top:2px}
+.tag .card em i{font-style:normal;color:var(--green)}
+.tag .card em i.idle{color:var(--amber)} .tag .card em i.down{color:var(--red)}
+.ldot{position:absolute;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+
+/* 开场 veil */
+#veil{position:fixed;inset:0;z-index:50;background:#060708;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity 1.1s ease}
+#veil.out{opacity:0;pointer-events:none}
+#veil .vb{font:700 13px var(--f-ui);letter-spacing:.42em;color:var(--amber)}
+#veil .vt{font:12px var(--f-cn);letter-spacing:.3em;color:var(--dim)}
+#veil .vp{width:220px;height:1px;background:rgba(233,222,198,.15);position:relative}
+#veil .vp i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--amber);transition:width .3s}
+#veil .vs{font:10px var(--f-num);color:var(--dim2);letter-spacing:.1em}
+
+/* 遮幅 */
+.lb{position:fixed;left:0;right:0;height:0;background:#000;z-index:40;transition:height .8s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+#lbT{top:0} #lbB{bottom:0}
+body.letterbox .lb{height:calc((100vh - 100vw / 2.39) / 2)}
+
+body.hideui .ui, body.hideui #labels{display:none !important}
+body.film .ui:not(#cap), body.film #labels{display:none !important}
+body.nolabels #labels{display:none}
+body.nocard #insp{display:none !important}
+
+#dbg{left:14px;top:62px;font:10px var(--f-num);color:var(--green);background:rgba(0,0,0,.6);padding:6px 8px;display:none;white-space:pre;z-index:30}
+body.debug #dbg{display:block} body.debug #left{top:140px}
+
+#toast{left:50%;top:62px;transform:translateX(-50%);font:11px var(--f-cn);padding:6px 12px;background:var(--bg2);border:1px solid var(--line2);opacity:0;transition:opacity .4s}
+#toast.on{opacity:1}
+
+@media (max-width:1380px){ #tb{display:none} }
+@media (max-width:1180px){ #left{display:none} #insp{right:310px} }
+@media (max-width:860px){ #right{display:none} #insp{right:14px} #tb{display:none} }
+@media (max-width:760px){
+  #top{gap:10px;height:46px;padding:0 10px}
+  #top .hideM{display:none}
+  #brand .t2{display:none}
+  #clock{font-size:16px}
+  #dock{left:0;right:0;bottom:0;width:auto;max-width:none;margin:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-left:0;border-right:0;padding-bottom:env(safe-area-inset-bottom)}
+  #dock::-webkit-scrollbar{display:none}
+  #dock button{min-width:50px;padding:8px 9px}
+  #nav{bottom:66px;right:10px} #compass{width:46px;height:46px} #hint{display:none}
+  #insp{left:10px;right:10px;top:auto;bottom:66px;width:auto}
+  #cap{bottom:76px}
+  #cap .cn{font-size:18px}
+}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<div id="labels"><svg id="leaders"></svg></div>
+
+<div id="veil"><div class="vb">DF-01 · DIGITAL FACTORY</div><div class="vt">数字工厂 · 总装车间 A</div><div class="vp"><i id="vpi"></i></div><div class="vs" id="vps">INITIALIZING TWIN …</div></div>
+<div class="lb" id="lbT"></div><div class="lb" id="lbB"></div>
+
+<header id="top" class="ui">
+  <div id="brand" class="stag" style="--d:.05s"><span class="mk">DF-01</span><div><div class="t1">新能源整车 · 总装车间 A</div><div class="t2">NEV Final Assembly Hall A · Digital Twin</div></div></div>
+  <div class="tsep hideM stag" style="--d:.1s"></div>
+  <div class="tkv hideM stag" style="--d:.12s"><span class="cap">班次 Shift</span><span class="v">白班 DAY · 08:00–20:00</span></div>
+  <div class="tkv stag" style="--d:.16s"><span class="cap hideM">工厂时钟 Plant Clock</span><span id="clock">14:36:00</span></div>
+  <div class="tkv hideM stag" style="--d:.2s"><span class="cap">仿真速率 Sim Rate</span><span class="v num" style="font-size:11px">8× · 演示 <span id="rate" class="pe"><button data-r="1" class="on">1×</button><button data-r="2">2×</button><button data-r="4">4×</button></span></span></div>
+  <div id="sync" class="stag" style="--d:.24s"><i></i><span class="hideM">实时同步 · LIVE SYNC</span></div>
+</header>
+
+<aside id="left" class="ui panel stag" style="--d:.3s">
+  <div class="ph"><b>分区索引</b><span class="cap">Zones · 6</span></div>
+  <div id="zlist"></div>
+  <div class="pb" style="display:flex;justify-content:space-between"><span class="cap">工位 Stations</span><span class="num" style="font-size:11px" id="stcount">21 / 21</span></div>
+</aside>
+
+<aside id="right" class="ui">
+  <section class="panel stag" style="--d:.36s">
+    <div class="ph"><b>综合效率 OEE</b><span class="cap">A × P × Q</span></div>
+    <div class="pb" id="oee">
+      <svg viewBox="0 0 108 108" id="oeesvg"></svg>
+      <div class="apq" id="apq"></div>
+    </div>
+  </section>
+  <section class="panel stag" style="--d:.42s">
+    <div class="ph"><b>当班产量</b><span class="cap">Shift Output · 124 /h</span></div>
+    <div class="pb"><div class="big num"><span id="cnt">936</span><small>/ <span id="tgt">1488</span> 台</small></div>
+      <svg id="spark" viewBox="0 0 260 38" preserveAspectRatio="none"></svg>
+      <div style="display:flex;justify-content:space-between" class="cap"><span>-24 H</span><span>15 MIN / PT</span><span>NOW</span></div></div>
+    <div class="kgrid" style="border-top:1px solid var(--line)">
+      <div><div class="cap">在制品 WIP</div><div class="kv" id="wip">184<small>台</small></div></div>
+      <div><div class="cap">AGV 车队 Fleet</div><div class="kv" id="agv">9<small>/ 10 在线</small></div><div class="cells" id="agvcells"></div></div>
+    </div>
+  </section>
+  <section class="panel stag" style="--d:.48s">
+    <div class="ph"><b>实时能耗</b><span class="cap">Power · MW</span></div>
+    <div class="pb"><div class="big num"><span id="pwr">1.24</span><small>MW</small></div><div class="zbars" id="zbars"></div></div>
+  </section>
+  <section class="panel stag" style="--d:.54s">
+    <div class="ph"><b>异常与事件</b><span class="cap">Alarms &amp; Events</span></div>
+    <div id="events"></div>
+  </section>
+</aside>
+
+<div id="insp" class="ui panel pe">
+  <div class="ph"><b id="iTitle">—</b><button class="x" id="iClose" title="关闭 Esc">×</button></div>
+  <div class="pb" id="iBody"></div>
+</div>
+
+<div id="cap" class="ui"><div class="row" id="capRow"><span class="n" id="capN">01 / 09</span><span class="cn" id="capCn">总览</span><span class="en" id="capEn">OVERVIEW</span></div><div class="prog" id="capProg"><i id="capBar"></i></div></div>
+
+<nav id="dock" class="ui stag" style="--d:.6s">
+  <button data-v="overview" class="on">总览<small>OVERVIEW · 0</small></button>
+  <button data-v="Z01">Z01<small>立库 · 1</small></button>
+  <button data-v="Z02">Z02<small>冲压 · 2</small></button>
+  <button data-v="Z03">Z03<small>焊装 · 3</small></button>
+  <button data-v="Z04">Z04<small>涂装 · 4</small></button>
+  <button data-v="Z05">Z05<small>总装 · 5</small></button>
+  <button data-v="Z06">Z06<small>发运 · 6</small></button>
+  <span class="gap"></span>
+  <button data-a="data" class="on">数据层<small>DATA · D</small></button>
+  <button data-a="labels" class="on">标签<small>LABELS · L</small></button>
+  <button data-a="tour" id="bTour">巡游<small id="tourS">TOUR · SPACE</small></button>
+  <button data-a="reset">复位<small>RESET</small></button>
+  <button data-a="full">全屏<small>FULL · F</small></button>
+</nav>
+
+<div id="tb" class="ui stag" style="--d:.66s">
+  <div id="view">VIEW<b id="viewName">总览 OVERVIEW</b> <span class="num" id="viewAng" style="margin-left:6px"></span></div>
+  <div id="tbl">
+    <div>Project</div><div>DF-01 数字工厂 · 总装车间 A</div>
+    <div>Dwg</div><div>DF-A-001 剖切轴测 SECTION ISO</div>
+    <div>Scale</div><div class="num" id="tbScale">1 : 1 · 单位 m</div>
+    <div>Date</div><div class="num" id="tbDate">2026-11-19</div>
+    <div>Note</div><div>示意数据 · DEMO TELEMETRY</div>
+  </div>
+</div>
+
+<div id="nav" class="ui stag" style="--d:.7s">
+  <div><div id="scale"><div class="bar" id="scBar"></div><div class="lab" id="scLab">20 m</div></div><div id="hint">拖拽旋转 · 滚轮缩放 · 右键平移 · 点击巡检</div></div>
+  <svg id="compass" viewBox="-30 -30 60 60"><circle r="27" fill="rgba(9,10,11,.7)" stroke="rgba(233,222,198,.18)"/><g id="cRose"><path d="M0,-21 L4,0 L0,-3 L-4,0Z" fill="#f2a73b"/><path d="M0,21 L4,0 L0,3 L-4,0Z" fill="rgba(233,222,198,.35)"/><text y="-22.5" text-anchor="middle" font-size="7" fill="#f2a73b" font-family="Bahnschrift,Arial" dy="-1">N</text></g><circle r="1.6" fill="#e9e3d5"/></svg>
+</div>
+
+<div id="toast" class="ui"></div>
+<div id="dbg" class="ui"></div>
+
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>
