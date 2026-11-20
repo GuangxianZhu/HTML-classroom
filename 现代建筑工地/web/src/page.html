@@ -38,6 +38,30 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; min-height: 0
 .seg button[aria-pressed="true"] { background: var(--amber); color: #1d1404; font-weight: 650; }
 .chipbtn { border: 1px solid var(--line); border-radius: 8px; background: rgba(18, 22, 27, .8); padding: 6px 10px; font-size: 13px; color: var(--dim); }
 .chipbtn[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+/* 自动导览 */
+#tourBtn { border: 0; border-radius: 8px; background: var(--amber); color: #1d1404; font-weight: 650; padding: 7px 12px; font-size: 13px; }
+#tourFade { position: absolute; inset: 0; background: #0b0e11; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 2; }
+#tourFade.on { opacity: 1; }
+#tourBar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(720px, calc(100% - 24px)); z-index: 3;
+  background: rgba(14, 18, 22, .86); border: 1px solid var(--line); border-radius: 12px; padding: 0 14px 9px; overflow: hidden; backdrop-filter: blur(6px); }
+#tourProg { height: 3px; margin: 0 -14px 8px; background: rgba(255, 255, 255, .08); }
+#tourProg i { display: block; height: 100%; width: 0; background: var(--amber); }
+#tourHead { display: flex; align-items: baseline; gap: 9px; }
+#tourHead b { font-size: 16px; font-weight: 650; }
+#tourIdx { color: var(--amber); font-size: 12.5px; }
+#tourText { font-size: 14.5px; line-height: 1.6; margin: 3px 0 8px; min-height: 3.2em; }
+#tourCtl { display: flex; gap: 6px; align-items: center; }
+#tourCtl .gap { flex: 1; }
+#tourCtl button { border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .05); padding: 5px 10px; font-size: 13px; color: var(--ink); min-width: 38px; }
+#tourCtl button[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+body.touring #views .seg, body.touring #toggles { display: none; }
+body.touring #views { justify-content: flex-end; }
+body.clean header, body.clean #side, body.clean footer, body.clean #views, body.clean .tag { display: none; }
+body.clean main { grid-template-columns: minmax(0, 1fr); }
+body.clean #app { grid-template-rows: minmax(0, 1fr); height: 100%; }
+body.clean #stageWrap { height: 100%; }
+body.clean #tourCtl { opacity: .25; transition: opacity .2s; }
+body.clean #tourBar:hover #tourCtl, body.clean #tourCtl:focus-within { opacity: 1; }
 #loading { position: absolute; inset: 0; display: grid; place-items: center; color: #20262c; font-size: 15px; z-index: 3; }
 .tag { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; font-size: 12px; white-space: nowrap;
   padding: 1px 7px 1px 9px; border-radius: 0 6px 6px 0; background: rgba(18, 22, 27, .82); border-left: 3px solid; margin-top: -10px; }
@@ -115,6 +139,13 @@ footer { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; ga
   #stageWrap { height: 56vh; min-height: 320px; }
   #side { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   footer { position: sticky; bottom: 0; z-index: 5; grid-template-columns: auto minmax(0, 1fr) auto; }
+  #tourBar { bottom: 8px; padding: 0 10px 7px; }
+  #tourProg { margin: 0 -10px 6px; }
+  #tourHead b { font-size: 14.5px; }
+  #tourText { font-size: 13px; line-height: 1.5; margin: 2px 0 6px; min-height: 0; }
+  #tourCtl button { padding: 4px 8px; font-size: 12.5px; }
+  body.clean { overflow: hidden; }
+  body.clean #stageWrap { height: 100vh; height: 100dvh; }
   #speed { grid-column: 1 / -1; order: 5; justify-self: start; }
   .seg button { padding: 6px 8px; font-size: 12.5px; }
 }
@@ -135,6 +166,22 @@ footer { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; ga
           <button data-view="support">支点油缸</button>
           <button data-view="floor">钢结构</button>
           <button data-view="pit">基坑</button>
+        </div>
+        <button id="tourBtn">▶ 自动导览</button>
+      </div>
+      <div id="tourFade"></div>
+      <div id="tourBar" hidden>
+        <div id="tourProg"><i></i></div>
+        <div id="tourHead"><span class="num" id="tourIdx">1 / 1</span><b id="tourTitle"></b></div>
+        <p id="tourText"></p>
+        <div id="tourCtl">
+          <button id="tourPrev" aria-label="上一站">⏮</button>
+          <button id="tourPause" aria-label="暂停">❚❚</button>
+          <button id="tourNext" aria-label="下一站">⏭</button>
+          <span class="gap"></span>
+          <button id="tourSay" aria-pressed="false">朗读</button>
+          <button id="tourClean" aria-pressed="false">只留画面</button>
+          <button id="tourExit">退出</button>
         </div>
       </div>
       <div class="float" id="toggles">
@@ -187,6 +234,7 @@ footer { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; ga
         <details>
           <summary>简化了什么</summary>
           <ul>
+            <li>自动导览里的工期是压缩着放的（十几秒过几十天），停在细节的那几站才是机械的真实节奏；镜头路线是事先排好的。</li>
             <li>楼和造楼机都是原创的，尺寸按公开资料的比例定，不对应任何真实项目。</li>
             <li>塔吊吊的钢柱、钢梁会落到正在装的那层它该在的位置，那层装完才换成整层模型；但 48 秒一钩是示意，比真实快得多。楼承板、钢筋、浇筑、幕墙按工期沿楼层一圈推进，顺序和速度也是示意；钢筋网画得比真实稀，不是设计配筋。车辆不避让，偶尔会穿过彼此。</li>
             <li>智能建造设备（无人机、机器狗、各种机器人）按公开参数的尺寸原创建模；大屏、监测屏上的数值是示意，不是实测。</li>

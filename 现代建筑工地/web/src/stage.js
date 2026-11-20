@@ -182,6 +182,7 @@ export class Stage {
     // 地面：大方块挖掉基坑
     const G = 1500, hx0 = x0 - dw, hx1 = x1 + dw, hy0 = y0 - dw, hy1 = y1 + dw;
     const ground = mat(0x77746b);
+    ground.userData.noClip = true;      // “剖开一半”不切大地面
     for (const [a, b] of [[[-G, -G], [G, hy0]], [[-G, hy1], [G, G]], [[-G, hy0], [hx0, hy1]], [[hx1, hy0], [G, hy1]]]) boxB([a[0], a[1], -2], [b[0], b[1], -0.02], ground);
     // 围挡里面的硬化地面
     const fx0 = x0 - 26, fx1 = x1 + 26, fy0 = y0 - 30, fy1 = y1 + 24;
@@ -264,7 +265,7 @@ export class Stage {
 
   setCut(on) {
     this.opts.cut = on;
-    for (const m of this.mats) { m.clippingPlanes = on ? [this.clip] : null; m.needsUpdate = true; }
+    for (const m of this.mats) { m.clippingPlanes = on && !m.userData.noClip ? [this.clip] : null; m.needsUpdate = true; }
   }
 
   // ---------------------------------------------------------------- 按进度摆
@@ -418,8 +419,20 @@ export class Stage {
     this.lastFocus = f.t.clone();
   }
 
+  // 导览：镜头完全交给导览（Blender 坐标的机位和目标点）；给 null 就还给鼠标
+  setTourCam(p, t) {
+    if (!p) {
+      if (this.tourCam) { this.tourCam = null; this.view = 'free'; this.lastFocus = null; this.tween = null; this.controls.enabled = true; this._shift = null; this.camera.fov = 38; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix(); }
+      return;
+    }
+    this.tourCam = { p: V(p[0], p[1], p[2]), t: V(t[0], t[1], t[2]) };
+    this.controls.enabled = false;
+  }
+
   frame(now) {
-    if (this.tween) {
+    if (this.tourCam) {
+      // 不走 OrbitControls（它不让镜头低于目标点，导览里要仰拍）
+    } else if (this.tween) {
       const k = Math.min(1, (now - this.tween.t0) / this.tween.dur);
       const e = k * k * (3 - 2 * k);
       this.controls.target.lerpVectors(this.tween.from.t, this.tween.to.t, e);
@@ -456,7 +469,7 @@ export class Stage {
       this.life.root.visible = this.opts.life !== false;
       if (this.state && this.opts.life !== false) this.life.update(this.state, this.lifeT != null ? this.lifeT : now / 1000);   // lifeT：调试用，把机械的时间钉住
     }
-    if (this.view === 'track' && this.track) {
+    if (this.view === 'track' && this.track && !this.tourCam) {
       const p = this.track.get();
       if (p) {
         const d = p.clone().sub(this.trackLast || p);
@@ -464,7 +477,23 @@ export class Stage {
         if (this.tween) { this.tween.to.t.add(d); this.tween.to.p.add(d); } else { this.controls.target.add(d); this.camera.position.add(d); }
       }
     }
-    this.controls.update();
+    if (this.tourCam) {
+      this.camera.position.copy(this.tourCam.p);
+      this.controls.target.copy(this.tourCam.t);
+      this.camera.lookAt(this.tourCam.t);
+      // 字幕条挡住画面下边：把画面整体往上挪半个字幕条的高度，主体落在字幕上方的正中
+      const w = this.canvas.clientWidth, h = this.canvas.clientHeight, sh = Math.round((this.tourShift || 0) / 2);
+      if (sh !== this._shift || w !== this._sw || h !== this._sh) {
+        this._shift = sh; this._sw = w; this._sh = h;
+        // 机位是按横屏排的：画面窄（手机竖屏）就把视角放宽，左右看到的范围和横屏差不多
+        const asp = w / h;
+        this.camera.fov = asp >= 1.5 ? 38 : Math.min(72, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(19)) * 1.5 / asp)));
+        if (sh) this.camera.setViewOffset(w, h, 0, sh, w, h); else this.camera.clearViewOffset();
+        this.camera.updateProjectionMatrix();
+      }
+    } else {
+      this.controls.update();
+    }
     this.renderer.render(this.scene, this.camera);
     this._labels();
   }

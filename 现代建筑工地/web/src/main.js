@@ -6,6 +6,7 @@ import zljGlb from '../dist/zaoloji.glb';
 import machGlb from '../dist/machines.glb';
 import { makeSchedule, stateAt, STEPS, TRADES, TRADE_NAME } from './core.js';
 import { Stage } from './stage.js';
+import { Tour } from './tour.js';
 
 const sch = makeSchedule(P, spec);
 const $ = (s) => document.querySelector(s);
@@ -159,6 +160,7 @@ function buildChapters() {
     const b = document.createElement('button');
     b.innerHTML = `<span class="i">${i + 1}</span><span>${p.name}</span><span class="d">${Math.round(p.t0)}–${Math.round(p.t1)} 天</span>`;
     b.onclick = () => {
+      quitTour();
       const off = p.key === 'cycle' ? (sch.cStart[30] - p.t0) + 1.0 : p.key === 'install' ? (p.t1 - p.t0) * 0.55 : (p.t1 - p.t0) * 0.5;
       setDay(p.t0 + off);
       setView(PHASE[p.key].view);
@@ -187,8 +189,15 @@ function buildChapters() {
   }
 }
 
+let tour = null;
+const OPT_BTN = { mesh: '#tMesh', cut: '#tCut', follow: '#tFollow', life: '#tLife' };
+const getOpt = (k) => $(OPT_BTN[k]).getAttribute('aria-pressed') === 'true';
+const setOpt = (k, v) => { if (getOpt(k) !== !!v) $(OPT_BTN[k]).click(); };
+const quitTour = () => { if (tour && tour.on) tour.stop(); };
+
 function setView(v) {
-  for (const b of document.querySelectorAll('#views button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
+  quitTour();
+  for (const b of document.querySelectorAll('#views .seg button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
   stage.setView(v);
   smartPick(null);
 }
@@ -221,6 +230,7 @@ function smartPick(key) {
 function smartGo(key) {
   const sm = stage.life && stage.life.smart;
   if (!sm) return;
+  quitTour();
   // 设备这个阶段不在场：往后找一个它在的时候（找不到再从头找）
   const def = SMART.find((x) => x.key === key);
   if (!sm.present(key, stateAt(sch, day)) && def.prefer) setDay(def.prefer());
@@ -234,7 +244,7 @@ function smartGo(key) {
   }
   if (stage.opts.life === false) $('#tLife').click();
   stage.frame(performance.now());           // 先让设备摆到当前位置
-  for (const b of document.querySelectorAll('#views button')) b.setAttribute('aria-pressed', 'false');
+  for (const b of document.querySelectorAll('#views .seg button')) b.setAttribute('aria-pressed', 'false');
   if (stage.setTrack(key)) smartPick(key);
 }
 
@@ -363,8 +373,9 @@ function drawFlow(st) {
 function bind() {
   const sl = $('#slider');
   sl.max = String(sch.end);
-  sl.addEventListener('input', () => { day = +sl.value; update(); });
+  sl.addEventListener('input', () => { quitTour(); day = +sl.value; update(); });
   $('#play').onclick = () => {
+    quitTour();
     playing = !playing;
     if (playing && day >= sch.end) day = 0;
     $('#play').textContent = playing ? '❚❚' : '▶';
@@ -374,7 +385,7 @@ function bind() {
     speed = +b.dataset.speed;
     for (const c of document.querySelectorAll('#speed button')) c.setAttribute('aria-pressed', String(c === b));
   };
-  for (const b of document.querySelectorAll('#views button')) b.onclick = () => setView(b.dataset.view);
+  for (const b of document.querySelectorAll('#views .seg button')) b.onclick = () => setView(b.dataset.view);
   const tog = (id, key, fn) => {
     const b = $(id);
     b.onclick = () => {
@@ -391,6 +402,14 @@ function bind() {
   tog('#tLife', 'life');
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.key !== ' ') return;
+    if (tour && tour.on) {
+      // 导览中：空格暂停 / 继续，左右键换站，Esc 先退出“只留画面”、再退出导览
+      if (e.key === ' ') { e.preventDefault(); tour.toggle(); }
+      else if (e.key === 'ArrowRight') tour.next();
+      else if (e.key === 'ArrowLeft') tour.prev();
+      else if (e.key === 'Escape') { if (tour.clean) tour.setClean(false); else tour.stop(); }
+      return;
+    }
     if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
     if (e.key === 'ArrowRight') setDay(day + (e.shiftKey ? 10 : 1));
     if (e.key === 'ArrowLeft') setDay(day - (e.shiftKey ? 10 : 1));
@@ -402,7 +421,8 @@ let tPrev = performance.now();
 function loop(now) {
   const dt = Math.min(0.1, (now - tPrev) / 1000);
   tPrev = now;
-  if (playing) {
+  if (tour && tour.on) tour.tick(now);
+  else if (playing) {
     // 顶升那一小段放慢，看得清油缸
     const c = stateAt(sch, day).core;
     const slow = c.cur > S.low_floors && c.step === 1 && speed <= 6 ? 0.35 : 1;
@@ -432,6 +452,15 @@ async function start() {
   if (q.has('cut')) $('#tCut').click();
   if (q.has('nomesh')) $('#tMesh').click();
   if (q.has('track')) smartGo(q.get('track'));
+  tour = new Tour(stage, sch, P, {
+    setDay, setOpt, getOpt,
+    onStop: () => { playing = false; $('#play').textContent = '▶'; setView('all'); },
+  });
+  window.__tour = tour;                                // 调试用
+  // ?tour=1 直接开始导览；&clean=1 只留画面；&station=3&u=0.5 停在第 4 站的一半（截图用）
+  if (q.has('station')) tour.seek(+q.get('station'), +(q.get('u') || 0));
+  else if (q.has('tour')) tour.start();
+  if (q.has('clean') && tour.on) tour.setClean(true);
   requestAnimationFrame(loop);
 }
 
