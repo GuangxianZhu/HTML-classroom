@@ -15,7 +15,7 @@ export const SIM = {
   takt: 58,           // s / 台 / 线
   oee: { A: 0.931, P: 0.948, Q: 0.986, v: 0 },
   wip: 184, power: 1.24, powerZones: {},
-  agv: { total: 10, online: 9, battery: [], charging: [] },
+  agv: { total: 10, online: 8, battery: [], charging: [] },
   history: [], alarms: [], events: [],
   stations: [], byId: {}, zones: {},
   time: 0, _nextFault: 9, _nextIdle: 5, _histT: 0, listeners: {},
@@ -25,7 +25,7 @@ export const SIM = {
     this.stations = STATIONS.map((s) => ({ ...s, state: 'run', until: 0, util: rr(0.78, 0.95), runAcc: 0, totAcc: 0 }));
     this.stations.forEach((s) => (this.byId[s.id] = s));
     ZONES.forEach((z) => (this.zones[z.id] = { util: rr(0.8, 0.92), wip: 0, power: 0 }));
-    for (let i = 0; i < this.agv.total; i++) { this.agv.battery.push(rr(0.38, 0.96)); this.agv.charging.push(false); }
+    for (let i = 0; i < this.agv.total; i++) { const park = i >= this.agv.total - 2; this.agv.battery.push(park ? rr(0.55, 0.8) : rr(0.42, 0.96)); this.agv.charging.push(park); } // 最后 2 台停在充电位
     // 96 点产量历史（每 15 min 一个点，单位 台/15min，最后一个是当前）
     let base = 30;
     for (let i = 0; i < 96; i++) {
@@ -136,15 +136,18 @@ export const SIM = {
       zz.wip = Math.round(this.wip * { Z01: 0.22, Z02: 0.14, Z03: 0.16, Z04: 0.2, Z05: 0.22, Z06: 0.06 }[id]);
     }
 
-    // AGV 电量
+    // AGV：环线上的 8 台掉电，充电位上的 2 台充电；跑的那台电量低了就和充好的那台换班（三维里是同款车，位置不变）
     const agvDown = this.state('AGV-01') === 'down';
-    let online = 0;
-    for (let i = 0; i < this.agv.total; i++) {
-      if (this.agv.charging[i]) { this.agv.battery[i] += dt * 0.012; if (this.agv.battery[i] > 0.95) this.agv.charging[i] = false; }
-      else { this.agv.battery[i] -= dt * 0.0016; if (this.agv.battery[i] < 0.22) { this.agv.charging[i] = true; } }
-      if (!this.agv.charging[i] && !agvDown) online++;
+    const A = this.agv; let online = 0;
+    for (let i = 0; i < A.total; i++) {
+      if (A.charging[i]) A.battery[i] = Math.min(1, A.battery[i] + dt * 0.012);
+      else { A.battery[i] = Math.max(0.05, A.battery[i] - dt * 0.0016); if (!agvDown) online++; }
     }
-    this.agv.online = online;
+    for (let i = 0; i < A.total; i++) if (!A.charging[i] && A.battery[i] < 0.3) {
+      const k = A.charging.findIndex((c, q) => c && A.battery[q] > 0.9);
+      if (k >= 0) { const b = A.battery[i]; A.battery[i] = A.battery[k]; A.battery[k] = b; this.pushEvent('info', 'AGV-01', '低电量车回充 · 满电车接替'); }
+    }
+    A.online = online;
 
     // 产量历史：每 15 仿真分钟一个点
     this._histT += dt * this.simX;

@@ -58,7 +58,6 @@ export function createHUD(ctx) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     line.setAttribute('fill', 'none'); line.setAttribute('stroke', 'rgba(242,167,59,.75)'); line.setAttribute('stroke-width', '1');
     lead.appendChild(line); lab.appendChild(t); lab.appendChild(dot);
-    t.querySelector('.card').addEventListener('click', (e) => { e.stopPropagation(); ctx.goZone(z.id); });
     H.labels.push({ z, t, dot, line, u: t.querySelector('.u'), w: t.querySelector('.w'), s: t.querySelector('.s'), size: null, anchor: new THREE.Vector3(...z.label) });
   }
   const measureHUD = () => {
@@ -72,6 +71,8 @@ export function createHUD(ctx) {
   const v = new THREE.Vector3();
   const overlap = (a, b) => !(a.x + a.w < b.left || a.x > b.right || a.y + a.h < b.top || a.y > b.bottom);
   const overlap2 = (a, b) => !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
+  // 标签卡片不拦鼠标（在卡片上也能拖拽旋转）；点在卡片上由画布的点击处理来问这里
+  H.labelAt = (x, y) => { if (document.body.matches('.nolabels, .film, .hideui')) return null; const L = H.labels.find((q) => q.rect && x >= q.rect.x && x <= q.rect.x + q.rect.w && y >= q.rect.y && y <= q.rect.y + q.rect.h); return L ? L.z.id : null; };
   H.updateLabels = (camera) => {
     if (document.body.classList.contains('nolabels') || document.body.classList.contains('film') || document.body.classList.contains('hideui')) return;
     const W = window.innerWidth, Hh = window.innerHeight; const placed = []; const now = performance.now();
@@ -84,6 +85,7 @@ export function createHUD(ctx) {
     }).sort((a, b) => a.dist - b.dist);
     for (const it of items) {
       const L = it.L;
+      L.rect = null;
       if (!it.vis) { L.t.style.display = 'none'; L.dot.style.display = 'none'; L.line.setAttribute('points', ''); continue; }
       L.t.style.display = ''; L.dot.style.display = '';
       if (!L.size || now - L.sizeT > 1000) { const ww = L.t.offsetWidth; if (ww > 0) { L.size = { w: ww, h: L.t.offsetHeight }; L.sizeT = now; } }
@@ -100,7 +102,7 @@ export function createHUD(ctx) {
       }
       const dotInHud = H.hudRects.some((hr) => it.x > hr.left && it.x < hr.right && it.y > hr.top && it.y < hr.bottom);
       if (!ok || dotInHud) { L.t.style.display = 'none'; L.line.setAttribute('points', ''); L.dot.style.display = dotInHud ? 'none' : ''; L.dot.style.transform = `translate(${it.x}px,${it.y}px)`; continue; }
-      placed.push(ok);
+      placed.push(ok); L.rect = ok;
       L.t.style.transform = `translate(${ok.x.toFixed(1)}px,${ok.y.toFixed(1)}px)`;
       L.dot.style.transform = `translate(${it.x.toFixed(1)}px,${it.y.toFixed(1)}px)`;
       const ex = ok.x < it.x ? ok.x + w : ok.x, ey = ok.y + h * 0.5;
@@ -178,14 +180,14 @@ export function createHUD(ctx) {
       iU.textContent = pct(zz.util); iW.textContent = zz.wip; iP.textContent = (zz.power * 1000).toFixed(0);
       for (const q of rows) { q.dot.className = 'dot ' + q.s.state; q.u.textContent = pct(q.s.util) + '%'; }
     };
-    draw(); H.inspUpdate = draw; ins.classList.add('on'); measureHUD();
+    draw(); H.inspUpdate = draw; ins.classList.add('on'); document.body.classList.add('insping'); measureHUD();
   };
   H.openStation = (id) => {
     const s = SIM.byId[id]; if (!s) return;
     it.innerHTML = `${s.id} · ${s.cn}`;
     const zn = ZONES.find((z) => z.id === s.zone);
     ib.innerHTML = `<span class="chip" id="iChip"></span> <span class="cap" style="margin-left:6px">${s.en}</span>
-      <div class="mgrid"><div><div class="cap">利用率</div><div class="kv"><span id="iU"></span><small>%</small></div></div><div><div class="cap">分区</div><div class="kv" style="font-size:13px">${zn ? zn.id : s.zone === 'SP' ? '脊线' : '室外'}</div></div><div><div class="cap">信标 XYZ</div><div class="kv" style="font-size:11px">${s.beacon.map((n) => n.toFixed(0)).join(', ')}</div></div></div>
+      <div class="mgrid"><div><div class="cap">利用率</div><div class="kv"><span id="iU"></span><small>%</small></div></div><div><div class="cap">分区</div><div class="kv" style="font-size:13px">${zn ? zn.id : s.zone === 'SP' ? '脊线' : '室外'}</div></div><div><div class="cap">坐标 X·Z</div><div class="kv" style="font-size:11px">${s.beacon[0].toFixed(0)} · ${s.beacon[2].toFixed(0)}</div></div></div>
       <div class="cap" id="iMsg" style="letter-spacing:.04em;text-transform:none;font-family:var(--f-cn);font-size:10.5px"></div>
       <div class="act"><button id="iFocus">聚焦 FOCUS</button>${zn ? `<button id="iZone">返回 ${zn.id}</button>` : ''}<button id="iFault">注入故障 TEST</button></div>`;
     ib.querySelector('#iFocus').onclick = (e) => { e.stopPropagation(); ctx.focusStation(id); };
@@ -198,9 +200,9 @@ export function createHUD(ctx) {
       iMsg.textContent = s.state === 'down' ? '告警：' + ((SIM.alarms.find((a) => a.id === s.id) || {}).msg || '—') + ' · 预计 ' + Math.max(1, Math.round(s.until - SIM.time)) + ' s 后自动复位'
         : s.state === 'idle' ? '待机：等待上游 / 缺料' : '正常运行 · 状态同步 20 Hz';
     };
-    draw(); H.inspUpdate = draw; ins.classList.add('on'); measureHUD();
+    draw(); H.inspUpdate = draw; ins.classList.add('on'); document.body.classList.add('insping'); measureHUD();
   };
-  H.closeInspector = () => { ins.classList.remove('on'); H.inspUpdate = null; measureHUD(); };
+  H.closeInspector = () => { document.body.classList.remove('insping'); ins.classList.remove('on'); H.inspUpdate = null; measureHUD(); };
 
   // ---------- dock 状态 / 视角名 ----------
   H.setActiveView = (id) => {

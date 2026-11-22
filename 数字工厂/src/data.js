@@ -69,8 +69,8 @@ export function buildData(ctx) {
         float dash = step(0.42, fract(vS/1.8 - uTime*0.7));
         float d = mod(vS - uTime*16.0, 46.0) - 3.0;
         float pulse = exp(-d*d/3.0);
-        vec3 c = uCol*(0.55 + 0.9*dash) + vec3(1.0,0.92,0.75)*pulse*2.2;
-        float a = (0.22 + 0.55*dash + pulse) * uOp;
+        vec3 c = uCol*(0.6 + 0.8*dash) + vec3(1.0,0.74,0.36)*pulse*0.9;
+        float a = (0.22 + 0.5*dash + 0.5*pulse) * uOp;
         gl_FragColor = vec4(c*a, a);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -81,8 +81,8 @@ export function buildData(ctx) {
   routes.push([[-35.6, Y, ZT], [69, Y, ZT]]);                                                  // 主干（东）
   routes.push([[-35.6, Y, ZT], [-55, Y, ZT]]);                                                 // 主干（西）
   routes.push([[-55, Y, ZT], [-55, Y, -10], [-55, 0.3, -10]]);                                 // Z01
-  routes.push([[-30, Y, ZT], [-30, Y, -26.2], [-30, 0.5, -26.2]]);                             // Z02
-  routes.push([[-24, Y, ZT], [-24, Y, 20], [-24, 4.6, 20]]);                                   // Z03
+  routes.push([[-30, Y, ZT], [-30, Y, -27.6], [-30, 0.5, -27.6]]);                             // Z02
+  routes.push([[-38, Y, ZT], [-38, Y, 7.2], [-38, 0.3, 7.2]]);                                   // Z03
   routes.push([[2, Y, ZT], [2, Y, -27.3], [2, 7.3, -27.3]]);                                   // Z04
   routes.push([[40, Y, ZT], [40, Y, 20], [40, 0.3, 20]]);                                      // Z05
   routes.push([[68, Y, ZT], [68, Y, 20], [68, 3.5, 20]]);                                      // Z06
@@ -147,7 +147,7 @@ export function buildData(ctx) {
 
   // ---------- 数字孪生虚线包络 ----------
   {
-    const boxes = [[-76, -58, 0, 21, -32.5, 20.5], [-46.4, -11.4, 0, 9.4, -24.4, -15.6], [-8.6, 12.9, 0, 6.2, -21.5, -7], [-8, 12.4, 0, 7.6, -31, -23.6], [17, 62.2, 0, 3.6, 8.6, 15.4], [17, 62.2, 0, 3.6, 24.6, 31.4], [63.4, 69.8, 0, 3.6, 9.8, 14.2], [63.4, 69.8, 0, 3.6, 25.8, 30.2], [17, 33, 0, 4.4, -39.6, -28]];
+    const boxes = [[-76, -58, 0, 21, -32.5, 20.5], [-46.2, -14.6, 0, 9.4, -22.8, -17.2], [-8.6, 12.9, 0, 6.2, -21.5, -7], [-8, 12.4, 0, 7.6, -31, -23.6], [17, 62.2, 0, 3.6, 8.6, 15.4], [17, 62.2, 0, 3.6, 24.6, 31.4], [63.4, 69.8, 0, 3.6, 9.8, 14.2], [63.4, 69.8, 0, 3.6, 25.8, 30.2], [17, 33, 0, 4.4, -39.6, -28]];
     const mat = new THREE.LineDashedMaterial({ color: AMBER, dashSize: 0.7, gapSize: 0.45, transparent: true, opacity: 0.5, depthWrite: false, fog: false });
     for (const [x0, x1, y0, y1, z0, z1] of boxes) {
       const e = new THREE.EdgesGeometry(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0));
@@ -172,19 +172,21 @@ export function buildData(ctx) {
   });
   G.add(beacons);
   { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(stemPos, 3)); G.add(new THREE.LineSegments(g, lineMat(0.32))); }
-  const m4 = new THREE.Matrix4(), col = new THREE.Color();
+  const m4 = new THREE.Matrix4(), col = new THREE.Color(), _bp = new THREE.Vector3();
   dyn.push((dt, time, camera) => {
     STATIONS.forEach((s, i) => {
       const st = SIM.state(s.id);
-      const breathe = 1 + Math.sin(time * (st === 'down' ? 7 : 2.2) + i) * (st === 'down' ? 0.18 : 0.08);
+      // 离镜头近时缩小，不让近景里的信标糊成一大团
+      const near = Math.min(1, Math.max(0.4, camera.position.distanceTo(_bp.set(s.beacon[0], s.beacon[1], s.beacon[2])) / 42));
+      const breathe = (1 + Math.sin(time * (st === 'down' ? 7 : 2.2) + i) * (st === 'down' ? 0.18 : 0.08)) * near;
       m4.makeScale(breathe, breathe, breathe).setPosition(...s.beacon); beacons.setMatrixAt(i, m4);
-      col.copy(STATE_COL[st]).multiplyScalar(st === 'down' ? 2.4 : 1.5); beacons.setColorAt(i, col);
+      col.copy(STATE_COL[st]).multiplyScalar(st === 'down' ? 3.0 : 2.0); beacons.setColorAt(i, col);
       halos[i].material.color.copy(STATE_COL[st]).multiplyScalar(st === 'down' ? 0.6 : 0.28);
-      halos[i].scale.setScalar(1.3 * breathe + (st === 'down' ? 0.7 : 0));
+      halos[i].scale.setScalar(1.3 * breathe + (st === 'down' ? 0.7 * near : 0));
       const r = rings[i];
       if (st === 'down') {
         r.visible = true; const u = (time * 0.9 + i * 0.13) % 1;
-        r.scale.setScalar(0.6 + u * 3.6); r.material.opacity = (1 - u) * 0.9; r.quaternion.copy(camera.quaternion);
+        r.scale.setScalar((0.6 + u * 3.6) * near); r.material.opacity = (1 - u) * 0.9; r.quaternion.copy(camera.quaternion);
       } else r.visible = false;
     });
     beacons.instanceMatrix.needsUpdate = true; if (beacons.instanceColor) beacons.instanceColor.needsUpdate = true;
@@ -193,11 +195,14 @@ export function buildData(ctx) {
   // ---------- 选中高亮 ----------
   const selGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
   const sel = new THREE.LineSegments(selGeo, lineMat(1.0, new THREE.Color(0xffc56a))); sel.visible = false; sel.renderOrder = 9; scene.add(sel);
-  const selFill = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.06, depthWrite: false, fog: false })); selFill.visible = false; scene.add(selFill);
+  // 选中时只在地面铺一层淡底（不用整块体积：隔着它看，里面的设备会整片发灰发黄）
+  const selFill = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.07, depthWrite: false, fog: false })); selFill.visible = false; selFill.renderOrder = 2; scene.add(selFill);
   const setSelection = (box) => {
     if (!box) { sel.visible = selFill.visible = false; return; }
     const [x0, x1, y0, y1, z0, z1] = box;
-    for (const o of [sel, selFill]) { o.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); o.scale.set(x1 - x0 + 0.4, y1 - y0 + 0.3, z1 - z0 + 0.4); o.visible = true; }
+    sel.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); sel.scale.set(x1 - x0 + 0.4, y1 - y0 + 0.3, z1 - z0 + 0.4); sel.visible = true;
+    const big = (x1 - x0) * (z1 - z0) > 600; // 分区本来就有地面填充，不再叠一层
+    selFill.position.set((x0 + x1) / 2, Math.max(0, y0) + 0.045, (z0 + z1) / 2); selFill.scale.set(x1 - x0 + 0.4, 1, z1 - z0 + 0.4); selFill.visible = !big && y0 < 1;
   };
 
   ctx.data = {

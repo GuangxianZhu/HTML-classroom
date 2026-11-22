@@ -16,6 +16,10 @@ const V = {
   d_energy: { tx: -36, ty: 2, tz: -48, azim: 2.6, elev: 0.35, dist: 34, fov: 40 },
   d_ctrl: { tx: 25, ty: 1, tz: -33, azim: 0.2, elev: 0.6, dist: 18, fov: 44 },
   d_east: { tx: 90, ty: 0, tz: 16, azim: -1.0, elev: 0.35, dist: 46, fov: 40 },
+  d_paintW: { tx: -10, ty: 2, tz: -15, azim: -0.6, elev: 0.35, dist: 26, fov: 44 },
+  d_head: { tx: 18, ty: 3, tz: 12, azim: 0.9, elev: 0.3, dist: 22, fov: 44 },
+  d_ovenout: { tx: 14, ty: 3, tz: -25, azim: 1.9, elev: 0.35, dist: 20, fov: 44 },
+  d_yard: { tx: 100, ty: 0, tz: 28, azim: 0.5, elev: 0.5, dist: 60, fov: 40 },
 };
 const { browser, page, log } = await open({ w: +w, h: +h, q: 'instant=1&lq=1&still=1' });
 for (const [name, v] of Object.entries(V)) {

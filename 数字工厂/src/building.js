@@ -1,7 +1,7 @@
 // 30-building：地面涂装、剖切厂房、桁架、辅助房、室外硬景、能源站
 import * as THREE from 'three';
 import { C, M, MAT, canvasTex, boxUV, trs, rr, R, pick, textPlate } from './util.js';
-import { HALL, ZONES, LINES, LINE_X0, PITCH, NST } from './layout.js';
+import { HALL, ZONES, LINES, LINE_X0, PITCH, NST, LBX, ICOL, LAMP_Z } from './layout.js';
 import { carGeoms, mtx, mergeT } from './geo.js';
 
 const KX = 4096 / 156, KZ = 2100 / 80;
@@ -191,8 +191,6 @@ export function buildBuilding(ctx) {
     else { B.box(steel, 0.04, h, d, x - w / 2 + 0.02, h / 2, z); B.box(steel, 0.04, h, d, x + w / 2 - 0.02, h / 2, z); B.box(steel, w, h, 0.03, x, h / 2, z); }
     B.box(steel, 0.7, 0.05, 0.8, x, 0.025, z);
   };
-  const LBX = [-50.3, -40, -30, -21, -12, -3, 6, 15, 27, 38.5, 50, 62, 70, 78];
-  const ICOL = [-50.3, -30, -12, 15, 38.5, 62];
   for (const x of LBX) { if (x < 78) { column(x, -39.75, HALL.eave, 1); column(x, 39.75, HALL.eave, 1); } }
   for (let z = -40; z <= 40; z += 10) column(77.75, Math.max(-39.6, Math.min(39.6, z)), HALL.eave);
   for (const x of ICOL) for (const z of [-4.5, 4.5]) column(x, z, x === -50.3 ? HALL.highBay : 13.6);
@@ -213,16 +211,17 @@ export function buildBuilding(ctx) {
   };
   for (const x of LBX) truss([x, -40], [x, 40], 13.6, HALL.eave, 32, 'z');
   for (const z of [-39.75, -4.5, 4.5, 39.75]) truss([-50.3, z], [78, z], 13.6, HALL.eave, 52, 'x');
-  for (const z of HBZ) truss([-78, z], [-50.3, z], 19.4, HALL.highBay, 12, 'x');
-  for (const x of [-77.75, -50.3]) truss([x, -40], [x, 40], 19.4, HALL.highBay, 32, 'z');
+  for (const z of HBZ) truss([-78, z], [-50.3, z], HALL.highBay - 2.2, HALL.highBay, 12, 'x');
+  for (const x of [-77.75, -50.3]) truss([x, -40], [x, 40], HALL.highBay - 2.2, HALL.highBay, 32, 'z');
   // 檩条（部分）与天窗骨架
   for (let z = -38; z <= 38; z += 4) {
     if (Math.abs(z) < 3) continue;
-    const segs = (Math.abs(z) % 8 === 2) ? [[-50.3, 78]] : [[-50.3, 15], [38.5, 78]];
+    // 总装线上空（巡游第 06 段从桁架上方往下看）只留两道通长檩条，别把视线切碎
+    const segs = z > 4 ? (z === 10 || z === 26 ? [[-50.3, 78]] : [[-50.3, 17.4], [62, 78]]) : (Math.abs(z) % 8 === 2) ? [[-50.3, 78]] : [[-50.3, 15], [38.5, 78]];
     for (const [a, b] of segs) B.box(steel, b - a, 0.16, 0.1, (a + b) / 2, HALL.eave + 0.2, z);
   }
   for (let z = -36; z <= 36; z += 6) B.box(steel, 27.5, 0.14, 0.1, -64.15, HALL.highBay + 0.18, z);
-  for (const [x0, x1, z0, z1] of [[-21, 15, -24, -18], [27, 62, -24, -18], [-21, 15, 18, 24], [27, 62, 18, 24]]) {
+  for (const [x0, x1, z0, z1] of [[-21, 15, -24, -18], [27, 62, -24, -18], [-21, 15, 18, 24]]) {
     const y = HALL.eave + 0.9;
     B.box(steel, x1 - x0, 0.14, 0.14, (x0 + x1) / 2, y, z0); B.box(steel, x1 - x0, 0.14, 0.14, (x0 + x1) / 2, y, z1);
     B.box(steel, x1 - x0, 0.1, 0.1, (x0 + x1) / 2, y + 0.9, (z0 + z1) / 2);
@@ -236,7 +235,7 @@ export function buildBuilding(ctx) {
   // ---- 吊挂灯带 ----
   const lampMat = MAT.lampW;
   const lampHousing = M('lampHousing', { color: 0x2c2f33, roughness: 0.5, metalness: 0.5 });
-  for (const z of [-34, -26, -18, -10, 10, 18, 26, 34]) {
+  for (const z of LAMP_Z) {
     for (let x = -46; x < 75; x += 12) {
       if (z < -20 && x > 14 && x < 60) continue; // 中控上方留空
       const len = 9;
@@ -245,7 +244,7 @@ export function buildBuilding(ctx) {
       B.box(steel, 0.02, 0.75, 0.02, x + 0.6, 13.25, z); B.box(steel, 0.02, 0.75, 0.02, x + len - 0.6, 13.25, z);
     }
   }
-  for (const z of [-30, -18, -6, 6, 18, 30]) for (const x of [-70.5, -66.6, -62.7, -58.8]) { B.box(lampHousing, 1.2, 0.12, 2.2, x, 19.0, z); B.box(lampMat, 1.0, 0.03, 2.0, x, 18.93, z); }
+  for (const z of [-30, -18, -6, 6, 18, 30]) for (const x of [-74.1, -69.3, -64.5, -59.7]) { B.box(lampHousing, 1.2, 0.12, 2.2, x, HALL.highBay - 2.5, z); B.box(lampMat, 1.0, 0.03, 2.0, x, HALL.highBay - 2.57, z); } // 挂在货架排正上方，不挡堆垛机立柱
 
   // ---- 墙内侧管廊（能源从北墙进入） ----
   const pipeG = (r) => new THREE.CylinderGeometry(r, r, 1, 14, 1);
@@ -271,7 +270,7 @@ export function buildBuilding(ctx) {
 
 // ---------- Z07 辅助区：中控室 / 配电 / 维修 ----------
 function buildAux(ctx, steel) {
-  const { B } = ctx;
+  const { B, scene } = ctx;
   const glass = MAT.glass;
   const frame = M('frameDark', { color: 0x26292d, roughness: 0.45, metalness: 0.5 });
   // 中控室
@@ -291,7 +290,27 @@ function buildAux(ctx, steel) {
     B.box(desk, 3.0, 0.75, 0.9, x, 0.15 + 0.375, zr);
     for (let k = -1; k <= 1; k++) { B.box(frame, 0.85, 0.52, 0.05, x + k * 0.9, 1.25, zr - 0.3, k * -0.18); B.box(MAT.screen, 0.78, 0.45, 0.01, x + k * 0.9 - Math.sin(k * -0.18) * 0.03, 1.25, zr - 0.27, k * -0.18); }
   }
-  ctx.videoWall = { x: 25, y: 2.4, z: -39.45 };
+  // 6 屏视频墙（北墙内侧，3 × 2）
+  {
+    const tex = canvasTex(1536, 512, (g, W, H) => {
+      g.fillStyle = '#0b0d0f'; g.fillRect(0, 0, W, H);
+      const A = '#f2a73b', G = '#9ed6b4', D = '#3a4046', T = '#c9c2b2';
+      const cell = (i, j, f) => { const x = i * 512 + 10, y = j * 256 + 10, w = 492, h = 236; g.fillStyle = '#12161a'; g.fillRect(x, y, w, h); g.strokeStyle = D; g.lineWidth = 2; g.strokeRect(x, y, w, h); g.save(); g.translate(x, y); f(w, h); g.restore(); };
+      const title = (t) => { g.fillStyle = T; g.font = '600 20px Bahnschrift, "Microsoft YaHei", sans-serif'; g.fillText(t, 14, 28); };
+      cell(0, 0, (w, h) => { title('DF-01 总图 LAYOUT'); g.strokeStyle = A; g.lineWidth = 2; for (const [a, b, c, d] of [[20, 50, 90, 170], [120, 50, 110, 80], [120, 140, 110, 80], [240, 50, 80, 100], [330, 140, 120, 80], [455, 140, 25, 80]]) g.strokeRect(a, b, c, d); g.fillStyle = G; for (let k = 0; k < 9; k++) g.fillRect(40 + k * 48, 132, 10, 6); });
+      cell(1, 0, (w, h) => { title('OEE 趋势 TREND'); g.strokeStyle = D; for (let k = 1; k < 5; k++) { g.beginPath(); g.moveTo(14, 40 + k * 38); g.lineTo(w - 14, 40 + k * 38); g.stroke(); } g.strokeStyle = A; g.lineWidth = 3; g.beginPath(); for (let k = 0; k <= 60; k++) { const yy = 120 - Math.sin(k * 0.31) * 26 - Math.sin(k * 0.07) * 30; k ? g.lineTo(14 + k * 7.7, yy) : g.moveTo(14, yy); } g.stroke(); g.strokeStyle = G; g.beginPath(); for (let k = 0; k <= 60; k++) { const yy = 170 - Math.cos(k * 0.21) * 18; k ? g.lineTo(14 + k * 7.7, yy) : g.moveTo(14, yy); } g.stroke(); });
+      cell(2, 0, (w, h) => { title('工位状态 STATIONS'); for (let k = 0; k < 21; k++) { const cx = 20 + (k % 7) * 66, cy = 50 + Math.floor(k / 7) * 58; g.fillStyle = k === 9 ? A : k === 16 ? '#ff5638' : G; g.fillRect(cx, cy, 52, 40); } });
+      cell(0, 1, (w, h) => { title('节拍 TAKT · 58 s'); g.fillStyle = A; for (let k = 0; k < 26; k++) { const hh = 60 + Math.abs(Math.sin(k * 1.7)) * 90; g.fillRect(16 + k * 18, h - 20 - hh, 12, hh); } });
+      cell(1, 1, (w, h) => { title('能源 ENERGY · MW'); g.strokeStyle = A; g.lineWidth = 14; g.beginPath(); g.arc(130, 140, 70, Math.PI * 0.8, Math.PI * 1.9); g.stroke(); g.strokeStyle = D; g.beginPath(); g.arc(130, 140, 70, Math.PI * 1.9, Math.PI * 2.2); g.stroke(); g.fillStyle = T; g.font = '300 44px Consolas, monospace'; g.fillText('1.24', 82, 156); g.fillStyle = A; for (let k = 0; k < 6; k++) g.fillRect(250, 56 + k * 28, 60 + ((k * 73) % 150), 14); });
+      cell(2, 1, (w, h) => { title('告警 ALARMS'); g.font = '18px Consolas, monospace'; ['14:31  PR-02   伺服过载', '14:22  WB-03   光幕触发', '14:08  AGV-01  通道阻塞', '13:57  OV-01   炉温偏离', '13:40  AS-02   扭矩超差'].forEach((t, k) => { g.fillStyle = k === 0 ? '#ff5638' : k < 3 ? A : '#7f7a70'; g.fillRect(14, 48 + k * 36, 4, 22); g.fillStyle = T; g.fillText(t, 28, 66 + k * 36); }); });
+    }, { aniso: 4 });
+    // 夹在北墙两根边柱（x=17.4 / 27）之间
+    const VX = 22.2, VW = 8.1, VH = 2.7;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(VW, VH), new THREE.MeshBasicMaterial({ map: tex, color: 0xd0d0d0 }));
+    m.position.set(VX, 2.6, -39.72); m.updateMatrix(); m.matrixAutoUpdate = false; m.name = 'videoWall'; scene.add(m);
+    B.box(frame, VW + 0.3, VH + 0.3, 0.16, VX, 2.6, -39.82);
+    for (const dx of [-VW / 6, VW / 6]) B.box(frame, 0.05, VH, 0.03, VX + dx, 2.6, -39.71); B.box(frame, VW, 0.05, 0.03, VX, 2.6, -39.71);
+  }
   // 低压配电室
   const blk = M('blockWall', { color: 0xbab4a7, roughness: 0.85 });
   for (const [a, b, c, d] of [[34, 46, -30, -30], [34, 34, -39.6, -30], [46, 46, -39.6, -30]]) {
@@ -411,7 +430,7 @@ function buildOutdoor(ctx, steel) {
   const coilG = new THREE.CylinderGeometry(0.85, 0.85, 1.3, 26, 1); coilG.rotateX(Math.PI / 2);
   const coilHole = new THREE.CylinderGeometry(0.3, 0.3, 1.32, 14, 1); coilHole.rotateX(Math.PI / 2);
   for (let i = 0; i < 7; i++) for (let j = 0; j < 2; j++) {
-    const x = -104 + i * 2.1, z = 6 + j * 3.2;
+    const x = -119 + i * 2.1, z = 6 + j * 3.2; // 钢卷堆场让开进厂卡车的路线（x=-101）
     B.box(MAT.wood, 1.6, 0.25, 1.4, x, y0 + 0.125, z);
     B.geom(MAT.steel, coilG, trs(x, y0 + 1.1, z)); B.geom(MAT.graphite, coilHole, trs(x, y0 + 1.1, z));
   }
@@ -421,7 +440,7 @@ function buildOutdoor(ctx, steel) {
   const poleG = new THREE.CylinderGeometry(0.08, 0.13, 9, 8); poleG.translate(0, 4.5, 0);
   const lamps = [];
   for (let x = -126; x <= 116; x += 30) { lamps.push([x, -72.5, 0]); lamps.push([x, 66.5, Math.PI]); }
-  for (let z = -60; z <= 60; z += 30) { lamps.push([-128, z, Math.PI / 2]); lamps.push([116, z, -Math.PI / 2]); }
+  for (let z = -45; z <= 45; z += 30) { lamps.push([-143.4, z, Math.PI / 2]); lamps.push([131.4, z, -Math.PI / 2]); } // 灯杆避开卡车进出的 z=29 / 11
   for (const [x, z, r] of lamps) {
     B.geom(steel, poleG, trs(x, y0, z));
     const dx = Math.sin(r) * 1.2, dz = Math.cos(r) * 1.2;

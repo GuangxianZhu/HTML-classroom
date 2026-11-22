@@ -109,7 +109,7 @@ export function buildLogistics(ctx) {
   for (let x = -72.6; x < -51.8; x += 0.5) B.box(roller, 0.07, 0.07, 1.2, x, 0.58, 23.9);
   for (let z = 4.8; z < 24.5; z += 0.5) B.box(roller, 1.2, 0.07, 0.07, -52.2, 0.58, z);
   for (const ax of AISLES) for (let z = 20.4; z < 23; z += 0.5) B.box(roller, 1.2, 0.07, 0.07, ax, 0.58, z);
-  B.box(MAT.yellow, 1.8, 0.7, 1.8, -52.2, 0.35, 3.6); // 交接升降台
+  B.box(MAT.yellow, 1.8, 0.54, 1.8, -52.2, 0.27, 3.6); // 交接升降台
   const pCV = new Path([[-71.7, 0.62, 20.4], [-71.7, 0.62, 23.9], [-52.2, 0.62, 23.9], [-52.2, 0.62, 4.0]], { round: 0.9 });
   const fCV = new Flow(pCV, 9, { speed: 0.55, hideEnds: 0.3 });
   P.def('cv_pallet', new THREE.BoxGeometry(1.2, 0.14, 1.0), MAT.wood);

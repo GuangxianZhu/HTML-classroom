@@ -16,7 +16,7 @@ const FinalShader = {
       // 轻微移轴：上下边缘模糊
       float t = smoothstep(0.22, 0.5, abs(vUv.y - 0.52)) * uTilt;
       if (t > 0.01) {
-        vec2 px = 1.0 / uRes * uPR * 2.2 * t;
+        vec2 px = 1.0 / uRes * uPR * 1.6 * t;
         vec4 acc = c;
         acc += texture2D(tDiffuse, vUv + vec2( 1.0, 0.0)*px); acc += texture2D(tDiffuse, vUv + vec2(-1.0, 0.0)*px);
         acc += texture2D(tDiffuse, vUv + vec2( 0.0, 1.0)*px); acc += texture2D(tDiffuse, vUv + vec2( 0.0,-1.0)*px);
@@ -44,7 +44,7 @@ export function createPost(renderer, scene, camera, opt) {
   composer.setSize(window.innerWidth, window.innerHeight);
   const rp = new RenderPass(scene, camera);
   composer.addPass(rp);
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.55, 0.9);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.55, 1.0);
   composer.addPass(bloom);
   // 截掉 bloom 的超远低电平尾巴：暗背景不因画面别处的火花/信标变化而在 1 LSB 上来回跳
   bloom.compositeMaterial.fragmentShader = bloom.compositeMaterial.fragmentShader.replace(/texture2D\(blurTexture5, vUv\) \);\s*\}/, 'texture2D(blurTexture5, vUv) );\n gl_FragColor.rgb = max(gl_FragColor.rgb - vec3(0.0022), vec3(0.0));\n}');

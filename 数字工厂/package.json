@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "qa": "node qa/campath.mjs && node qa/regress.mjs && node qa/tour.mjs && node qa/flicker.mjs"
+    "qa": "node qa/campath.mjs && node qa/clearance.mjs && node qa/regress.mjs && node qa/tour.mjs && node qa/flicker.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

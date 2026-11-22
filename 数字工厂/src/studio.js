@@ -88,6 +88,7 @@ export class CamRig {
     this.k = 2.8;
     this.par = { x: 0, y: 0, gx: 0, gy: 0 };
     this.idle = 0; this.drift = true; this.locked = false;
+    this.off = { x: 0, gx: 0 }; // 画面中心横向偏移（像素）：让焦点落在没被 HUD 面板盖住的那块区域中间
     this.pos = new THREE.Vector3();
   }
   set(v, instant = false) {
@@ -111,6 +112,7 @@ export class CamRig {
       for (const p of ['tx', 'ty', 'tz', 'azim', 'elev', 'fov']) c[p] = damp(c[p], g[p], k, dt);
       c.dist = Math.exp(damp(Math.log(c.dist), Math.log(g.dist), k, dt));
     }
+    this.off.x = damp(this.off.x, this.off.gx, 3.2, dt);
     this.par.x = damp(this.par.x, still ? 0 : this.par.gx, 2.5, dt);
     this.par.y = damp(this.par.y, still ? 0 : this.par.gy, 2.5, dt);
     this.apply();
@@ -126,7 +128,12 @@ export class CamRig {
     if (this.pos.y < 0.8) this.pos.y = 0.8;
     this.cam.position.copy(this.pos);
     this.cam.lookAt(c.tx, c.ty, c.tz);
-    if (Math.abs(this.cam.fov - c.fov) > 1e-3) { this.cam.fov = c.fov; this.cam.updateProjectionMatrix(); }
+    const W = window.innerWidth, H = window.innerHeight, ox = Math.round(this.off.x);
+    if (ox !== this._ox || W !== this._w || H !== this._h) { this._ox = ox; this._w = W; this._h = H; if (ox) this.cam.setViewOffset(W, H, ox, 0, W, H); else this.cam.clearViewOffset(); }
+    // 竖屏看近景：机位不动（不会退进墙里），把视角放宽
+    const near = 1 - Math.min(1, Math.max(0, (c.dist - 50) / 60));
+    const fov = f > 1 ? 2 * Math.atan(Math.tan(c.fov * Math.PI / 360) * (1 + (Math.min(f, 1.9) - 1) * near)) * 180 / Math.PI : c.fov;
+    if (Math.abs(this.cam.fov - fov) > 1e-3) { this.cam.fov = fov; this.cam.updateProjectionMatrix(); }
     this.cam.updateMatrixWorld();
   }
   touch() { this.idle = 0; }

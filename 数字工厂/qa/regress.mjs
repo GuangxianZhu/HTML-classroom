@@ -78,6 +78,22 @@ ok('B 电影遮幅', await ev(page, () => document.body.classList.contains('lett
 await page.keyboard.press('b');
 await page.click('#dock button[data-a="reset"]', { noWaitAfter: true });
 ok('复位', await ev(page, () => DF.ctx.view === 'overview' && DF.SIM.rate === 1));
+// 标签卡片：点它进分区，在它上面拖拽照样能转
+await ev(page, () => { DF.ctx.goOverview(); Object.assign(DF.rig.cur, DF.rig.goal); }); await frames(page, 3);
+const lr = await ev(page, () => { const L = DF.hud.labels.find((q) => q.rect); return L ? { id: L.z.id, x: L.rect.x + L.rect.w / 2, y: L.rect.y + L.rect.h / 2 } : null; });
+if (lr) { await page.mouse.click(lr.x, lr.y); await frames(page, 1); }
+ok('点击标签卡片 → 进入分区', lr && await ev(page, (id) => DF.ctx.view === id, lr.id), JSON.stringify(lr));
+// 带修饰键的快捷键留给浏览器
+await page.keyboard.down('Control'); await page.keyboard.press('KeyD'); await page.keyboard.up('Control'); await frames(page, 1);
+ok('Ctrl+D 不触发数据层开关', await ev(page, () => DF.ctx.data.group.visible === true));
+// 录屏模式：点击 / 滚轮不打断巡游，Esc 退出
+await ev(page, () => { document.body.classList.add('film', 'letterbox'); DF.ctx.startTour(); }); await frames(page, 1);
+await page.mouse.click(720, 450); await page.mouse.wheel(0, 300); await page.mouse.move(600, 400); await page.mouse.down(); await page.mouse.move(700, 430, { steps: 3 }); await page.mouse.up(); await frames(page, 1);
+ok('录屏模式：点击 / 滚轮 / 拖拽不打断巡游', await ev(page, () => DF.tour.active));
+await page.keyboard.press('Escape'); await frames(page, 1);
+ok('录屏模式：Esc 退出并恢复 HUD', await ev(page, () => !DF.tour.active && !document.body.classList.contains('film') && getComputedStyle(document.getElementById('dock')).display !== 'none'));
+// 巡游画面中心不偏移、普通视角让开面板
+ok('画面中心让开 HUD 面板', await ev(page, () => { DF.ctx.goZone('Z02'); return true; }) && (await frames(page, 4), await ev(page, () => Math.abs(DF.rig.off.gx) < 200 && DF.rig.off.gx !== undefined)));
 ok('控制台零报错', log.errors.length === 0, log.errors.slice(0, 3).join(' | '));
 ok('零外部请求', log.requests.length === 0, log.requests.slice(0, 3).join(' | '));
 

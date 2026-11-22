@@ -11,6 +11,7 @@ import { buildData } from './data.js';
 import { createHUD } from './hud.js';
 import { Tour } from './tour.js';
 import { SIM } from './sim.js';
+import { runAudit } from './audit.js';
 import { ZONES, STATIONS, VIEW_OVERVIEW, TOUR, zoneAt } from './layout.js';
 
 const opt = {
@@ -106,6 +107,7 @@ async function boot() {
     return best;
   };
   const doPick = (x, y) => {
+    const lz = hud.labelAt(x, y); if (lz) { ctx.goZone(lz); return; }
     const p = ctx.pick(x, y);
     if (!p) return;
     if (p.kind === 'zone') { if (ctx.view === p.id) hud.openZone(p.id); else ctx.goZone(p.id); }
@@ -115,7 +117,9 @@ async function boot() {
   // ---------- 指针 / 触控 ----------
   const ptrs = new Map(); let drag = null; let pinch = null;
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  const filmOn = () => body.classList.contains('film'); // 录屏模式：鼠标碰到画面不打断巡游，Esc 退出
   canvas.addEventListener('pointerdown', (e) => {
+    if (filmOn()) return;
     canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 1) drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, pan: e.button === 2 || e.shiftKey || e.button === 1 };
     else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; drag = null; }
@@ -147,9 +151,10 @@ async function boot() {
     if (ptrs.size === 0) { drag = null; canvas.classList.remove('drag'); }
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  canvas.addEventListener('wheel', (e) => { e.preventDefault(); stopTour(); rig.goal.dist *= Math.exp(e.deltaY * 0.0012); rig.touch(); }, { passive: false });
+  canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (filmOn()) return; stopTour(); rig.goal.dist *= Math.exp(e.deltaY * 0.0012); rig.touch(); }, { passive: false });
   window.addEventListener('keydown', (e) => {
     if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return; // Ctrl+F / Ctrl+D 这些留给浏览器
     const k = e.key;
     if (k >= '1' && k <= '6') ctx.goZone('Z0' + k);
     else if (k === '0') ctx.goOverview();
@@ -159,7 +164,7 @@ async function boot() {
     else if (k === 'h' || k === 'H') ctx.toggleUI();
     else if (k === 'b' || k === 'B') ctx.toggleLetterbox();
     else if (k === 'f' || k === 'F') ctx.toggleFull();
-    else if (k === 'Escape') { if (tour.active) stopTour(); else ctx.closeInspector(); }
+    else if (k === 'Escape') { if (filmOn()) { body.classList.remove('film', 'letterbox'); stopTour(); hud.measureHUD(); } else if (tour.active) stopTour(); else ctx.closeInspector(); }
   });
 
   // ---------- 尺寸 / 自动降级 ----------
@@ -172,6 +177,7 @@ async function boot() {
   window.addEventListener('resize', resize);
   let slow = 0, ema = 16.7, degraded = 0;
   const degrade = (ft) => {
+    if (ft > 250 || clock.t < 5) return; // 切走标签页再回来、刚开场编译着色器时的长帧不算数
     ema = ema * 0.95 + ft * 0.05;
     if (opt.pr || opt.lq) return;
     if (ema > 21) slow += ft / 1000; else slow = Math.max(0, slow - ft / 2000);
@@ -183,6 +189,14 @@ async function boot() {
     }
   };
 
+  // ---------- 画面中心让开 HUD ----------
+  const shown = (id) => { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === 'none') return null; const r = e.getBoundingClientRect(); return r.width > 0 ? r : null; };
+  const layoutOffset = () => {
+    if (tour.active || filmOn() || body.classList.contains('hideui')) { rig.off.gx = 0; return; }
+    const W = window.innerWidth, l = shown('left'), r = shown('right'), i = shown('insp');
+    let R = W; if (r) R = Math.min(R, r.left); if (i && i.left > W * 0.35) R = Math.min(R, i.left);
+    rig.off.gx = ((W - R) - (l ? l.right : 0)) / 2;
+  };
   // ---------- 主循环 ----------
   const clock = { last: performance.now(), t: 0 };
   let labAcc = 0, hudAcc = 0, dbgAcc = 0, frames = 0, fpsT = 0, fps = 60;
@@ -204,7 +218,7 @@ async function boot() {
     renderer.info.reset();
     if (post) post.render(); else renderer.render(scene, camera);
     labAcc += dt; if (labAcc > 0.05) { labAcc = 0; hud.updateLabels(camera); }
-    hudAcc += dt; if (hudAcc > 0.15) { hudAcc = 0; hud.update(rig); }
+    hudAcc += dt; if (hudAcc > 0.15) { hudAcc = 0; hud.update(rig); layoutOffset(); }
     if (opt.debug) { dbgAcc += dt; if (dbgAcc > 0.5) { dbgAcc = 0; const i = renderer.info; document.getElementById('dbg').textContent = `FPS ${fps.toFixed(0)}  DPR ${renderer.getPixelRatio().toFixed(2)}\nCALLS ${i.render.calls}  TRIS ${(i.render.triangles / 1000).toFixed(0)}k\nGEO ${i.memory.geometries}  TEX ${i.memory.textures}`; } }
     degrade(ft);
   };
@@ -221,6 +235,7 @@ async function boot() {
   setTimeout(() => hud.measureHUD(), 1300);
   DF.ready = true;
   if (opt.tour || opt.film || opt.tourat != null) ctx.startTour();
+  DF.audit = (o) => runAudit(ctx, SIM, o);
   DF.stats = () => { const i = renderer.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures, dpr: renderer.getPixelRatio(), fps }; };
 }
 

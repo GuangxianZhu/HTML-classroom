@@ -109,6 +109,8 @@ export function initMaterials() {
   MAT.lampGreen = basic('lampGreen', { color: 0x9ed6b4 });
   MAT.screen = basic('screen', { color: 0x1d2a33 });
   MAT.hot = basic('hot', { color: 0xff7a2a });
+  // 发光体给到 1 以上的亮度：bloom 阈值是 1.0，只有真正发光的东西起辉，被主光照亮的白色设备不会
+  MAT.lampW.color.multiplyScalar(1.6); MAT.hot.color.multiplyScalar(2.0); MAT.lampAmber.color.multiplyScalar(1.5); MAT.lampRed.color.multiplyScalar(1.5); MAT.lampGreen.color.multiplyScalar(1.3);
   return MAT;
 }
 
@@ -141,12 +143,12 @@ export function trs(x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
 
 // 静态场景构建器：同材质的单位盒全部实例化、任意几何按材质合并
 export class Builder {
-  constructor(scene) { this.scene = scene; this.boxes = new Map(); this.geoms = new Map(); this.meshes = []; }
+  constructor(scene) { this.scene = scene; this.boxes = new Map(); this.geoms = new Map(); this.meshes = []; this.rec = []; } // rec：给穿模审计留的记录
   // 中心 (x,y,z)，尺寸 w h d，绕 y 旋转 ry
   box(mat, w, h, d, x, y, z, ry = 0, rx = 0, rz = 0) {
     if (w <= 0 || h <= 0 || d <= 0) return;
     let a = this.boxes.get(mat); if (!a) this.boxes.set(mat, (a = []));
-    a.push(trs(x, y, z, rx, ry, rz, w, h, d));
+    const m = trs(x, y, z, rx, ry, rz, w, h, d); a.push(m); this.rec.push({ name: mat.name, m });
   }
   // 底面中心落地
   boxB(mat, w, h, d, x, y0, z, ry = 0) { this.box(mat, w, h, d, x, y0 + h / 2, z, ry); }
@@ -159,11 +161,12 @@ export class Builder {
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     const m = new THREE.Matrix4().compose(mid, q, new THREE.Vector3(t, L, t2));
     let arr = this.boxes.get(mat); if (!arr) this.boxes.set(mat, (arr = []));
-    arr.push(m);
+    arr.push(m); this.rec.push({ name: mat.name, m });
   }
   geom(mat, g, matrix) {
     const n = normGeom(g);
     if (matrix) n.applyMatrix4(matrix);
+    n.computeBoundingBox(); this.rec.push({ name: mat.name, bb: n.boundingBox.clone() });
     let a = this.geoms.get(mat); if (!a) this.geoms.set(mat, (a = []));
     a.push(n);
   }
