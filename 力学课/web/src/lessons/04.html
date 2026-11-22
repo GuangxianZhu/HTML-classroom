@@ -1,0 +1,67 @@
+<section class="sec" id="s1">
+  <div class="a">
+    <span class="num">1 · 匀速的时候</span><h2>距离 = 速度 × 时间 = 一块长方形</h2>
+    <p>上一课从位置一路往下求斜率，得到了速度、加速度。这一课反过来走：知道速度，求走了多远。</p>
+    <p>先看最简单的：匀速。v-t 图是一条水平线，走过的距离 = 速度 × 时间。在图上，这正好是线下面那块长方形的<b>面积</b>：宽是时间，高是速度。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c1" aria-label="匀速的 v-t 图是一条水平线，线下面涂色的长方形面积就是走过的距离"></canvas>
+    <div class="ctl"><label for="c1-v">车速</label><input id="c1-v" type="range" min="10" max="120" step="5" value="60"><output id="c1-vo"></output></div>
+    <div class="ctl"><label for="c1-t">开了</label><input id="c1-t" type="range" min="1" max="60" step="1" value="30"><output id="c1-to"></output></div>
+    <div class="calc" id="m1"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g1">
+      <p class="q">以 60 km/h 匀速开 30 s，走了多远？</p>
+      <div class="row"><button class="btn" type="button">约 1800 m</button><button class="btn" type="button">约 500 m</button><button class="btn" type="button">约 30 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="s2">
+  <div class="a">
+    <span class="num">2 · 速度一直在变</span><h2>切成细条，面积还是距离</h2>
+    <p>真实的起步，速度一直在变，v-t 图是弯的。办法是切：把时间切成很多小段，每一小段里速度差不多不变，就当它是匀速，算一块细长方形，再把所有细条加起来。</p>
+    <p>切得越细，细条拼出来的形状越贴近曲线，加起来就越接近真正走过的距离。切到无限细，就正好等于曲线下面的面积。</p>
+    <p>这条曲线是一辆越开越“没劲”的车：起步猛，越快加速越慢（第 18 课会讲为什么）。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c2" aria-label="一条弯的 v-t 曲线，下面切成若干细长方形，长方形越多拼得越贴合"></canvas>
+    <div class="ctl"><label for="c2-n">切成</label><input id="c2-n" type="range" min="1" max="80" step="1" value="4"><output id="c2-no"></output></div>
+    <div class="kpis" id="k2"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g2">
+      <p class="q">条越切越细，细条加起来的面积会怎样？</p>
+      <div class="row"><button class="btn" type="button">越来越接近真正走过的距离</button><button class="btn" type="button">越来越小，最后是 0</button><button class="btn" type="button">一直不变</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key"><b>v-t 图下面的面积 = 位移。</b>不管速度怎么变都成立。到了第 20 课，这件事有一个名字：积分。</p>
+  </div>
+</section>
+
+<section class="sec" id="s3">
+  <div class="a">
+    <span class="num">3 · 匀加速：一个梯形</span><h2>x = v₀t + ½at²</h2>
+    <p>加速度不变时（叫<b>匀加速</b>），v-t 图是一条斜直线，下面是一个梯形，不用切也能算。把它拆成两块：</p>
+    <p>下面一块长方形：起始速度 <span class="qv">v₀</span> × 时间 t，就是“要是一直不加速能走多远”。上面一块三角形：底是 t，高是这段时间里速度涨的 <span class="qa">a</span>t，面积 ½ × t × <span class="qa">a</span>t = ½<span class="qa">a</span>t²，就是“加速多走出来的那一截”。</p>
+    <p>合起来：<b><span class="qx">x</span> = <span class="qv">v₀</span>t + ½<span class="qa">a</span>t²</b>。同时速度 <b><span class="qv">v</span> = <span class="qv">v₀</span> + <span class="qa">a</span>t</b>，就是上一课的加速度定义倒过来写。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c3" aria-label="匀加速的 v-t 图：斜直线下面一个梯形，拆成下面的长方形和上面的三角形"></canvas>
+    <div class="row"><button class="btn" type="button" id="b3">这台车 0→100 km/h</button></div>
+    <div class="ctl"><label for="c3-v">起始速度 v₀</label><input id="c3-v" type="range" min="0" max="20" step="0.5" value="5"><output id="c3-vo"></output></div>
+    <div class="ctl"><label for="c3-a">加速度 a</label><input id="c3-a" type="range" min="0" max="4" step="0.1" value="2"><output id="c3-ao"></output></div>
+    <div class="ctl"><label for="c3-t">时间 t</label><input id="c3-t" type="range" min="0" max="12" step="0.1" value="6"><output id="c3-to"></output></div>
+    <div class="calc" id="m3"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g3">
+      <p class="q">这台车从静止匀加速到 100 km/h 用了 11.1 s（a = 2.5 m/s²）。这段路有多长？</p>
+      <div class="row"><button class="btn" type="button">约 77 m</button><button class="btn" type="button">约 154 m</button><button class="btn" type="button">约 309 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">匀加速时还有一个好用的事：平均速度正好是首尾速度的平均，(v₀ + v) ÷ 2。梯形面积 =（上底 + 下底）÷ 2 × 高，说的是同一件事。</p>
+  </div>
+</section>

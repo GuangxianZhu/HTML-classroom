@@ -1,0 +1,7 @@
+{
+  "name": "mechanics-course",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs", "test": "node test_mech.mjs" },
+  "dependencies": { "esbuild": "^0.24.0" }
+}

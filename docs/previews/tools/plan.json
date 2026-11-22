@@ -804,5 +804,16 @@
     3500
    ]
   ]
+ },
+ "mechanics": {
+  "page": "力学课/lessons/05.html",
+  "colors": 64,
+  "loadWait": 1500,
+  "steps": [
+   ["into", "#c2"], ["wait", 600], ["mark"],
+   ["jsclick", "#b2"], ["wait", 3200],
+   ["jsclick", "#r2 [data-v=ice]"], ["wait", 500],
+   ["jsclick", "#b2"], ["wait", 4200]
+  ]
  }
 }

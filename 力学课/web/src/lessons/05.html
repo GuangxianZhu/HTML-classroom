@@ -1,0 +1,68 @@
+<section class="sec" id="s1">
+  <div class="a">
+    <span class="num">1 · 不知道刹了多久</span><h2>第三个公式：v² − v₀² = 2ax</h2>
+    <p>上一课的两个公式都要先知道时间 t。可是刹车时，知道的是车速和减速度，问的是“要多远才停得住”，时间正好不知道。</p>
+    <p>那就把 t 消掉。从 <span class="qv">v</span> = <span class="qv">v₀</span> + <span class="qa">a</span>t 得到 t = (<span class="qv">v</span> − <span class="qv">v₀</span>) ÷ <span class="qa">a</span>，代进 <span class="qx">x</span> = (<span class="qv">v₀</span> + <span class="qv">v</span>) ÷ 2 × t（上一课的梯形），整理一下：</p>
+    <p class="key" style="font-size:19px"><span class="qv">v</span>² − <span class="qv">v₀</span>² = 2<span class="qa">a</span><span class="qx">x</span></p>
+    <p>刹车到停，末速度 <span class="qv">v</span> = 0，加速度是负的（记作 −b，b 是减速度的大小）：<b>刹车距离 = <span class="qv">v₀</span>² ÷ 2b</b>。在 v-t 图上，它就是那个三角形的面积。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c1" aria-label="刹车的 v-t 图：从车速斜着降到 0 的三角形；虚线是车速翻倍时的三角形"></canvas>
+    <div class="ctl"><label for="c1-v">车速</label><input id="c1-v" type="range" min="20" max="120" step="5" value="50"><output id="c1-vo"></output></div>
+    <div class="ctl"><label for="c1-b">减速度 b</label><input id="c1-b" type="range" min="2" max="8" step="0.5" value="7"><output id="c1-bo"></output></div>
+    <div class="calc" id="m1"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g1">
+      <p class="q">同一条路、同样用力踩刹车，车速翻倍，刹车距离变成几倍？</p>
+      <div class="row"><button class="btn" type="button">2 倍</button><button class="btn" type="button">4 倍</button><button class="btn" type="button">差不多</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">车速翻倍，三角形的宽（刹车时间）和高（车速）都翻倍，面积变成 4 倍。这就是高速时要把车距拉得特别大的原因。</p>
+  </div>
+</section>
+
+<section class="sec" id="s2">
+  <div class="a">
+    <span class="num">2 · 从看见到停下</span><h2>反应距离 + 刹车距离</h2>
+    <p>真开车时，看见情况到脚踩下刹车，中间还有一段<b>反应时间</b>，一般在 0.7～1 s。这段时间里车照原来的速度开，v-t 图上是一个长方形。</p>
+    <p>所以停车距离 = 反应距离（长方形）+ 刹车距离（三角形）。路面也很要紧：湿路、结冰时轮胎抓不住，减速度小得多。</p>
+    <p>前方 45 m 有东西。挑一个车速、反应时间和路面，按“刹车”。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c2" aria-label="上面是路，车冲向 45 m 外的障碍，下面是 v-t 图：先一段平的（反应），再斜着降到 0（刹车）"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="b2">▶ 前面有东西，刹车！</button></div>
+    <div class="ctl"><label for="c2-v">车速</label><input id="c2-v" type="range" min="20" max="120" step="5" value="60"><output id="c2-vo"></output></div>
+    <div class="ctl"><label for="c2-r">反应时间</label><input id="c2-r" type="range" min="0.3" max="1.5" step="0.1" value="0.8"><output id="c2-ro"></output></div>
+    <div class="row" role="group" aria-label="路面" id="r2"><span class="cap">路面：</span><button class="btn" type="button" data-v="dry" aria-pressed="true">干路</button><button class="btn" type="button" data-v="wet">湿路</button><button class="btn" type="button" data-v="ice">结冰</button></div>
+    <div class="kpis" id="k2"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g2">
+      <p class="q">60 km/h，反应 0.8 s。脚还没踩到刹车，车已经开出去多远？</p>
+      <div class="row"><button class="btn" type="button">约 5 m</button><button class="btn" type="button">约 13 m</button><button class="btn" type="button">约 48 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">低速时停车距离大头是反应距离，高速时大头是刹车距离：一个跟着车速走，一个跟着车速的平方走。</p>
+  </div>
+</section>
+
+<section class="sec" id="s3">
+  <div class="a">
+    <span class="num">3 · 一个常见的坑</span><h2>车停了，公式不知道</h2>
+    <p>“以 20 m/s 刹车，减速度 5 m/s²，6 s 内走了多远？”把 6 s 直接代进 <span class="qx">x</span> = <span class="qv">v₀</span>t − ½bt²，得到 30 m，比 4 s 时的 40 m 还少，好像车倒回去了。</p>
+    <p>问题出在：车 4 s 时就停了，之后它不会动。公式只描述“加速度一直是 −5”的运动，它不知道车停下以后摩擦力就没了（第 10 课会讲为什么）。所以算刹车，<b>先算多久停下</b>。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c3" aria-label="刹车的 x-t 图：真实的线在 4 秒处变平；按公式硬算的虚线过了 4 秒往下掉"></canvas>
+    <div class="ctl"><label for="c3-t">刹车后</label><input id="c3-t" type="range" min="0" max="8" step="0.1" value="6"><output id="c3-to"></output></div>
+    <div class="kpis" id="k3"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g3">
+      <p class="q">以 20 m/s 开始刹车，减速度 5 m/s²。6 s 内车走了多远？</p>
+      <div class="row"><button class="btn" type="button">30 m</button><button class="btn" type="button">40 m</button><button class="btn" type="button">120 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+  </div>
+</section>

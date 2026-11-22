@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>力学课：一辆车讲到底</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>/* 力学课：一辆车讲到底。版式：一节一个概念，左边读、右边动手（图停在右边），手机上读一段、拖一下、再读。
+   每个量全课程只用一种颜色：位置蓝、速度青、加速度橙、力红、质量灰、能量金、动量紫。页面强调色借用速度的青色。 */
+:root{
+  --bg:#ECEFF1; --panel:#F9FAFB; --panel2:#E2E7EA; --ink:#141B21; --ink2:#3B4650; --ink3:#5E6A74; --line:#C9D1D7;
+  --x:#1F5DCB; --v:#0B7A69; --a:#C25E06; --F:#C23B22; --m:#56616B; --E:#9C6206; --p:#6A3FC2;
+  --acc:#0B7A69; --acc-soft:#D6EEE9; --ok:#17704B; --ok-bg:#DCEFE6; --no:#A8352A; --no-bg:#F6E0DD; --road:#59636C;
+  --f-cn:"Noto Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,"Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1317; --panel:#161D23; --panel2:#1F2830; --ink:#E6ECF0; --ink2:#B4C0C9; --ink3:#8A97A2; --line:#2C3741;
+  --x:#73A6FF; --v:#3FCBB2; --a:#FF9F45; --F:#FF7B5E; --m:#A5B0BA; --E:#F1B23F; --p:#B79BFF;
+  --acc:#3FCBB2; --acc-soft:#14322D; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --road:#8A96A0; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1317; --panel:#161D23; --panel2:#1F2830; --ink:#E6ECF0; --ink2:#B4C0C9; --ink3:#8A97A2; --line:#2C3741;
+  --x:#73A6FF; --v:#3FCBB2; --a:#FF9F45; --F:#FF7B5E; --m:#A5B0BA; --E:#F1B23F; --p:#B79BFF;
+  --acc:#3FCBB2; --acc-soft:#14322D; --ok:#57C799; --ok-bg:#16322A; --no:#EE8B7F; --no-bg:#3A1F1C; --road:#8A96A0; color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 var(--f-cn);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+a{color:var(--acc)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:14px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:40px}
+.qx{color:var(--x)} .qv{color:var(--v)} .qa{color:var(--a)} .qF{color:var(--F)} .qm{color:var(--m)} .qE{color:var(--E)} .qp{color:var(--p)}
+.qx,.qv,.qa,.qF,.qm,.qE,.qp{font-weight:700}
+.nw{white-space:nowrap}
+.tag{font:500 12px/1 var(--f-mono);letter-spacing:.05em;color:var(--acc);display:block;margin-bottom:6px}
+
+/* 顶部导航 */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:13.5px;color:var(--ink3);border-bottom:1px solid var(--line);padding-bottom:10px}
+.top a{text-decoration:none;font-weight:500}
+.top .where{flex:1;min-width:12em}
+.top .pn{display:flex;gap:14px}
+
+/* 开头：上一课、这一课回答的问题、量表 */
+.hero{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font:700 15px/1 var(--f-num);letter-spacing:.1em;color:var(--acc)}
+h1{margin:0;font-size:clamp(27px,4.6vw,44px);line-height:1.25;font-weight:900;text-wrap:balance}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.recap,.ask{border-radius:6px;padding:11px 14px}
+.recap{background:var(--panel);border:1px solid var(--line)}
+.recap a{font-weight:700;text-decoration:none}
+.recap p{margin:.3em 0 0;color:var(--ink2);font-size:15px}
+.ask{background:var(--acc-soft)}
+.ask p{margin:0;font-size:18px;font-weight:700;line-height:1.6}
+.quants{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.quants li{display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:4px;border:1px solid var(--line);font-size:13px;background:var(--panel)}
+.quants li i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.quants li b{font:700 15px/1 var(--f-num)}
+.quants li.off{opacity:.38;border-style:dashed;background:transparent}
+.quants li.new{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.quants li em{font-style:normal;font-size:11.5px;color:var(--acc);font-weight:700}
+
+/* 一节：左读右动手 */
+.sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);grid-template-areas:"a f" "b f";grid-template-rows:auto 1fr;gap:6px 34px;scroll-margin-top:12px;border-top:1px solid var(--line);padding-top:24px}
+.sec>.a{grid-area:a;min-width:0}
+.sec>.b{grid-area:b;min-width:0}
+.sec>.f{grid-area:f;min-width:0;display:flex;flex-direction:column;gap:12px;align-self:start;position:sticky;top:12px}
+.num{font:700 14px/1 var(--f-num);letter-spacing:.12em;color:var(--acc);display:block;margin-bottom:6px}
+h2{margin:0 0 8px;font-size:clamp(22px,3vw,28px);line-height:1.3;font-weight:900;text-wrap:balance}
+p{margin:0 0 .75em;max-width:38em}
+.a p:last-child,.b p:last-child{margin-bottom:0}
+b,strong{font-weight:700}
+.key{background:var(--acc-soft);border-radius:5px;padding:11px 14px;margin:.4em 0 .9em;font-weight:500;max-width:38em}
+.note{font-size:14px;line-height:1.7;color:var(--ink3);margin:.8em 0 0;max-width:40em}
+
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.fig canvas{display:block;width:100%;border-radius:3px;touch-action:pan-y}
+.cap{font-size:13.5px;line-height:1.6;color:var(--ink2);margin:0;max-width:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn{font:500 14px/1.25 var(--f-cn);padding:8px 11px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);cursor:pointer;color:var(--ink);text-decoration:none;display:inline-block}
+.btn:hover{border-color:var(--acc)}
+.btn[aria-pressed="true"],.btn.primary{background:var(--acc);border-color:var(--acc);color:var(--panel)}
+.btn:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.ctl{display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr) 6.8em;gap:4px 10px;align-items:center;font-size:13.5px;color:var(--ink2)}
+.ctl input{width:100%;min-width:0;accent-color:var(--acc)}
+.ctl output{font:500 12.5px var(--f-mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kpi{border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:var(--panel)}
+.kpi span{display:block;font-size:12px;color:var(--ink3);line-height:1.4}
+.kpi b{font:700 22px/1.2 var(--f-num);font-variant-numeric:tabular-nums}
+.kpi small{font:400 12px var(--f-cn);color:var(--ink3);margin-left:2px}
+.calc{font:400 13.5px/1.75 var(--f-mono);background:var(--panel2);border-radius:5px;padding:8px 11px;overflow-x:auto;white-space:nowrap;color:var(--ink2)}
+.calc div{min-width:max-content}
+.calc b{color:var(--ink)}
+.calc .nt{font-family:var(--f-cn);font-size:12.5px;color:var(--ink3)}
+.guess{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:.3em 0 .9em;display:flex;flex-direction:column;gap:7px;max-width:38em}
+.guess .q{font-weight:500;margin:0}
+.guess .btn{text-align:left}
+.btn.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.btn.wrong{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.guess .r{margin:0;font-size:14.5px}
+
+/* 结尾：一句话、练习、下一课 */
+.end{border-top:1px solid var(--line);padding-top:24px;display:flex;flex-direction:column;gap:18px}
+.end h2{margin:0}
+.remember{background:var(--acc-soft);border-radius:6px;padding:12px 16px}
+.remember p{margin:0;font-size:18px;font-weight:700;line-height:1.6;max-width:none}
+.quiz{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-width:760px}
+.qhead{display:flex;justify-content:space-between;font-size:13px;color:var(--ink3)}
+.qhead b{font:700 16px var(--f-num);color:var(--ok)}
+.qtext{font-size:17px;font-weight:500;margin:0;max-width:none}
+.qopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.qopts .btn{text-align:left;font-size:15px;padding:10px 12px}
+.qwhy{margin:0;font-size:15px;max-width:none;background:var(--panel2);border-radius:5px;padding:9px 12px}
+.next{border:1px solid var(--line);border-radius:6px;padding:14px 16px;background:var(--panel)}
+.next .big{font-size:19px;font-weight:700;margin:.2em 0 .4em}
+.next p{margin:0;max-width:none}
+
+@media (max-width:920px){
+  .wrap{gap:32px}
+  .hero-grid{grid-template-columns:minmax(0,1fr)}
+  .sec{grid-template-columns:minmax(0,1fr);grid-template-areas:"a" "f" "b";grid-template-rows:auto;gap:12px}
+  .sec>.f{position:static}
+  .ctl{grid-template-columns:minmax(64px,auto) minmax(0,1fr) 6.2em}
+}
+@media (max-width:520px){ .qopts{grid-template-columns:minmax(0,1fr)} .top .where{order:3;flex-basis:100%} }
+@media (max-width:420px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+
+</style></head>
+<body><style>
+.cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.cards li>a,.cards li>div{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;height:100%;padding:11px 13px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);text-decoration:none}
+.cards li.ready>a:hover{border-color:var(--acc)}
+.cards li.todo>div{opacity:.55;background:transparent;border-style:dashed}
+.cards li.done>a{border-color:var(--ok)}
+.cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
+.cards .t{font-weight:700;line-height:1.45}
+.cards .h{font-size:13.5px;color:var(--ink2);line-height:1.55}
+.cards .st{font-size:12px;color:var(--ink3)}
+.cards li.done .st{color:var(--ok);font-weight:700}
+.part h2{display:flex;align-items:baseline;gap:10px;margin:0 0 2px}
+.lv{font:700 13px/1 var(--f-num);letter-spacing:.1em;color:var(--panel);background:var(--acc);border-radius:3px;padding:4px 6px}
+.pnote{color:var(--ink3);margin:0 0 12px;font-size:14.5px}
+.parts{display:flex;flex-direction:column;gap:34px}
+.how{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none;counter-reset:h}
+.how li{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:14.5px;line-height:1.6}
+.how b{display:block;margin-bottom:2px}
+@media (max-width:760px){.how{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style><div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">力学课 · 从高中到大学</div>
+    <h1>一辆车讲到底的力学</h1>
+    <p style="font-size:17px;color:var(--ink2)">同一辆车从停车场开出来，一路上遇到的每个问题就是一课：它在哪、多快、怎么停下、为什么会加速、拐弯要多大的力……每一课回答上一课留下的问题，再留一个新问题给下一课。前面用高中的工具，工具不够用了再换大学的。</p>
+    <ul class="how">
+      <li><b>先猜</b>每一节先猜一道选择题，猜错了更记得住。</li>
+      <li><b>拖一拖</b>每个概念配一张能动的图，数字跟着变。</li>
+      <li><b>算式代数字</b>公式下面把当前的数代进去，一步不跳。</li>
+      <li><b>练习</b>每课 5 道题，数字每次都变，可以一直刷。</li>
+    </ul>
+    <ul class="quants" aria-label="全课程用到的量和颜色"><li class="on"><i style="background:var(--x)"></i><b>x</b><span>位置 / 位移（m）</span></li><li class="on"><i style="background:var(--v)"></i><b>v</b><span>速度（m/s）</span></li><li class="on"><i style="background:var(--a)"></i><b>a</b><span>加速度（m/s²）</span></li><li class="on"><i style="background:var(--F)"></i><b>F</b><span>力（N）</span></li><li class="on"><i style="background:var(--m)"></i><b>m</b><span>质量（kg）</span></li><li class="on"><i style="background:var(--E)"></i><b>E</b><span>能量（J）</span></li><li class="on"><i style="background:var(--p)"></i><b>p</b><span>动量（kg·m/s）</span></li></ul>
+    <p id="prog" style="margin:0;color:var(--ink3);font-size:14px"></p>
+  </header>
+  <div class="parts">
+<section class="part">
+    <h2><span class="lv">高中</span>描述运动</h2><p class="pnote">车在哪、多快、速度怎么变，先不问为什么</p>
+    <ol class="cards"><li data-n="1" class="ready"><a href="lessons/01.html"><span class="n">1</span><span class="t">车在哪：位置、位移、路程</span><span class="h">往前开 40 m、又倒回 10 m，车到底“走了多远”？</span><span class="st">可以学了</span></a></li><li data-n="2" class="ready"><a href="lessons/02.html"><span class="n">2</span><span class="t">多快：速度</span><span class="h">x-t 图上的线有的地方陡、有的地方平，陡代表什么？</span><span class="st">可以学了</span></a></li><li data-n="3" class="ready"><a href="lessons/03.html"><span class="n">3</span><span class="t">速度怎么变：加速度</span><span class="h">速度表的指针一直在动，“变得有多快”怎么描述？</span><span class="st">可以学了</span></a></li><li data-n="4" class="ready"><a href="lessons/04.html"><span class="n">4</span><span class="t">反过来：从速度算距离</span><span class="h">知道速度怎么变，能不能反过来算出车走了多远？</span><span class="st">可以学了</span></a></li><li data-n="5" class="ready"><a href="lessons/05.html"><span class="n">5</span><span class="t">停下来：刹车距离和反应时间</span><span class="h">只知道车速和刹车的减速度，不知道刹了多久，停车要多远？</span><span class="st">可以学了</span></a></li><li data-n="6" class="todo"><div><span class="n">6</span><span class="t">量自己的反应时间：自由落体</span><span class="h">上一课的反应时间 0.8 s 是哪来的？我自己的是多少？</span><span class="st">还在做</span></div></li><li data-n="7" class="todo"><div><span class="n">7</span><span class="t">两个方向一起动：平抛</span><span class="h">东西带着水平速度飞出去，边飞边掉，怎么算？</span><span class="st">还在做</span></div></li><li data-n="8" class="todo"><div><span class="n">8</span><span class="t">拐弯也是加速度</span><span class="h">车速不变、只拐弯，算不算在加速？</span><span class="st">还在做</span></div></li></ol>
+  </section>
+<section class="part">
+    <h2><span class="lv">高中</span>为什么会这样动</h2><p class="pnote">力从哪来，力怎么改变运动</p>
+    <ol class="cards"><li data-n="9" class="todo"><div><span class="n">9</span><span class="t">为什么会加速：力和质量</span><span class="h">前面算了那么多加速度，它到底是谁给的？</span><span class="st">还在做</span></div></li><li data-n="10" class="todo"><div><span class="n">10</span><span class="t">车轮怎么推动车：摩擦力</span><span class="h">发动机在车里面，是什么把车往前推？</span><span class="st">还在做</span></div></li><li data-n="11" class="todo"><div><span class="n">11</span><span class="t">上坡：把一个力拆成两个</span><span class="h">坡越陡越难开，差在哪？</span><span class="st">还在做</span></div></li><li data-n="12" class="todo"><div><span class="n">12</span><span class="t">拖车：成对出现的力</span><span class="h">车拖着另一辆车，两边的力一样大吗？</span><span class="st">还在做</span></div></li><li data-n="13" class="todo"><div><span class="n">13</span><span class="t">被按在座椅上：超重和失重</span><span class="h">起步时觉得被往后按，那个力是哪来的？</span><span class="st">还在做</span></div></li><li data-n="14" class="todo"><div><span class="n">14</span><span class="t">拐弯要多大的力：向心力</span><span class="h">弯道为什么限速？摩托为什么要倾斜？</span><span class="st">还在做</span></div></li><li data-n="15" class="todo"><div><span class="n">15</span><span class="t">一直在拐弯的“车”：卫星</span><span class="h">卫星为什么掉不下来？</span><span class="st">还在做</span></div></li></ol>
+  </section>
+<section class="part">
+    <h2><span class="lv">高中</span>换一本账：能量和动量</h2><p class="pnote">不看过程，只看前后</p>
+    <ol class="cards"><li data-n="16" class="todo"><div><span class="n">16</span><span class="t">刹车距离为什么跟着 v² 走：功和动能</span><span class="h">第 5 课的 v²，换一个角度看是什么？</span><span class="st">还在做</span></div></li><li data-n="17" class="todo"><div><span class="n">17</span><span class="t">下坡不踩油门：机械能守恒</span><span class="h">从坡顶滑下来，到坡底有多快？</span><span class="st">还在做</span></div></li><li data-n="18" class="todo"><div><span class="n">18</span><span class="t">功率：每秒能给多少能量</span><span class="h">同样的车，为什么高速时加速变慢了？</span><span class="st">还在做</span></div></li><li data-n="19" class="todo"><div><span class="n">19</span><span class="t">两车相撞：动量</span><span class="h">撞在一起以后，两辆车怎么动？</span><span class="st">还在做</span></div></li></ol>
+  </section>
+<section class="part">
+    <h2><span class="lv">大学</span>把简化拿掉</h2><p class="pnote">还是这辆车：加速度一直在变、有风阻、车轮会转、悬架会晃</p>
+    <ol class="cards"><li data-n="20" class="todo"><div><span class="n">20</span><span class="t">加速度一直在变：微积分</span><span class="h">真实的起步加速度不是常数，第 4 课的梯形还能用吗？</span><span class="st">还在做</span></div></li><li data-n="21" class="todo"><div><span class="n">21</span><span class="t">有风阻：牛顿定律变成微分方程</span><span class="h">风阻随车速变，怎么一步一步算出车速？</span><span class="st">还在做</span></div></li><li data-n="22" class="todo"><div><span class="n">22</span><span class="t">坐在车里看：非惯性系</span><span class="h">第 13 课被按在座椅上的“力”，到底算不算力？</span><span class="st">还在做</span></div></li><li data-n="23" class="todo"><div><span class="n">23</span><span class="t">车轮也在转：力矩和转动惯量</span><span class="h">起步时，一部分力气花在了让车轮转起来上吗？</span><span class="st">还在做</span></div></li><li data-n="24" class="todo"><div><span class="n">24</span><span class="t">滚动和打滑</span><span class="h">车轮什么时候在滚，什么时候在打滑？</span><span class="st">还在做</span></div></li><li data-n="25" class="todo"><div><span class="n">25</span><span class="t">悬架：振动、阻尼、共振</span><span class="h">过减速带时车为什么晃几下就停？</span><span class="st">还在做</span></div></li><li data-n="26" class="todo"><div><span class="n">26</span><span class="t">轨道为什么是椭圆</span><span class="h">回到第 15 课：卫星的轨道不是正圆会怎样？</span><span class="st">还在做</span></div></li><li data-n="27" class="todo"><div><span class="n">27</span><span class="t">不画受力图也能列方程（选学）</span><span class="h">力太多、画不清楚的时候，有没有别的办法？</span><span class="st">还在做</span></div></li></ol>
+  </section>
+  </div>
+</div>
+<script>(()=>{var p="mech-course-v1";function n(){try{return JSON.parse(localStorage.getItem(p)||"{}")}catch{return{}}}var r=n(),e=0;document.querySelectorAll("[data-n]").forEach(t=>{let a=r[t.dataset.n];a?.done&&(e++,t.classList.add("done"),t.querySelector(".st").textContent=`\u5B66\u8FC7 \xB7 \u7EC3\u4E60\u6700\u597D ${a.best??0}/5`)});var o=document.getElementById("prog");o&&(o.textContent=e?`\u8FD9\u4E2A\u6D4F\u89C8\u5668\u91CC\u5DF2\u7ECF\u5B66\u8FC7 ${e} \u8BFE\u3002`:"\u8FD8\u6CA1\u5F00\u59CB\uFF1F\u4ECE\u7B2C 1 \u8BFE\u5F00\u59CB\u3002");})();
+</script>
+</body></html>
