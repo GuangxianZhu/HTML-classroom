@@ -1,0 +1,14 @@
+{
+  "name": "parking-garage-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test_garages.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "three": "0.160.0"
+  },
+  "description": "立体车库原理：6 种立体车库的调度逻辑 + three.js 场景，单文件离线页"
+}

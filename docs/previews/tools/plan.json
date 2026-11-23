@@ -804,5 +804,50 @@
     3500
    ]
   ]
+ },
+ "parking": {
+  "page": "立体车库原理/index.html",
+  "colors": 72,
+  "loadWait": 3000,
+  "steps": [
+   [
+    "selopt",
+    [
+     "#type",
+     "巷道堆垛（2 × 4 列 × 3 层）"
+    ]
+   ],
+   [
+    "wait",
+    1500
+   ],
+   [
+    "mark"
+   ],
+   [
+    "sel",
+    "#kiosk .kbtns button.primary"
+   ],
+   [
+    "wait",
+    1000
+   ],
+   [
+    "sel",
+    "#kiosk .kbtns button.primary"
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "sel",
+    "#kiosk .kbtns button.primary"
+   ],
+   [
+    "wait",
+    5500
+   ]
+  ]
  }
 }

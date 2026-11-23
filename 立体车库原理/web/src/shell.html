@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>立体车库原理演示</title>
+<style>
+:root {
+  --bg: #e9eef5; --bar: #d3dae6; --panel: #e4e9f0; --card: #fff; --ink: #1d2230; --dim: #6b7080;
+  --accent: #2f6fd6; --accent-d: #1f56b0; --ok: #3a9d55; --full: #c3e6c6; --empty: #f1f2f4; --mine: #ffe873;
+  --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.6 var(--font); }
+button { font: inherit; cursor: pointer; border: 1px solid #c3cad6; background: #f8f9fb; color: var(--ink);
+  border-radius: 6px; padding: 3px 10px; transition: background .12s; }
+button:hover { background: #dfe7f6; }
+button:active { background: #c9d7f2; }
+button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+select { font: inherit; padding: 2px 6px; border-radius: 6px; border: 1px solid #c3cad6; background: #fff; max-width: 100%; }
+small { color: var(--dim); font-weight: normal; }
+
+#app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 410px;
+  grid-template-rows: auto minmax(0, 1fr) minmax(120px, 23vh); grid-template-areas: "bar bar" "view panel" "log panel"; }
+#bar { grid-area: bar; background: var(--bar); padding: 6px 12px; display: flex; flex-direction: column; gap: 5px; }
+#bar .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+#bar h1 { font-size: 18px; margin: 0 14px 0 0; color: #17284d; }
+#bar .lbl { color: #3a4152; }
+#bar .gap { width: 10px; }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 6px 0 0 6px; }
+.seg button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+#speed { width: 110px; vertical-align: middle; }
+#speedTxt { display: inline-block; min-width: 2.6em; }
+#bar .grp { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+label.chk { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+
+#viewWrap { grid-area: view; position: relative; min-height: 260px; overflow: hidden; }
+#view { position: absolute; inset: 0; }
+#view canvas { display: block; outline: none; }
+#hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: #55607a; background: rgba(255,255,255,.7);
+  padding: 1px 8px; border-radius: 10px; pointer-events: none; }
+.lbl { font-family: var(--font); white-space: nowrap; pointer-events: none; user-select: none; }
+.lbl.plain { color: #1a1f2c; font-weight: 600; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
+.lbl.boxed { font-size: 12px; background: rgba(255,255,255,.82); padding: 0 5px; border-radius: 3px; color: #111; }
+.lbl.tag { font-size: 13px; background: rgba(255,235,115,.96); padding: 1px 7px; border-radius: 4px; color: #111;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3); font-weight: 600; }
+
+#panel { grid-area: panel; background: var(--panel); padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.card { background: var(--card); border-left: 4px solid var(--accent); border-radius: 4px; padding: 9px 12px; }
+.card h3 { margin: 0 0 6px; font-size: 15px; color: var(--accent); display: flex; gap: 10px; align-items: baseline; }
+.card h3 small { font-size: 12px; }
+#introCard .titleRow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#title { font-size: 17px; margin: 0; color: #14203d; }
+#introToggle { border: 0; background: none; color: var(--accent); padding: 0; font-size: 13px; white-space: nowrap; }
+#intro { margin: 6px 0 0; line-height: 1.75; }
+#intro b { color: #c0392b; }
+
+#slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+#slots button { padding: 4px 0; font-size: 13px; background: var(--empty); }
+#slots button.full { background: var(--full); border-color: #9ccf9f; }
+#slots button.full:hover { background: #a9dbac; }
+
+#kiosk { background: #17233f; color: #edf1ff; border-radius: 8px; padding: 10px 12px 12px; }
+#kiosk .khead { display: flex; justify-content: space-between; color: #9eabc9; font-size: 12px; }
+#kiosk h4 { margin: 4px 0 4px; font-size: 17px; }
+#kiosk .kbody { white-space: pre-line; line-height: 1.7; font-size: 14px; }
+#kiosk .kbar { height: 8px; background: #38425e; border-radius: 4px; margin: 10px 0 2px; overflow: hidden; }
+#kiosk .kbar i { display: block; height: 100%; width: 0; background: #4cc472; transition: width .1s linear; }
+#kiosk .kbartxt { font-size: 12px; color: #9eabc9; }
+#kiosk .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }
+#kiosk .chips button { background: #eef1fb; border: 0; font-size: 12.5px; padding: 4px 2px; color: #1a2033; }
+#kiosk .chips button.mine { background: var(--mine); font-weight: 600; }
+#kiosk .kbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+#kiosk .kbtns button { border: 0; padding: 7px 16px; font-size: 15px; color: #fff; background: #4a5674; }
+#kiosk .kbtns button.primary { background: #2f7ef0; font-weight: 600; }
+#kiosk .kbtns button.primary:hover { background: #4b92f7; }
+
+#grid { margin: 0; font: 13px/1.55 var(--mono); white-space: pre-wrap; overflow-x: auto; background: #f3f5f8; padding: 6px 8px; border-radius: 4px; }
+#grid .w { display: inline-block; width: 2ch; text-align: center; }
+#grid .car { background: #bfe6c2; color: #135c22; border-radius: 3px; }
+#grid .empty { background: #e4e6ea; color: #7a7f8a; border-radius: 3px; }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin: 0 2px 0 6px; }
+#stats { font-size: 13.5px; }
+#stats b { color: #14203d; }
+
+#logCard { grid-area: log; margin: 0 8px 8px; display: flex; flex-direction: column; min-height: 0; }
+#log { margin: 0; padding: 0 0 0 4px; list-style: none; overflow-y: auto; flex: 1; min-height: 0; font-size: 14px; }
+#log li { padding: 1px 0; }
+#log li.done { color: #8a8f99; }
+#log li.cur { color: #12307a; font-weight: 700; }
+#log li.cur::before { content: "▶ "; color: var(--accent); }
+#log li.notice { color: #c0392b; font-weight: 600; }
+#log li.extra { font-weight: 700; color: #a0522d; }
+#log .t { color: #9298a3; font-weight: normal; font-size: 12.5px; }
+
+.modal { position: fixed; inset: 0; background: rgba(20,28,45,.45); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 12px; }
+.modal[hidden] { display: none; }
+.modal .box { background: #fff; border-radius: 8px; padding: 14px 18px; max-width: 980px; width: 100%; max-height: 92vh; overflow: auto; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+.modal h3 { margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.modal table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.modal th, .modal td { padding: 5px 9px; border-bottom: 1px solid #e3e6ec; text-align: right; white-space: nowrap; }
+.modal th:first-child, .modal td:first-child { text-align: left; }
+.modal th { background: #f2f5fa; }
+.modal td.best { color: #1d7a37; font-weight: 700; }
+.modal .note { color: var(--dim); font-size: 13px; margin: 10px 0 0; line-height: 1.7; }
+
+@media (max-width: 900px) {
+  #app { display: flex; flex-direction: column; height: auto; }
+  #bar h1 { font-size: 16px; width: 100%; }
+  #viewWrap { height: 58vh; order: 1; }
+  #panel { display: contents; }
+  #midCard { order: 2; margin: 8px 8px 0; }
+  #logCard { order: 3; margin: 8px 8px 0; height: 34vh; }
+  #gridCard { order: 4; margin: 8px 8px 0; }
+  #introCard { order: 5; margin: 8px 8px 0; }
+  #statsCard { order: 6; margin: 8px; }
+  #bar { order: 0; }
+  #hint { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="bar">
+    <div class="row">
+      <h1>立体车库原理演示</h1>
+      <span class="grp"><span class="lbl">车库类型</span> <select id="type"></select></span>
+      <span class="gap"></span>
+      <span class="grp"><span class="lbl">模式</span> <span class="seg" id="modeSeg"><button data-mode="driver">司机视角</button><button data-mode="lab">原理演示</button></span></span>
+      <span class="gap"></span>
+      <button id="reset">重置</button>
+      <button id="cmpBtn">对比 6 种车库</button>
+    </div>
+    <div class="row">
+      <span class="lbl">视角</span>
+      <button data-view="默认">默认</button><button data-view="正面">正面</button><button data-view="侧面">侧面</button><button data-view="俯视">俯视</button>
+      <span class="gap"></span>
+      <span class="grp"><span class="lbl">速度</span> <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1"> <span id="speedTxt">1x</span></span>
+      <button id="pause">暂停 ‖</button>
+      <span class="gap"></span>
+      <span class="lab-only row" style="gap:6px 8px">
+        <button id="auto">自动选位存车</button>
+        <button id="randOut">随机取一辆</button>
+        <label class="chk"><input type="checkbox" id="stepMode">单步模式</label>
+        <button id="next">下一步 ▶</button>
+      </span>
+    </div>
+  </header>
+
+  <section id="viewWrap"><div id="view"></div><div id="hint">左键拖动旋转 · 右键拖动平移 · 滚轮缩放 · 空格暂停 · N 下一步</div></section>
+
+  <section id="logCard" class="card"><h3>执行步骤 <small id="logHint"></small></h3><ol id="log"></ol></section>
+
+  <aside id="panel">
+    <div class="card" id="introCard">
+      <div class="titleRow"><h2 id="title"></h2><button id="introToggle"></button></div>
+      <p id="intro"></p>
+    </div>
+    <div class="card" id="midCard">
+      <h3><span id="midHdr"></span><small id="midHint"></small></h3>
+      <div id="kiosk"></div>
+      <div id="slots"></div>
+    </div>
+    <div class="card" id="gridCard">
+      <h3>当前状态 <small><span class="sw" style="background:#bfe6c2"></span>有车<span class="sw" style="background:#e4e6ea"></span>空</small></h3>
+      <pre id="grid"></pre>
+    </div>
+    <div class="card" id="statsCard"><div id="stats"></div></div>
+  </aside>
+</div>
+
+<div id="cmp" class="modal" hidden>
+  <div class="box">
+    <h3><span>6 种车库对比（各随机存取 200 次）</span><button id="cmpClose">关闭</button></h3>
+    <div id="cmpBody"></div>
+  </div>
+</div>
+
+<script>/*__APP__*/</script>
+</body>
+</html>
