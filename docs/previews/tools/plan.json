@@ -849,5 +849,114 @@
     5500
    ]
   ]
+ },
+ "cpu4": {
+  "page": "4位CPU互动教学/index.html",
+  "colors": 64,
+  "loadWait": 1500,
+  "steps": [
+   [
+    "selopt",
+    [
+     "#chap",
+     "7. 计算器（下）：加法和减法"
+    ]
+   ],
+   [
+    "wait",
+    500
+   ],
+   [
+    "jsclick",
+    "#quizOpts .opt:nth-child(3) input"
+   ],
+   [
+    "jsclick",
+    "#quizOk"
+   ],
+   [
+    "scroll",
+    -3000
+   ],
+   [
+    "wait",
+    600
+   ],
+   [
+    "mark"
+   ],
+   [
+    "jsclick",
+    "#bInstr"
+   ],
+   [
+    "wait",
+    550
+   ],
+   [
+    "jsclick",
+    "#bInstr"
+   ],
+   [
+    "wait",
+    550
+   ],
+   [
+    "jsclick",
+    "#bInstr"
+   ],
+   [
+    "wait",
+    550
+   ],
+   [
+    "jsclick",
+    "#bInstr"
+   ],
+   [
+    "wait",
+    550
+   ],
+   [
+    "jsclick",
+    "#bStep"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "jsclick",
+    "#bStep"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "jsclick",
+    "#bStep"
+   ],
+   [
+    "wait",
+    900
+   ],
+   [
+    "jsclick",
+    "#bStep"
+   ],
+   [
+    "wait",
+    1300
+   ],
+   [
+    "jsclick",
+    "#bStep"
+   ],
+   [
+    "wait",
+    1600
+   ]
+  ]
  }
 }

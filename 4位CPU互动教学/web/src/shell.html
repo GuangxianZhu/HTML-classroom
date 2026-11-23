@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 位 CPU 互动教学 —— 一步步看懂一台 CPU</title>
+<style>
+:root {
+  --bg: #f1f3f5; --box: #fff; --ink: #212529; --muted: #868e96; --line: #ced4da;
+  --active: #e8590c; --used: #f4a261; --ok: #2f9e44; --bad: #c92a2a; --blue: #1971c2;
+  --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14.5px/1.65 var(--font); }
+button { font: inherit; cursor: pointer; border: 1px solid #c5ccd5; background: #fff; color: var(--ink);
+  border-radius: 6px; padding: 4px 12px; }
+button:hover { background: #e7eefb; }
+button:disabled { opacity: .45; cursor: default; background: #fff; }
+button.primary { background: #2f6fd6; border-color: #2f6fd6; color: #fff; }
+button.primary:hover { background: #4682e4; }
+button.on { background: var(--active); border-color: var(--active); color: #fff; }
+input, select, textarea { font: inherit; }
+label.chk { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
+
+header { padding: 8px 16px; background: #dde3ea; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+header h1 { margin: 0; font-size: 18px; color: #1b2a4a; }
+header small { color: #5c6470; }
+
+#app { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 14px; padding: 12px 14px 20px; align-items: start; }
+#left { min-width: 0; }
+#svgWrap { background: var(--box); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+#dp { display: block; width: 100%; min-width: 700px; height: auto; }
+#dp text { font-family: var(--font); }
+#dp text.m { font-family: var(--mono); }
+#phase { margin: 10px 2px 0; font-size: 15px; min-height: 3.3em; }
+#detail { margin: 2px 2px 0; font-size: 13px; color: var(--muted); min-height: 1.6em; }
+#bar { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 8px; }
+#bar .sep { width: 10px; }
+
+.panel { background: var(--box); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; }
+.panel > .ttl { font-weight: 700; color: #343a40; margin-bottom: 4px; }
+#pred { margin-top: 10px; border-color: #f4a261; background: #fffaf3; }
+#predOpts { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+#predOpts label { font: 700 16px var(--mono); border: 1px solid #e0c6a8; border-radius: 6px; padding: 3px 14px; background: #fff; cursor: pointer; }
+#predOpts label.right { border-color: var(--ok); color: var(--ok); }
+#predOpts label.dim { color: var(--muted); }
+#predOpts input { margin-right: 5px; }
+.fb { margin-top: 4px; }
+.fb.ok { color: var(--ok); } .fb.bad { color: var(--bad); } .fb.dim { color: var(--muted); }
+
+#right { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 10px; max-height: calc(100vh - 20px); }
+#nav { display: flex; gap: 6px; }
+#nav select { flex: 1; min-width: 0; padding: 4px 6px; border-radius: 6px; border: 1px solid #c5ccd5; }
+#quizQ { font-weight: 700; }
+.opt { display: flex; gap: 6px; align-items: flex-start; padding: 3px 8px; border: 1px solid #e6e9ee; border-radius: 5px; margin: 4px 0; cursor: pointer; background: #fff; }
+.opt:hover { background: #f4f7fc; }
+.opt input { margin-top: 5px; }
+.opt.right { border-color: var(--ok); color: var(--ok); background: #f1faf3; }
+.opt.dim { color: var(--muted); }
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#actions:empty { display: none; }
+#body { flex: 1; min-height: 200px; overflow-y: auto; }
+#body h3 { margin: 14px 0 4px; font-size: 17px; }
+#body h3:first-child { margin-top: 2px; }
+#body p { margin: 2px 0; }
+#body pre { margin: 4px 0 4px 8px; font: 13px/1.6 var(--mono); white-space: pre-wrap; background: #f6f8fa; padding: 4px 8px; border-radius: 4px; }
+#body .hint { color: var(--muted); }
+.w { display: inline-block; width: 2ch; text-align: center; }
+.tag-src { color: #1971c2; font-weight: 700; } .tag-gen { color: #2f9e44; font-weight: 700; } .tag-inf { color: #e8590c; font-weight: 700; }
+
+.modal { position: fixed; inset: 0; background: rgba(20,28,45,.4); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 12px; }
+.modal[hidden] { display: none; }
+.modal .box { background: #fff; border-radius: 8px; padding: 14px 18px; width: 100%; max-width: 760px; max-height: 94vh; overflow: auto; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+.modal h3 { margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.modal textarea { width: 100%; height: 340px; font: 13.5px/1.5 var(--mono); padding: 6px 8px; }
+.modal pre { font: 13.5px/1.6 var(--mono); white-space: pre-wrap; margin: 6px 0 0; background: #f6f8fa; padding: 8px 12px; border-radius: 4px; }
+.modal .err { color: var(--bad); min-height: 1.5em; }
+.modal input[type=text] { font: 700 16px var(--mono); padding: 3px 8px; width: 100%; max-width: 360px; }
+.modal input[type=number] { width: 4.5em; padding: 2px 4px; }
+.modal .muted { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 980px) {
+  #app { grid-template-columns: minmax(0, 1fr); padding: 10px 8px 20px; }
+  #right { position: static; max-height: none; }
+  #body { max-height: none; }
+}
+</style>
+</head>
+<body>
+<header><h1>4 位 CPU 互动教学</h1><small>一步步看懂一台 CPU：从整体架构到每一根线</small></header>
+<div id="app">
+  <section id="left">
+    <div id="svgWrap"><svg id="dp" viewBox="0 0 920 480"></svg></div>
+    <div id="phase"></div>
+    <div id="detail"></div>
+    <div id="bar">
+      <button id="bStep" class="primary">下一小步 ▶</button>
+      <button id="bInstr">执行整条指令 ⏭</button>
+      <button id="bRun">连续运行</button>
+      <button id="bReset">重置</button>
+      <button id="bEdit">编辑程序…</button>
+      <span class="sep"></span>
+      <label class="chk"><input type="checkbox" id="cPred">执行前先让我预测</label>
+      <label class="chk"><input type="checkbox" id="cDetail">显示电路细节</label>
+    </div>
+    <div id="pred" class="panel" hidden>
+      <div class="ttl">先猜一猜</div>
+      <div id="predQ"></div>
+      <div id="predOpts"></div>
+      <div class="row"><button id="predOk">确定</button><button id="predSkip">跳过</button><span id="predFb" class="fb"></span></div>
+    </div>
+  </section>
+
+  <aside id="right">
+    <div id="nav"><button id="prev" title="上一章">◀</button><select id="chap"></select><button id="nextCh" title="下一章">▶</button></div>
+    <div class="panel" id="quiz">
+      <div class="ttl">先预测，再看讲解</div>
+      <div id="quizQ"></div>
+      <div id="quizOpts"></div>
+      <div class="row" style="margin-top:4px"><button id="quizOk">提交答案</button><button id="quizSkip">直接看讲解</button></div>
+      <div id="quizFb" class="fb"></div>
+    </div>
+    <div id="actions" class="row"></div>
+    <div class="panel" id="body"></div>
+  </aside>
+</div>
+
+<div id="mEdit" class="modal" hidden><div class="box">
+  <h3><span>编辑程序</span><button data-close>关闭</button></h3>
+  <div class="muted">一行一条指令，# 后面是注释。寄存器 $0~$7（也可以写 R0~R7），立即数 0~15。<br>可用指令：NOP  LD  MOV  DISP  XOR  AND  OR  ADD  SUB</div>
+  <textarea id="edSrc" spellcheck="false"></textarea>
+  <div class="err" id="edErr"></div>
+  <div class="row"><button id="edLoad" class="primary">装载并关闭</button><button id="edExample">恢复示例程序</button></div>
+</div></div>
+
+<div id="mDec" class="modal" hidden><div class="box">
+  <h3><span>指令拆解器</span><button data-close>关闭</button></h3>
+  <div>输入 4 位十六进制机器码（如 7331）或一条汇编（如 SUB $4, $4, $1）：</div>
+  <input type="text" id="decIn" value="7331" spellcheck="false">
+  <div style="overflow-x:auto"><svg id="decSvg" viewBox="0 0 700 90" style="width:100%;min-width:520px;margin-top:8px"></svg></div>
+  <pre id="decOut"></pre>
+</div></div>
+
+<div id="mAlu" class="modal" hidden><div class="box">
+  <h3><span>ALU 实验台</span><button data-close>关闭</button></h3>
+  <div class="row">A = <input type="number" id="aluA" min="0" max="15" value="3">　B = <input type="number" id="aluB" min="0" max="15" value="5">　运算
+    <select id="aluOp"><option>XOR</option><option>AND</option><option>OR</option><option>ADD</option><option selected>SUB</option></select></div>
+  <pre id="aluOut"></pre>
+</div></div>
+
+<script>/*__APP__*/</script>
+</body>
+</html>
