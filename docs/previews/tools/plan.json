@@ -958,5 +958,38 @@
     1600
    ]
   ]
+ },
+ "elevator": {
+  "page": "电梯调度算法/index.html",
+  "colors": 56,
+  "loadWait": 1200,
+  "steps": [
+   [
+    "selopt",
+    [
+     "#algo",
+     "SSTF 最短寻找优先"
+    ]
+   ],
+   [
+    "into",
+    "#building"
+   ],
+   [
+    "wait",
+    300
+   ],
+   [
+    "mark"
+   ],
+   [
+    "jsclick",
+    "#starve"
+   ],
+   [
+    "wait",
+    8500
+   ]
+  ]
  }
 }

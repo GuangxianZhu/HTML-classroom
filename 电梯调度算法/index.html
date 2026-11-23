@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>电梯算法演示</title>
+  <style>
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --text: #1d2330;
+  --muted: #6b7280;
+  --line: #e2e5ea;
+  --accent: #2563eb;
+  --accent-soft: #dbe6ff;
+  --warn: #d97706;
+  --ok: #16a34a;
+  --car: #334155;
+  --door: #94a3b8;
+  --shaft: #eef1f5;
+  --c-FCFS: #e11d48;
+  --c-SSTF: #d97706;
+  --c-SCAN: #2563eb;
+  --c-LOOK: #16a34a;
+  --row-h: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b;
+    --panel: #1b2029;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --line: #2c3340;
+    --accent: #6b9bff;
+    --accent-soft: #23324f;
+    --car: #cbd5e1;
+    --door: #64748b;
+    --shaft: #151a22;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.6 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.top { max-width: 1100px; margin: 0 auto; padding: 24px 16px 4px; }
+.top h1 { margin: 0; font-size: 26px; }
+.sub { margin: 4px 0 0; color: var(--muted); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 16px;
+}
+.card h2 { margin: 0 0 10px; font-size: 19px; }
+h3 { font-size: 15px; margin: 16px 0 6px; }
+h3 small, .hint { color: var(--muted); font-weight: normal; font-size: 13px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 10px; }
+.controls label { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); gap: 3px; }
+.controls label.check { flex-direction: row; align-items: center; color: var(--text); font-size: 14px; }
+.controls label.grow { flex: 1 1 220px; }
+.controls label span { color: var(--text); }
+
+input, select, button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 9px;
+}
+input[type="number"] { width: 80px; }
+input[type="range"] { padding: 0; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.algoDesc { margin: 0 0 12px; padding: 8px 12px; background: var(--accent-soft); border-radius: 8px; }
+
+/* ---------- 楼宇 ---------- */
+.sim { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 20px; }
+.sim > * { min-width: 0; }
+@media (max-width: 720px) { .sim { grid-template-columns: minmax(0, 1fr); } }
+
+.building { display: flex; gap: 8px; }
+.floorsCol { flex: 1; display: flex; flex-direction: column; }
+.floorRow {
+  height: var(--row-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px dashed var(--line);
+  padding-right: 4px;
+}
+.floorRow .num { width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.hall { display: flex; gap: 4px; }
+.hall button, .hall .ph { width: 30px; height: 28px; padding: 0; font-size: 12px; border-radius: 50%; }
+.hall .ph { display: inline-block; }
+button.lit { background: var(--warn); border-color: var(--warn); color: #fff; }
+.floorRow .lamp { margin-left: auto; font-size: 12px; color: var(--warn); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.carPanel { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; max-width: 360px; }
+.carPanel button { padding: 4px 0; border-radius: 50%; aspect-ratio: 1; font-variant-numeric: tabular-nums; max-width: 100%; }
+.riders { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+.shaft {
+  position: relative;
+  width: 64px;
+  background: var(--shaft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  flex: none;
+}
+.car {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: calc(var(--row-h) - 6px);
+  top: 0;
+  border: 2px solid var(--car);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+.door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: var(--door);
+  transition: transform 0.25s ease;
+}
+.door.left { left: 0; }
+.door.right { right: 0; }
+.car.open .door.left { transform: translateX(-90%); }
+.car.open .door.right { transform: translateX(90%); }
+.carLabel {
+  position: relative;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--panel);
+  text-shadow: 0 0 2px var(--car);
+  pointer-events: none;
+}
+.car.open .carLabel { color: var(--car); text-shadow: none; }
+
+/* ---------- 侧栏 ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.stats > div { background: var(--bg); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; }
+.stats .k { font-size: 12px; color: var(--muted); }
+.stats .v { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.queue { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; }
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.chip b { font-size: 15px; }
+.chip.target { border-color: var(--accent); background: var(--accent-soft); }
+.chip.old { border-color: var(--warn); color: var(--warn); }
+.empty { color: var(--muted); font-size: 13px; }
+
+.log {
+  margin: 0;
+  padding: 6px 8px 6px 30px;
+  max-height: 210px;
+  overflow-y: auto;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.log li { margin: 2px 0; }
+.log .t { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.log .serve { color: var(--ok); }
+
+.trace { width: 100%; height: 160px; background: var(--bg); border-radius: 8px; display: block; }
+.trace polyline { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.trace .grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.trace circle { fill: var(--ok); }
+
+/* ---------- 对比 ---------- */
+.compare { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.cmp { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.cmp.best { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
+.cmp h4 { margin: 0; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
+.cmp .dist { font-variant-numeric: tabular-nums; }
+.cmp .order { font-size: 12px; color: var(--muted); margin: 4px 0 6px; word-break: break-all; }
+.cmp svg { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 6px; }
+.cmp svg text { fill: var(--muted); font-size: 10px; }
+.cmp svg .grid { stroke: var(--line); }
+.bar { height: 8px; border-radius: 4px; margin-top: 6px; }
+.guessResult { margin: 0 0 10px; min-height: 1em; font-weight: 600; }
+
+.notes table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.notes th, .notes td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.notes th { color: var(--muted); font-weight: 600; }
+@media (max-width: 600px) {
+  .notes table, .notes tbody, .notes tr, .notes td { display: block; }
+  .notes thead { display: none; }
+  .notes tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+  .notes td { border: 0; padding: 2px 0; }
+  .notes td:first-child { font-weight: 700; }
+}
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>电梯调度算法演示</h1>
+    <p class="sub">在楼层外按 ▲/▼ 叫电梯，乘客上车后再按目标楼层，看电梯按不同算法怎么跑。下面还有同一组请求下四种算法的路径对比。</p>
+  </header>
+
+  <main>
+    <!-- ============ 实时模拟 ============ -->
+    <section class="card">
+      <h2>实时模拟</h2>
+      <div class="controls">
+        <label>算法
+          <select id="algo"></select>
+        </label>
+        <label>楼层数
+          <input id="floors" type="number" min="4" max="20" value="10" />
+        </label>
+        <label>速度
+          <input id="speed" type="range" min="0.5" max="4" step="0.5" value="1" />
+          <span id="speedVal">1×</span>
+        </label>
+        <button id="pause">暂停</button>
+        <button id="reset">重置</button>
+      </div>
+      <div class="controls">
+        <label class="check"><input id="auto" type="checkbox" /> 随机自动请求</label>
+        <button id="burst">随机来 5 个请求</button>
+        <button id="starve" title="顶楼有人按 ▼ 在等，同时中间几层不断有人按">制造“饥饿”场景</button>
+      </div>
+      <p class="algoDesc" id="algoDesc"></p>
+
+      <div class="sim">
+        <div class="building" id="building">
+          <div class="shaft" id="shaft">
+            <div class="car" id="car">
+              <div class="door left"></div>
+              <div class="door right"></div>
+              <span class="carLabel" id="carLabel">1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side">
+          <div class="stats">
+            <div><span class="k">当前楼层</span><span class="v" id="sFloor">1</span></div>
+            <div><span class="k">方向</span><span class="v" id="sDir">静止</span></div>
+            <div><span class="k">目标</span><span class="v" id="sTarget">—</span></div>
+            <div><span class="k">累计移动</span><span class="v" id="sDist">0 层</span></div>
+            <div><span class="k">已服务</span><span class="v" id="sServed">0</span></div>
+            <div><span class="k">平均等待</span><span class="v" id="sAvg">—</span></div>
+            <div><span class="k">最长等待</span><span class="v" id="sMax">—</span></div>
+          </div>
+
+          <h3>轿厢内 <small>（乘客上车后会自动按目标楼层，你也可以手动按）</small></h3>
+          <div class="carPanel" id="carPanel"></div>
+          <p class="riders" id="riders"></p>
+
+          <h3>请求队列 <small>（按到达顺序；▲▼ 是厅外呼叫，“内”是轿厢内按钮；数字是已等待秒数）</small></h3>
+          <div class="queue" id="queue"></div>
+
+          <h3>决策过程</h3>
+          <ol class="log" id="log"></ol>
+        </div>
+      </div>
+
+      <h3>楼层-时间轨迹 <small>（最近 40 秒，圆点 = 停靠服务）</small></h3>
+      <svg class="trace" id="trace" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+    </section>
+
+    <!-- ============ 离线对比 ============ -->
+    <section class="card">
+      <h2>同一组请求，四种算法对比</h2>
+      <p class="hint">假设乘客都已经在电梯里，按下了这些目标楼层（全是轿厢内按钮，没有上下方向之分，相当于操作系统课里的磁盘调度题），比较总移动层数。</p>
+      <div class="controls">
+        <label class="grow">乘客按下的目标楼层（按顺序）
+          <input id="seq" type="text" value="2, 9, 4, 10, 1, 7, 3" />
+        </label>
+        <label>起点
+          <input id="start" type="number" min="1" max="20" value="5" />
+        </label>
+        <label>初始方向
+          <select id="initDir">
+            <option value="1">向上</option>
+            <option value="-1">向下</option>
+          </select>
+        </label>
+      </div>
+      <div class="controls">
+        <label>先猜一猜：哪种总移动最少？
+          <select id="guess">
+            <option value="">（不猜）</option>
+            <option value="FCFS">FCFS</option>
+            <option value="SSTF">SSTF</option>
+            <option value="SCAN">SCAN</option>
+            <option value="LOOK">LOOK</option>
+          </select>
+        </label>
+        <button id="compare" class="primary">计算并对比</button>
+        <button id="loadSeq" title="把这组请求放进上面的实时模拟里跑一遍">放进实时模拟</button>
+        <button id="randSeq">随机一组</button>
+      </div>
+      <p id="guessResult" class="guessResult"></p>
+      <div class="compare" id="compareOut"></div>
+    </section>
+
+    <section class="card notes">
+      <h2>原理速记</h2>
+      <table>
+        <thead><tr><th>算法</th><th>规则</th><th>优点</th><th>缺点</th></tr></thead>
+        <tbody>
+          <tr><td>FCFS</td><td>按按钮被按下的先后顺序逐个去，途中不停</td><td>绝对公平，实现最简单</td><td>来回乱跑，总路程最长</td></tr>
+          <tr><td>SSTF</td><td>永远去离当前最近的请求，不管那人想上还是想下</td><td>总路程通常很短</td><td>远处的请求可能一直等（饥饿）</td></tr>
+          <tr><td>SCAN</td><td>沿一个方向扫到顶层/底层再掉头；只顺路接同方向的外呼</td><td>每个请求最多等一个来回，不会饥饿</td><td>尽头没人也要跑过去，白跑几层</td></tr>
+          <tr><td>LOOK</td><td>沿一个方向走，前方没请求就掉头；只顺路接同方向的外呼</td><td>保留 SCAN 的公平，又省掉空跑</td><td>两端楼层的平均等待仍比中间长</td></tr>
+        </tbody>
+      </table>
+      <p class="hint">为什么外呼要分 ▲ 和 ▼？电梯向上走时路过 5 楼，如果那里的人要下楼，接上他只会让他陪着先上去再下来，还占了别人的位置，所以 SCAN/LOOK 只顺路接同方向的人，反方向的等回程再接。这就是现实中绝大多数电梯用的“集选控制”，本质是 LOOK。这里仍做了简化：单台电梯、不考虑载重，乘客的目标楼层随机生成。</p>
+    </section>
+  </main>
+
+  <script>
+/*
+ * 电梯调度算法（纯函数，无 DOM 依赖，浏览器和 Node 都能用）
+ *
+ * 请求分两种，和真实电梯一样：
+ *   外呼（厅外按钮）：{ floor, type: 'up' | 'down', t }  人在楼层，按 ▲ 或 ▼
+ *   内呼（轿厢按钮）：{ floor, type: 'car', t }          人在电梯里，按目标楼层
+ *
+ * 约定：
+ *   floor   当前所在楼层（整数，1..N）
+ *   dir     当前运行方向：+1 向上，-1 向下，0 空闲
+ *   pending 未完成的请求，按到达先后排序
+ *   N       总楼层数
+ *
+ * 每到一层，调用方先问 stops()：“这一层要不要开门、接/放哪些人”，
+ * 不停就再问 decide()：“下一步往哪走”。电梯一层一层推进，
+ * 途中新来的请求在下一层就会被考虑进去。
+ */
+(function (root) {
+  'use strict';
+
+  var ALGOS = {
+    FCFS: {
+      key: 'FCFS',
+      name: 'FCFS 先来先服务',
+      short: '严格按按钮被按下的先后顺序一个一个处理，路过别的楼层也不停。',
+    },
+    SSTF: {
+      key: 'SSTF',
+      name: 'SSTF 最短寻找优先',
+      short: '每次去离自己最近的请求，不管那人想上还是想下。',
+    },
+    SCAN: {
+      key: 'SCAN',
+      name: 'SCAN 扫描（电梯算法）',
+      short: '沿一个方向一直走到顶层/底层再掉头；只接同方向的外呼，反方向的等回程再接。',
+    },
+    LOOK: {
+      key: 'LOOK',
+      name: 'LOOK 视察',
+      short: '沿一个方向走，前方没有要处理的请求就掉头；只接同方向的外呼，反方向的等回程再接。',
+    },
+  };
+
+  function sign(x) {
+    return x > 0 ? 1 : x < 0 ? -1 : 0;
+  }
+
+  function dirText(d) {
+    return d > 0 ? '向上' : d < 0 ? '向下' : '空闲';
+  }
+
+  function typeDir(type) {
+    return type === 'up' ? 1 : type === 'down' ? -1 : 0;
+  }
+
+  function label(p) {
+    return p.floor + (p.type === 'up' ? '楼▲' : p.type === 'down' ? '楼▼' : '楼(内)');
+  }
+
+  // 运行方向为 d 时，路过这个请求能不能顺路停：内呼都能，外呼要同方向
+  function passable(p, d) {
+    return p.type === 'car' || typeDir(p.type) === d;
+  }
+
+  function aheadOf(floor, d, pending) {
+    return pending.filter(function (p) { return sign(p.floor - floor) === d; });
+  }
+
+  function closest(floor, list, dir) {
+    var best = null;
+    list.forEach(function (p) {
+      if (best === null) { best = p; return; }
+      var dp = Math.abs(p.floor - floor);
+      var db = Math.abs(best.floor - floor);
+      // 距离相同时优先保持当前方向（空闲时优先向上），减少来回折返
+      if (dp < db || (dp === db && sign(p.floor - floor) === (dir || 1) && sign(best.floor - floor) !== (dir || 1))) best = p;
+    });
+    return best;
+  }
+
+  function farthest(floor, list) {
+    var best = null;
+    list.forEach(function (p) {
+      if (best === null || Math.abs(p.floor - floor) > Math.abs(best.floor - floor)) best = p;
+    });
+    return best;
+  }
+
+  function endOf(d, N) {
+    return d > 0 ? N : 1;
+  }
+
+  // 空闲时定方向：本层有外呼就按它的方向，否则朝最近的请求走
+  function startDir(floor, dir, pending) {
+    if (dir) return dir;
+    for (var i = 0; i < pending.length; i++) {
+      if (pending[i].floor === floor && pending[i].type !== 'car') return typeDir(pending[i].type);
+    }
+    var c = closest(floor, pending, 0);
+    return c ? sign(c.floor - floor) : 0;
+  }
+
+  /*
+   * 到达 floor 时，这一层要服务哪些请求。
+   * 返回 { serve: [请求...], dir: 服务后的运行方向 }，serve 为空表示不停。
+   */
+  function stops(algo, floor, dir, pending, N) {
+    var here = pending.filter(function (p) { return p.floor === floor; });
+    if (!here.length) return { serve: [], dir: dir };
+
+    if (algo === 'FCFS') {
+      // 只有排在队首的请求恰好在这一层才停（连续几个都在这层就一起处理）
+      var serve = [];
+      for (var i = 0; i < pending.length && pending[i].floor === floor; i++) serve.push(pending[i]);
+      return { serve: serve, dir: dir };
+    }
+
+    if (algo === 'SSTF') {
+      // SSTF 不看方向：到了就全接
+      return { serve: here, dir: dir };
+    }
+
+    // SCAN / LOOK：按方向区分
+    var d = startDir(floor, dir, pending);
+    if (d === 0) return { serve: here, dir: 0 };
+
+    var serveNow = here.filter(function (p) { return passable(p, d); });
+    var boardingSameDir = serveNow.some(function (p) { return p.type !== 'car'; });
+    var rest = pending.filter(function (p) { return p.floor !== floor; });
+    var nothingAhead = aheadOf(floor, d, rest).length === 0;
+    // LOOK：前方没请求就能在这里掉头；SCAN：必须到了尽头才掉头
+    var canTurn = nothingAhead && (algo === 'LOOK' || floor === endOf(d, N));
+
+    if (canTurn && !boardingSameDir) {
+      var opposite = here.filter(function (p) { return typeDir(p.type) === -d; });
+      if (opposite.length) return { serve: serveNow.concat(opposite), dir: -d };
+    }
+    return { serve: serveNow, dir: d };
+  }
+
+  /*
+   * 不停的时候，下一步往哪个楼层去。
+   * 返回 { target, dir, reason }，target 为 null 表示待机。
+   */
+  function decide(algo, floor, dir, pending, N) {
+    var others = pending.filter(function (p) { return p.floor !== floor; });
+    // 本层若还剩请求，说明是现在不能接的反方向呼叫：只有 SCAN 会为它继续扫到尽头再回来
+    if (!others.length && !(algo === 'SCAN' && pending.length && dir)) {
+      return { target: null, dir: 0, reason: '没有请求，原地待机。' };
+    }
+    var t;
+
+    if (algo === 'FCFS') {
+      t = pending[0];
+      return {
+        target: t.floor,
+        dir: sign(t.floor - floor),
+        reason: '队首是 ' + label(t) + '，直接过去，路过别的楼层也不停。',
+      };
+    }
+
+    if (algo === 'SSTF') {
+      t = closest(floor, others, dir);
+      return {
+        target: t.floor,
+        dir: sign(t.floor - floor),
+        reason: '离 ' + floor + ' 楼最近的请求是 ' + label(t) + '，不管方向，先去那里。',
+      };
+    }
+
+    // SCAN / LOOK
+    var d = startDir(floor, dir, others.length ? others : pending);
+    var tries = [d, -d];
+    for (var k = 0; k < 2; k++) {
+      var td = tries[k];
+      var turn = k === 1 ? '掉头' + dirText(td) + '，' : '保持' + dirText(td) + '，';
+      var ahead = aheadOf(floor, td, others);
+      var end = endOf(td, N);
+
+      if (algo === 'SCAN' && k === 0 && floor !== end) {
+        // SCAN：只要还有请求，就沿当前方向一路扫到尽头
+        var ps0 = ahead.filter(function (p) { return passable(p, td); });
+        if (ps0.length) {
+          t = closest(floor, ps0, td);
+          return { target: t.floor, dir: td, reason: turn + '前方最近能顺路停的是 ' + label(t) + '。' };
+        }
+        return {
+          target: end,
+          dir: td,
+          reason: '前方没有同方向的请求了，但 SCAN 要先扫到尽头 ' + end + ' 楼才掉头。',
+        };
+      }
+
+      if (!ahead.length) continue;
+      var ps = ahead.filter(function (p) { return passable(p, td); });
+      if (ps.length) {
+        t = closest(floor, ps, td);
+        return { target: t.floor, dir: td, reason: turn + '前方最近能顺路停的是 ' + label(t) + '。' };
+      }
+      if (algo === 'SCAN') {
+        return {
+          target: end,
+          dir: td,
+          reason: turn + '前方只有反方向的呼叫，SCAN 先扫到尽头 ' + end + ' 楼再回头接。',
+        };
+      }
+      t = farthest(floor, ahead);
+      return {
+        target: t.floor,
+        dir: td,
+        reason: turn + '前方只剩反方向的呼叫，先到最远的 ' + label(t) + '，在那里掉头接人。',
+      };
+    }
+    return { target: null, dir: 0, reason: '没有可去的请求，原地待机。' };
+  }
+
+  // 离线模拟：乘客都已在轿厢里、按好了目标楼层（全是内呼），用来画对比图、算总移动距离
+  function simulate(algo, start, floors, N, initDir) {
+    var pending = [];
+    floors.forEach(function (f, i) {
+      if (f >= 1 && f <= N && !pending.some(function (p) { return p.floor === f; })) {
+        pending.push({ floor: f, type: 'car', t: i });
+      }
+    });
+    return run(algo, start, pending, N, initDir);
+  }
+
+  // 通用离线运行器（请求一开始就全部已知），测试也用它
+  function run(algo, start, pending, N, initDir) {
+    pending = pending.slice();
+    var floor = start;
+    var dir = initDir || 0;
+    var path = [floor];
+    var served = []; // { floor, type, step }
+    var guard = 0;
+
+    while (guard++ < 10000) {
+      var st = stops(algo, floor, dir, pending, N);
+      if (st.serve.length) {
+        dir = st.dir;
+        st.serve.forEach(function (p) {
+          pending.splice(pending.indexOf(p), 1);
+          served.push({ floor: p.floor, type: p.type, step: path.length - 1 });
+        });
+        continue;
+      }
+      var dec = decide(algo, floor, dir, pending, N);
+      if (dec.target === null) break;
+      dir = dec.dir;
+      floor += sign(dec.target - floor);
+      path.push(floor);
+    }
+    return { path: path, served: served, distance: path.length - 1 };
+  }
+
+  var api = {
+    ALGOS: ALGOS,
+    stops: stops,
+    decide: decide,
+    simulate: simulate,
+    run: run,
+    dirText: dirText,
+    typeDir: typeDir,
+    label: label,
+    sign: sign,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Elevator = api;
+})(this);
+</script>
+  <script>
+/* 页面交互与动画。算法本身在 algorithms.js 里。 */
+(function () {
+  'use strict';
+
+  var E = window.Elevator;
+  var ALGOS = E.ALGOS;
+  var ROW_H = 44;          // 与 style.css 中 --row-h 一致
+  var FLOOR_TIME = 0.8;    // 移动一层所需秒数（1× 速度）
+  var DOOR_TIME = 1.2;     // 开关门停靠秒数
+  var TRACE_WINDOW = 40;   // 轨迹图显示最近多少秒
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------------- 状态 ----------------
+  var S;
+  function freshState(N) {
+    return {
+      N: N,
+      floor: 1,
+      from: 1,
+      to: 1,
+      moving: false,
+      progress: 0,
+      dir: 0,
+      target: null,
+      door: 0,
+      pending: [],      // { floor, type: 'up'|'down'|'car', t }
+      riders: [],       // 车里的乘客 { dest }
+      served: [],       // 被接上的外呼 { floor, wait }
+      distance: 0,
+      time: 0,
+      lastKey: '',
+      trace: [],        // { t, y }
+      stops: [],        // { t, y }
+      traceAcc: 0,
+      autoAcc: 0,
+      starveUntil: -1,
+    };
+  }
+
+  var paused = false;
+
+  // ---------------- 初始化 UI ----------------
+  Object.keys(ALGOS).forEach(function (k) {
+    var o = document.createElement('option');
+    o.value = k;
+    o.textContent = ALGOS[k].name;
+    $('algo').appendChild(o);
+  });
+  $('algo').value = 'LOOK';
+
+  var floorsCol = document.createElement('div');
+  floorsCol.className = 'floorsCol';
+  $('building').insertBefore(floorsCol, $('shaft'));
+
+  function algo() { return $('algo').value; }
+  function speed() { return parseFloat($('speed').value); }
+
+  function buildBuilding() {
+    floorsCol.innerHTML = '';
+    for (var f = S.N; f >= 1; f--) {
+      var row = document.createElement('div');
+      row.className = 'floorRow';
+      row.dataset.floor = f;
+      row.innerHTML =
+        '<span class="num">' + f + 'F</span>' +
+        '<span class="hall">' +
+        (f < S.N ? '<button type="button" class="up" aria-label="' + f + ' 楼上行">▲</button>' : '<span class="ph"></span>') +
+        (f > 1 ? '<button type="button" class="down" aria-label="' + f + ' 楼下行">▼</button>' : '<span class="ph"></span>') +
+        '</span>' +
+        '<span class="lamp"></span>';
+      var up = row.querySelector('.up');
+      var down = row.querySelector('.down');
+      if (up) up.addEventListener('click', addRequest.bind(null, f, 'up'));
+      if (down) down.addEventListener('click', addRequest.bind(null, f, 'down'));
+      floorsCol.appendChild(row);
+    }
+    $('shaft').style.height = S.N * ROW_H + 'px';
+
+    var panel = $('carPanel');
+    panel.innerHTML = '';
+    for (var g = 1; g <= S.N; g++) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = g;
+      b.dataset.floor = g;
+      b.addEventListener('click', addRequest.bind(null, g, 'car'));
+      panel.appendChild(b);
+    }
+  }
+
+  function reset() {
+    var N = clamp(parseInt($('floors').value, 10) || 10, 4, 20);
+    $('floors').value = N;
+    S = freshState(N);
+    buildBuilding();
+    $('log').innerHTML = '';
+    log('电梯停在 1 楼，等待呼叫。');
+    render();
+  }
+
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+  // ---------------- 请求 ----------------
+  function findReq(f, type) {
+    for (var i = 0; i < S.pending.length; i++) {
+      if (S.pending[i].floor === f && S.pending[i].type === type) return S.pending[i];
+    }
+    return null;
+  }
+
+  function addRequest(f, type) {
+    if (f < 1 || f > S.N) return;
+    if (type === 'up' && f === S.N) return;
+    if (type === 'down' && f === 1) return;
+    if (findReq(f, type)) return; // 同一个按钮已经亮着，再按也只是一个请求
+    // 电梯正停在这层开着门，而且方向对得上：直接进来，不用排队
+    if (S.door > 0 && S.floor === f) {
+      if (type === 'car') return;
+      if (algo() !== 'FCFS' && (S.dir === 0 || E.typeDir(type) === S.dir || algo() === 'SSTF')) {
+        board({ floor: f, type: type, t: S.time });
+        S.door = DOOR_TIME;
+        return;
+      }
+    }
+    S.pending.push({ floor: f, type: type, t: S.time });
+    if (type === 'car') log('车里有人按了 ' + f + ' 楼。');
+    else log(f + ' 楼有人按了 ' + (type === 'up' ? '▲ 上行' : '▼ 下行') + '。');
+  }
+
+  function randomFloor(lo, hi) {
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
+  function randomCall(lo, hi) {
+    var f = randomFloor(lo, hi);
+    var type = f === S.N ? 'down' : f === 1 ? 'up' : Math.random() < 0.5 ? 'up' : 'down';
+    addRequest(f, type);
+  }
+
+  // ---------------- 调度核心 ----------------
+  // 接上一位在厅外等的乘客：他进门后按一个和他呼叫方向一致的目标楼层
+  function board(req) {
+    var f = req.floor;
+    var dest = req.type === 'up' ? randomFloor(f + 1, S.N) : randomFloor(1, f - 1);
+    var wait = S.time - req.t;
+    S.served.push({ floor: f, wait: wait });
+    S.riders.push({ dest: dest });
+    log('在 ' + E.label(req) + ' 接上一位乘客（等了 ' + wait.toFixed(1) + ' 秒），他按了 ' + dest + ' 楼。', 'serve');
+    if (!findReq(dest, 'car')) S.pending.push({ floor: dest, type: 'car', t: S.time });
+  }
+
+  function serve(list) {
+    list.forEach(function (req) {
+      S.pending.splice(S.pending.indexOf(req), 1);
+      if (req.type === 'car') {
+        var before = S.riders.length;
+        S.riders = S.riders.filter(function (r) { return r.dest !== req.floor; });
+        var out = before - S.riders.length;
+        log('到达 ' + req.floor + ' 楼，' + (out ? out + ' 位乘客下车' : '开门') + '。', 'serve');
+      }
+    });
+    list.forEach(function (req) { if (req.type !== 'car') board(req); });
+    S.stops.push({ t: S.time, y: S.floor });
+    S.door = DOOR_TIME;
+  }
+
+  function plan() {
+    var st = E.stops(algo(), S.floor, S.dir, S.pending, S.N);
+    if (st.serve.length) {
+      if (st.dir !== S.dir && S.dir !== 0 && st.dir !== 0) log('前方没有要处理的请求了，在 ' + S.floor + ' 楼掉头' + E.dirText(st.dir) + '。');
+      S.dir = st.dir;
+      serve(st.serve);
+      S.lastKey = '';
+      return;
+    }
+    var d = E.decide(algo(), S.floor, S.dir, S.pending, S.N);
+    S.target = d.target;
+    // 目标或方向变了才记一条，避免每经过一层都刷屏
+    var key = d.target + '|' + d.dir;
+    if (key !== S.lastKey) {
+      log(d.reason);
+      S.lastKey = key;
+    }
+    if (d.target === null) {
+      S.dir = 0;
+      return;
+    }
+    S.dir = d.dir;
+    S.from = S.floor;
+    S.to = S.floor + E.sign(d.target - S.floor);
+    S.moving = true;
+    S.progress = 0;
+  }
+
+  function step(dt) {
+    S.time += dt;
+
+    // 自动请求
+    var starving = S.time < S.starveUntil;
+    if ($('auto').checked || starving) {
+      S.autoAcc += dt;
+      var every = starving ? 1.6 : 3;
+      while (S.autoAcc >= every) {
+        S.autoAcc -= every;
+        if (starving) {
+          var mid = Math.ceil(S.N / 2);
+          randomCall(mid - 1, mid + 1);
+        } else {
+          randomCall(1, S.N);
+        }
+      }
+    }
+
+    if (S.door > 0) {
+      S.door -= dt;
+      if (S.door <= 0) { S.door = 0; plan(); }
+    } else if (S.moving) {
+      S.progress += dt / FLOOR_TIME;
+      if (S.progress >= 1) {
+        S.floor = S.to;
+        S.moving = false;
+        S.progress = 0;
+        S.distance += 1;
+        plan(); // 每到一层都重新决策：可能顺路停，也可能改主意
+      }
+    } else {
+      plan();
+    }
+
+    // 轨迹采样
+    S.traceAcc += dt;
+    if (S.traceAcc >= 0.1) {
+      S.traceAcc = 0;
+      S.trace.push({ t: S.time, y: carPos() });
+      while (S.trace.length && S.trace[0].t < S.time - TRACE_WINDOW) S.trace.shift();
+      while (S.stops.length && S.stops[0].t < S.time - TRACE_WINDOW) S.stops.shift();
+    }
+  }
+
+  function carPos() {
+    return S.moving ? S.from + (S.to - S.from) * S.progress : S.floor;
+  }
+
+  // ---------------- 渲染 ----------------
+  function render() {
+    var pos = carPos();
+    var car = $('car');
+    car.style.transform = 'translateY(' + ((S.N - pos) * ROW_H + 3) + 'px)';
+    car.classList.toggle('open', S.door > 0);
+    $('carLabel').textContent = (S.dir > 0 ? '▲' : S.dir < 0 ? '▼' : '') + Math.round(pos);
+
+    var rows = floorsCol.children;
+    for (var i = 0; i < rows.length; i++) {
+      var f = +rows[i].dataset.floor;
+      var up = findReq(f, 'up');
+      var down = findReq(f, 'down');
+      var ub = rows[i].querySelector('.up');
+      var db = rows[i].querySelector('.down');
+      if (ub) ub.classList.toggle('lit', !!up);
+      if (db) db.classList.toggle('lit', !!down);
+      var txt = [];
+      if (up) txt.push('▲' + (S.time - up.t).toFixed(0) + 's');
+      if (down) txt.push('▼' + (S.time - down.t).toFixed(0) + 's');
+      rows[i].querySelector('.lamp').textContent = txt.join(' ');
+    }
+
+    var btns = $('carPanel').children;
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.toggle('lit', !!findReq(+btns[j].dataset.floor, 'car'));
+    }
+    $('riders').textContent = S.riders.length
+      ? '车内 ' + S.riders.length + ' 人，要去：' + S.riders.map(function (r) { return r.dest; }).join('、') + ' 楼'
+      : '车内没有乘客';
+
+    $('sFloor').textContent = Math.round(pos);
+    $('sDir').textContent = (S.dir > 0 ? '↑ ' : S.dir < 0 ? '↓ ' : '') + E.dirText(S.dir);
+    $('sTarget').textContent = S.target === null ? '—' : S.target + ' 楼';
+    $('sDist').textContent = S.distance + ' 层';
+    $('sServed').textContent = S.served.length;
+    if (S.served.length) {
+      var sum = 0, max = 0;
+      S.served.forEach(function (s) { sum += s.wait; max = Math.max(max, s.wait); });
+      $('sAvg').textContent = (sum / S.served.length).toFixed(1) + ' 秒';
+      $('sMax').textContent = max.toFixed(1) + ' 秒';
+    } else {
+      $('sAvg').textContent = '—';
+      $('sMax').textContent = '—';
+    }
+
+    var q = $('queue');
+    if (!S.pending.length) {
+      q.innerHTML = '<span class="empty">空</span>';
+    } else {
+      q.innerHTML = S.pending.map(function (p) {
+        var w = S.time - p.t;
+        var cls = 'chip' + (p.floor === S.target ? ' target' : '') + (p.type !== 'car' && w > 20 ? ' old' : '');
+        var mark = p.type === 'up' ? '▲' : p.type === 'down' ? '▼' : '内';
+        return '<span class="' + cls + '"><b>' + p.floor + '</b>' + mark + ' · ' + w.toFixed(0) + 's</span>';
+      }).join('');
+    }
+
+    renderTrace();
+  }
+
+  function renderTrace() {
+    var svg = $('trace');
+    var W = 600, H = 160, pad = 8;
+    var t0 = S.time - TRACE_WINDOW;
+    var x = function (t) { return ((t - t0) / TRACE_WINDOW) * W; };
+    var y = function (f) { return H - pad - ((f - 1) / Math.max(1, S.N - 1)) * (H - 2 * pad); };
+    var html = '';
+    for (var f = 1; f <= S.N; f++) {
+      html += '<line class="grid" x1="0" x2="' + W + '" y1="' + y(f) + '" y2="' + y(f) + '"/>';
+    }
+    if (S.trace.length) {
+      html += '<polyline points="' + S.trace.map(function (p) {
+        return x(p.t).toFixed(1) + ',' + y(p.y).toFixed(1);
+      }).join(' ') + '"/>';
+    }
+    S.stops.forEach(function (s) {
+      html += '<circle cx="' + x(s.t).toFixed(1) + '" cy="' + y(s.y).toFixed(1) + '" r="3.5"/>';
+    });
+    svg.innerHTML = html;
+  }
+
+  function log(msg, cls) {
+    var li = document.createElement('li');
+    if (cls) li.className = cls;
+    li.innerHTML = '<span class="t">' + (S ? S.time.toFixed(1) : '0.0') + 's</span>' + msg;
+    var ol = $('log');
+    ol.appendChild(li);
+    while (ol.children.length > 200) ol.removeChild(ol.firstChild);
+    ol.scrollTop = ol.scrollHeight;
+  }
+
+  // ---------------- 主循环 ----------------
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000); // 切到后台再回来时不要一下跳太多
+    last = now;
+    if (!paused) {
+      var sim = dt * speed();
+      // 拆成小步，保证高速时每一层都会被“经过”并参与决策
+      var n = Math.ceil(sim / 0.02);
+      for (var i = 0; i < n; i++) step(sim / n);
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------------- 事件 ----------------
+  function updateAlgoDesc() {
+    var a = ALGOS[algo()];
+    $('algoDesc').innerHTML = '<b>' + a.name + '</b>：' + a.short;
+  }
+  $('algo').addEventListener('change', function () {
+    updateAlgoDesc();
+    S.lastKey = '';
+    log('切换算法为 ' + ALGOS[algo()].name + '。');
+  });
+  $('speed').addEventListener('input', function () { $('speedVal').textContent = speed() + '×'; });
+  $('pause').addEventListener('click', function () {
+    paused = !paused;
+    this.textContent = paused ? '继续' : '暂停';
+  });
+  $('reset').addEventListener('click', reset);
+  $('floors').addEventListener('change', reset);
+  $('burst').addEventListener('click', function () {
+    for (var i = 0; i < 5; i++) randomCall(1, S.N);
+  });
+  $('starve').addEventListener('click', function () {
+    addRequest(S.N, 'down');
+    S.starveUntil = S.time + 30;
+    log('饥饿场景：顶楼 ' + S.N + ' 楼有人按了 ▼ 在等，接下来 30 秒中间几层会不停有人按。试试 SSTF 和 LOOK 的区别。');
+  });
+
+  // ---------------- 离线对比 ----------------
+  function parseSeq() {
+    return $('seq').value.split(/[\s,，、]+/).map(function (s) { return parseInt(s, 10); })
+      .filter(function (x) { return !isNaN(x); });
+  }
+
+  function compare() {
+    var seq = parseSeq();
+    var start = parseInt($('start').value, 10) || 1;
+    var N = Math.max(start, Math.max.apply(null, seq.concat([S.N])));
+    var dir = parseInt($('initDir').value, 10);
+    var results = Object.keys(ALGOS).map(function (k) {
+      return { key: k, r: E.simulate(k, start, seq, N, dir) };
+    });
+    var maxDist = Math.max.apply(null, results.map(function (x) { return x.r.distance; })) || 1;
+    var minDist = Math.min.apply(null, results.map(function (x) { return x.r.distance; }));
+
+    $('compareOut').innerHTML = results.map(function (x) {
+      var best = x.r.distance === minDist;
+      return '<div class="cmp' + (best ? ' best' : '') + '">' +
+        '<h4><span>' + ALGOS[x.key].name + '</span><span class="dist">' + x.r.distance + ' 层' + (best ? ' ✓' : '') + '</span></h4>' +
+        '<div class="order">' + start + ' → ' + x.r.served.map(function (s) { return s.floor; }).join(' → ') + '</div>' +
+        pathSvg(x.r, N, maxDist, 'var(--c-' + x.key + ')') +
+        '<div class="bar" style="width:' + (x.r.distance / maxDist * 100) + '%;background:var(--c-' + x.key + ')"></div>' +
+        '</div>';
+    }).join('');
+
+    var g = $('guess').value;
+    var winners = results.filter(function (x) { return x.r.distance === minDist; }).map(function (x) { return x.key; });
+    if (!g) {
+      $('guessResult').textContent = '';
+    } else if (winners.indexOf(g) >= 0) {
+      $('guessResult').innerHTML = '🎉 猜对了！' + winners.join('、') + ' 总移动最少（' + minDist + ' 层）。';
+    } else {
+      $('guessResult').innerHTML = '差一点：这组请求下最少的是 ' + winners.join('、') + '（' + minDist + ' 层）。看看下面的路径图找找原因。';
+    }
+  }
+
+  // 横轴 = 已移动层数（相当于时间），四张图共用同一横轴比例，长短一眼可比
+  function pathSvg(r, N, maxDist, color) {
+    var W = 260, H = 130, L = 22, R = 6, T = 6, B = 16;
+    var x = function (s) { return L + (s / maxDist) * (W - L - R); };
+    var y = function (f) { return T + ((N - f) / Math.max(1, N - 1)) * (H - T - B); };
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '">';
+    var stepLbl = Math.ceil(N / 6);
+    for (var f = 1; f <= N; f++) {
+      out += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(f) + '" y2="' + y(f) + '" stroke-width="0.5"/>';
+      if (f === 1 || f === N || f % stepLbl === 0) {
+        out += '<text x="' + (L - 4) + '" y="' + (y(f) + 3) + '" text-anchor="end">' + f + '</text>';
+      }
+    }
+    out += '<text x="' + (W - R) + '" y="' + (H - 3) + '" text-anchor="end">移动层数 →</text>';
+    out += '<polyline fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" points="' +
+      r.path.map(function (f, i) { return x(i).toFixed(1) + ',' + y(f).toFixed(1); }).join(' ') + '"/>';
+    r.served.forEach(function (s, i) {
+      out += '<circle cx="' + x(s.step).toFixed(1) + '" cy="' + y(s.floor).toFixed(1) + '" r="3" fill="' + color + '"><title>第 ' + (i + 1) + ' 站：' + s.floor + ' 楼</title></circle>';
+    });
+    out += '<circle cx="' + x(0) + '" cy="' + y(r.path[0]) + '" r="3.5" fill="none" stroke="' + color + '" stroke-width="1.5"/>';
+    return out + '</svg>';
+  }
+
+  $('compare').addEventListener('click', compare);
+  $('randSeq').addEventListener('click', function () {
+    var arr = [];
+    var n = 6 + Math.floor(Math.random() * 3);
+    while (arr.length < n) {
+      var f = randomFloor(1, S.N);
+      if (arr.indexOf(f) < 0) arr.push(f);
+    }
+    $('seq').value = arr.join(', ');
+    $('start').value = randomFloor(1, S.N);
+  });
+  $('loadSeq').addEventListener('click', function () {
+    var seq = parseSeq();
+    var need = Math.max.apply(null, seq.concat([parseInt($('start').value, 10) || 1, 4]));
+    if (need > 20) { log('实时模拟最多 20 层，请把楼层控制在 20 以内。'); return; }
+    if (need > S.N) $('floors').value = need;
+    reset();
+    var start = parseInt($('start').value, 10) || 1;
+    S.floor = S.from = S.to = start;
+    S.dir = parseInt($('initDir').value, 10);
+    seq.forEach(function (f) {
+      if (f === start) return;
+      if (!findReq(f, 'car')) S.pending.push({ floor: f, type: 'car', t: 0 });
+      S.riders.push({ dest: f });
+    });
+    log('已载入：电梯停在 ' + start + ' 楼，车里的乘客按了 ' + seq.join('、') + ' 楼，初始方向' + E.dirText(S.dir) + '。');
+    $('car').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ---------------- 启动 ----------------
+  reset();
+  updateAlgoDesc();
+  compare();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
