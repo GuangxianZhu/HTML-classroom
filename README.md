@@ -52,6 +52,10 @@
 | <a href="AI%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%88%86%E7%82%B8%E5%9B%BE/"><img src="AI%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%88%86%E7%82%B8%E5%9B%BE/preview/render_exploded.jpg" width="360" alt="AI服务器爆炸图"></a> | **[AI服务器爆炸图](AI%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%88%86%E7%82%B8%E5%9B%BE/)**<br><br>8U 八卡 HGX 训练服务器：原理爆炸图 |
 | <a href="%E5%9B%9B%E7%BC%B8%E5%8F%91%E5%8A%A8%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/"><img src="%E5%9B%9B%E7%BC%B8%E5%8F%91%E5%8A%A8%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/preview/render_exploded.jpg" width="360" alt="四缸发动机爆炸图"></a> | **[四缸发动机爆炸图](%E5%9B%9B%E7%BC%B8%E5%8F%91%E5%8A%A8%E6%9C%BA%E7%88%86%E7%82%B8%E5%9B%BE/)**<br><br>2.0L DOHC 16V 直列四缸：原理爆炸图 |
 
+## 文档
+
+- [Copilot 检索提示词](Copilot%E6%A3%80%E7%B4%A2%E6%8F%90%E7%A4%BA%E8%AF%8D/)：让 Microsoft 365 Copilot 查邮件、Teams、文件时找得准、总结得准的提示词模板，中文和日文各一版。
+
 ## 动图怎么更新
 
 页面改版后想重新录动图，见 [docs/previews/README.md](docs/previews/README.md)。

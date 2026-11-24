@@ -40,6 +40,7 @@
 | `立体车库原理/` | 6 种立体车库（简易升降 / 升降横移 / 垂直循环 / 巷道堆垛 / 塔库 / 平面移动）的交互页，three.js 程序化建模（无 Blender），单文件 `index.html`：`web/src/garages/*.js` 一种车库一个文件，只做调度逻辑和外形描述（不 import three），存 / 取车输出步骤列表（每步 = 一句讲解 + 同时开始的动作 move / turn / loop / spawn / remove，`state` 是这一步做完后的文字状态图）；`motion.js` 是插值和跑道形链条路径；`scene.js` 的 `Ctx` 搭场景、`play(step).tick(模拟秒)` 播放；`main.js` 是界面，司机视角流程是 async 函数，终端按钮用 `waitChoice()` / `choose(v)` 等用户；`web/test_garages.mjs` 每种随机存取 1500 次，核对不变量和“动画执行到底的位置 = 逻辑位置”；`node build.mjs` 打包到 `../index.html`；网址参数 `?type=0~5&mode=lab`；速度、占地是示意值 |
 | `4位CPU互动教学/` | 4 位玩具 CPU（开源项目 SimDaSong/4-bit-cpu 的指令集，9 条指令、8 个寄存器）的零基础课，纯 2D 单文件 `index.html`：`web/src/core.js` 是 CPU 模型（汇编器、控制字查表 `CONTROL_ROM`、全加器 ALU、`preview()` 算这一拍每根线的值 / `commit()` 是时钟沿），`teach.js` 是五小步的说人话 / 电路细节文字和预测题，`chapters.js` 是 12 章（选择题 + 讲解 + 示例程序，讲解里【源码】【通识】【推断】标证据强弱，改文案时保持），`main.js` 用 SVG 画数据通路（坐标系 920 × 480，`style(name, phases)` 定每根线在第几步变橙）；`web/test_core.mjs` 自检；`node build.mjs` 打包到 `../index.html`；网址 `#章号` 直接打开某章 |
 | `电梯调度算法/` | 单台电梯 FCFS / SSTF / SCAN / LOOK 调度的动画页，纯 2D 单文件 `index.html`（由 `src/` 内联，`node build.mjs`，不需要装包）：`src/algorithms.js` 是纯函数（`stops()` 到站停不停、接谁；`decide()` 不停时去哪，返回带讲解的 `reason`；外呼 up / down、内呼 car，SCAN / LOOK 只顺路接同方向外呼），浏览器和 Node 通用；`src/app.js` 是实时模拟、轨迹图、离线对比；`tests/algorithms.test.js` 用教材磁盘调度例子 + 2000 组随机场景校验；改了 `src/` 要重新打包 |
+| `Copilot检索提示词/` | 不是程序，只有一个 README：给 Microsoft 365 Copilot（Work IQ）查邮件 / Teams / 文件用的提示词模板，中文和日文各一版（查某版本的功能、查变更历史、两步法、自定义指令一句话）；模板里只用【客户X / 分支Y / 功能Z】占位，不写真实名称 |
 
 通用约定：
 - 回答用中文。
