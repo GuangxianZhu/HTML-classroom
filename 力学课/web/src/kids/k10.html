@@ -1,0 +1,74 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>只看速度图，能知道走了多远吗？</h2>
+  <p>速度图上只画了速度，没有画车在哪。</p>
+  <p>可是走过的路，其实就藏在这张图里。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你猜，走过的路藏在速度图的哪里？</p>
+    <div class="row"><button class="btn" type="button">线有多长</button><button class="btn" type="button">线有多高</button><button class="btn" type="button">线下面那一块有多大</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="点 4 次“走 1 秒”。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>一秒一秒走，一格一格数</h2>
+  <p>车一直用每秒 3 米开。每点一次，车走 1 秒。</p>
+  <p>看下面的速度图：每走 1 秒，线下面就多亮一竖条格子。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是路，车每秒往前走 3 米；下面是速度-时间图，线下面每秒亮起 3 个格子"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">走 1 秒</button><button class="btn" type="button" id="again1">重来</button></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说破</span>
+  <h2>一个格子，就是 1 米路</h2>
+  <p>一个格子宽 1 秒，高是每秒 1 米。每秒 1 米走 1 秒，正好 1 米。</p>
+  <p>4 秒亮了 12 个格子，车也正好走了 12 米。</p>
+  <div class="calc"><div>路程 = 速度 × 时间 = 3 × 4 = <b>12 米</b></div><div>长方形的面积 = 高 × 宽 = 3 × 4 = <b>12 格</b></div></div>
+  <p class="key">速度图上，线下面那一块的面积，就是路程。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="用两种不同的办法，让路程正好是 12 米。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>任务：两种办法走出 12 米</h2>
+  <p>拖两个滑块，长方形会跟着变。面积是多少，路程就是多少。</p>
+  <p>任务：让路程正好是 12 米。要找出两种不同的办法。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是路，标出车走了多远；下面是速度-时间图，线下面的长方形随滑块变化"></canvas>
+    <div class="ctl"><label for="s-v">速度</label><input id="s-v" type="range" min="1" max="6" step="1" value="2"><output id="s-vo"></output></div>
+    <div class="ctl"><label for="s-t">时间</label><input id="s-t" type="range" min="1" max="6" step="1" value="3"><output id="s-to"></output></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>线高一倍</h2>
+  <p>车本来用每秒 3 米开 4 秒。现在改成每秒 6 米，还是开 4 秒。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">路程会怎样？</p>
+    <div class="row"><button class="btn" type="button">不变</button><button class="btn" type="button">变成 2 倍</button><button class="btn" type="button">多 6 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>长方形高了一倍，宽没变。面积就是原来的 2 倍。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 陷阱</span>
+  <h2>面积说的是走了多少，不是在哪</h2>
+  <p>车从东 20 米出发，往东用每秒 5 米开了 4 秒。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">速度图上，线下面的面积是 20。车现在在哪？</p>
+    <div class="row"><button class="btn" type="button">东 20 米</button><button class="btn" type="button">东 40 米</button><button class="btn" type="button">东 25 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>人走路大约每秒 1 米。掐表走一段路，看用了多少秒。</p>
+    <p>在方格纸上画出这个长方形，数一数格子，就是这段路有多少米。</p>
+  </div>
+</section>
