@@ -1,0 +1,86 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>开快一倍，刹车要多留多远？</h2>
+  <p>踩下刹车，车不会马上停。它还要往前冲一段。</p>
+  <p>车速从每秒 10 米变成每秒 20 米。刹车踩得一样狠。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">停下来要冲的那段路，是原来的几倍？</p>
+    <div class="row"><button class="btn" type="button">2 倍</button><button class="btn" type="button">3 倍</button><button class="btn" type="button">4 倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三种车速都刹一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>三种车速，各刹一次</h2>
+  <p>点一个车速，车就踩下刹车。刹车时，速度每秒掉 5。</p>
+  <p>速度图上，线下面的三角形就是车冲出去的路。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是路，车刹车后往前冲一段才停；下面是速度-时间图，线下面的三角形是冲出去的路"></canvas>
+    <div class="row" id="sp1"><span class="cap">车速：</span><button class="btn" type="button" data-v="10">每秒 10 米</button><button class="btn" type="button" data-v="20">每秒 20 米</button><button class="btn" type="button" data-v="30">每秒 30 米</button></div>
+    <table class="tb">
+      <tr><th>车速</th><td>每秒 10 米</td><td>每秒 20 米</td><td>每秒 30 米</td></tr>
+      <tr><th>几秒停住</th><td id="t10">？</td><td id="t20">？</td><td id="t30">？</td></tr>
+      <tr><th>冲出去多远</th><td id="d10">？</td><td id="d20">？</td><td id="d30">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>这段路叫“刹车距离”</h2>
+  <p>从踩下刹车到停住，车冲出去的路，叫<b class="qF">刹车距离</b>。</p>
+  <p>车速快一倍，停住要的时间也多一倍。三角形高了一倍，底也长了一倍。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="速度-时间图：每秒 20 米的大三角形，正好切成 4 个每秒 10 米的小三角形"></canvas>
+  </div>
+  <p>大三角形是每秒 20 米刹车。右下角描了边的小三角形，是每秒 10 米刹车。</p>
+  <p>大的正好能切成 4 个小的。一个小的是 10 米，4 个是 40 米。</p>
+  <p class="key">车速翻倍，刹车距离变成 4 倍。车速 3 倍，就是 9 倍。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="先点一个车速，看完这一趟。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>踩刹车之前，还有 1 秒</h2>
+  <p>司机看见危险，到脚踩下刹车，大约要 1 秒。</p>
+  <p>这 1 秒里，车还是原来那么快。点一个车速看看。</p>
+  <div class="fig">
+    <canvas id="c3" aria-label="上面是路；下面是速度-时间图：先平着走 1 秒（长方形），再往下掉到 0（三角形）"></canvas>
+    <div class="row" id="sp3"><span class="cap">车速：</span><button class="btn" type="button" data-v="10">每秒 10 米</button><button class="btn" type="button" data-v="20">每秒 20 米</button><button class="btn" type="button" data-v="30">每秒 30 米</button></div>
+    <div class="kpis" id="k3"></div>
+  </div>
+  <p>这 1 秒里走的路，叫<b class="qE">反应距离</b>。它是线下面的那个长方形。</p>
+  <p class="key">停下来要的路 = 反应距离 + 刹车距离。</p>
+</section>
+
+<section class="beat" id="b5" data-gate="找出湿路上最快能开多快。">
+  <span class="num">第 5 步 · 挑战</span>
+  <h2>前面 60 米有路障</h2>
+  <p>司机看见前面 60 米的地方有路障。选路面，调车速，按“刹车”。</p>
+  <p>任务：下雨天路是湿的。最快开多快，还能在路障前停住？</p>
+  <div class="fig">
+    <canvas id="c4" aria-label="上面是路，60 米处有路障；下面是速度-时间图，长方形是反应距离，三角形是刹车距离"></canvas>
+    <div class="row" id="road4" role="group" aria-label="路面"><span class="cap">路面：</span><button class="btn" type="button" data-v="10">干路</button><button class="btn" type="button" data-v="5" aria-pressed="true">湿路</button><button class="btn" type="button" data-v="2">冰面</button></div>
+    <div class="ctl"><label for="s4">车速</label><input id="s4" type="range" min="5" max="30" step="5" value="10"><output id="s4o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go4">看见路障，刹车！</button></div>
+    <p class="cap" id="cap4"></p>
+  </div>
+  <p class="cap">这里取的是好算的整数：干路每秒掉 10，湿路掉 5，冰面掉 2。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>哪一段翻 2 倍，哪一段翻 4 倍？</h2>
+  <div class="guess" data-guess="g2">
+    <p class="q">车速翻倍，反应距离变成几倍？</p>
+    <div class="row"><button class="btn" type="button">不变</button><button class="btn" type="button">2 倍</button><button class="btn" type="button">4 倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">开得越快，要留的路不是多一点，是成倍地多。</p>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>坐车时盯住前面那辆车。它经过一根路灯杆时，你开始数秒。</p>
+    <p>数到你们的车也到那根杆。司机常说要留出 2 秒，你们留了几秒？</p>
+  </div>
+</section>
