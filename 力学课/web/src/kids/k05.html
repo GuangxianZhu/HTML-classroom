@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>只给一条线，你能开出来吗？</h2>
+  <p>上一小课，你开车，图上自己长出一条线。</p>
+  <p>这回反过来。先给你一条线，你照着它把车开出来。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">先猜一个：线往下走的那一段，车在干什么？</p>
+    <div class="row"><button class="btn" type="button">在下坡</button><button class="btn" type="button">在往回开</button><button class="btn" type="button">在刹车</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="照着线开完一趟。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>第一关：往上，然后平</h2>
+  <p>虚线先往上走 3 秒，再平着走 2 秒。</p>
+  <p>按住车拖着开。让你画出的蓝线贴着虚线走。</p>
+  <div class="fig">
+    <canvas id="c1" class="drive" aria-label="上面是路和车，下面是位置-时间图：虚线先往上再变平，开车时画出自己的线"></canvas>
+    <div class="row"><button class="btn" type="button" id="again1">重新开</button><span class="cap" id="hint1"></span></div>
+  </div>
+  <p class="key">线往上，是往东开。线平了，是停着没动。</p>
+</section>
+
+<section class="beat" id="b3" data-gate="照着线开完一趟。">
+  <span class="num">第 3 步 · 动手</span>
+  <h2>第二关：线往下了</h2>
+  <p>这条虚线后半段往下走，一直落回“家”那么高。</p>
+  <p>开开看。线往下的时候，你的手在往哪边拖？</p>
+  <div class="fig">
+    <canvas id="c2" class="drive" aria-label="上面是路和车，下面是位置-时间图：虚线先往上、平一秒、再往下回到家那条线"></canvas>
+    <div class="row"><button class="btn" type="button" id="again2">重新开</button><span class="cap" id="hint2"></span></div>
+  </div>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 三句话</span>
+  <h2>线的三种走法</h2>
+  <table class="tb">
+    <tr><th>线怎么走</th><th>车在干什么</th></tr>
+    <tr><td>往上</td><td>往东开</td></tr>
+    <tr><td>平的</td><td>停着</td></tr>
+    <tr><td>往下</td><td>往回开，也就是往西</td></tr>
+  </table>
+  <p>路是平的，没有坡。图上的高和低，说的是车靠东还是靠西。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">一条线先往上、再往下，像一座小山包。车在干什么？</p>
+    <div class="row"><button class="btn" type="button">翻过了一座山</button><button class="btn" type="button">往东开出去，又开回来</button><button class="btn" type="button">先开得快，后开得慢</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">图不是路的样子。图是一排按时间摆好的照片。</p>
+</section>
+
+<section class="beat" id="b5" data-gate="照着线开完一趟。">
+  <span class="num">第 5 步 · 挑战</span>
+  <h2>第三关：穿过家门口</h2>
+  <p>这回车从东 40 米出发。虚线一路往下，还穿过了“家”那条线。</p>
+  <p>先想一想：线到了“家”那条线下面，车在哪？</p>
+  <div class="fig">
+    <canvas id="c3" class="drive" aria-label="上面是路和车，下面是位置-时间图：虚线从东 40 米往下，平一秒，再往下穿过家那条线到西 10 米"></canvas>
+    <div class="row"><button class="btn" type="button" id="again3">重新开</button><span class="cap" id="hint3"></span></div>
+  </div>
+  <p class="key">线在“家”那条线下面，车就在家的西边。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>看图说话</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">图上有一段线是平的，停在“东 30”那么高。这一段车在干什么？</p>
+    <div class="row"><button class="btn" type="button">停在东 30 米</button><button class="btn" type="button">一直往东开</button><button class="btn" type="button">停在家门口</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>请家人在纸上随手画一条线，有上、有平、有下。</p>
+    <p>你在走廊里照着线走一趟。走完换过来，你画，家人走。</p>
+  </div>
+</section>
