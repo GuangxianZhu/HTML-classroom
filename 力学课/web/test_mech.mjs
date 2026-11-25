@@ -2,7 +2,8 @@
 // 1) 课程表前后接得上；2) 文案和猜题里写死的数字；3) 每课的练习题跑几百遍：选项不重复、答案在里面、数值对得上。
 import fs from 'fs';
 import * as M from './src/mech.js';
-import { LESSONS, known } from './src/course.js';
+import { LESSONS, known, KIDS } from './src/course.js';
+import { KGEN } from './src/kids/problems.js';
 import { GEN } from './src/problems.js';
 
 let pass = 0, fail = 0;
@@ -58,6 +59,61 @@ for (const l of ready) {
       }
     }
     ok(`第 ${l.n} 课第 ${k + 1} 题`, !bad, bad);
+  });
+}
+
+console.log('— 启蒙篇：课表');
+ok('启蒙篇 12 小课，编号连续', KIDS.length === 12 && KIDS.every((k, i) => k.n === i + 1));
+ok('每小课都有问题、一句话、对应的高中课', KIDS.every((k) => k.ask && k.got && LESSONS.some((l) => l.n === k.back)));
+ok('每小课最多 2 个新词', KIDS.every((k) => (k.words || []).length <= 2));
+const kready = KIDS.filter((k) => k.ready);
+for (const k of kready) ok(`启 ${k.n} 的页面和脚本都在`, ['html', 'js'].every((e) => fs.existsSync(`src/kids/k${String(k.n).padStart(2, '0')}.${e}`)));
+
+console.log('— 启蒙篇：页面上的字（读者只有小学数学）');
+// 孩子在页面上看得到的字：正文（去掉标签）+ 脚本里带中文的字符串 + 课表里显示的那几栏。“以后课本上会这样写”那一栏不算。
+const strip = (h) => h.replace(/<details class="later">[\s\S]*?<\/details>/g, '').replace(/<[^>]+>/g, '\n').replace(/&[a-z]+;/g, ' ');
+const jsText = (src) => [...src.matchAll(/(['`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2]).filter((x) => /[一-鿿]/.test(x) && !/=>| ? |\.join\(|\?\./.test(x)).map((x) => strip(x.replace(/\$\{[^}]*\}/g, '8'))).join('\n');
+const common = jsText(fs.readFileSync('src/kid.js', 'utf8'));
+const TERMS = { 位置时间图: /位置-时间图/, 速度时间图: /速度-时间图/, 速度: /(?<!加)速度(?!表|-时间图)/, 加速度: /加速度/, 位移: /位移/, 路程: /路程/, 刹车距离: /刹车距离/, 反应距离: /反应距离/ };
+const named = (n) => new Set(KIDS.filter((k) => k.n <= n).flatMap((k) => k.words || []).map((w) => w.replace('-', '')));
+for (const k of kready) {
+  const id = String(k.n).padStart(2, '0');
+  const html = fs.readFileSync(`src/kids/k${id}.html`, 'utf8'), js = fs.readFileSync(`src/kids/k${id}.js`, 'utf8');
+  const prev = KIDS.find((x) => x.n === k.n - 1), next = KIDS.find((x) => x.n === k.n + 1);
+  const body = strip(html), shown = [body, jsText(js), common, k.title, k.ask, k.got, prev?.got, prev?.title, next?.ask, next?.title].filter(Boolean).join('\n');
+  const bad = shown.match(/[A-Za-z]+|Δ|斜率|切线|₀|²|匀加速|坐标|横轴|纵轴/g)?.filter((w) => !/^(px|py)$/.test(w));
+  ok(`启 ${k.n}：没有字母和高中记号`, !bad?.length, bad ? [...new Set(bad)].join(' ') : '');
+  const used = Object.entries(TERMS).filter(([, re]) => re.test(shown.replace(new RegExp(`${prev?.got ?? '\\0'}`), ''))).map(([w]) => w);
+  const miss = used.filter((w) => !named(k.n).has(w));
+  ok(`启 ${k.n}：用到的词都起过名字（${used.join('、') || '无'}）`, !miss.length, miss.join('、'));
+  const sents = (body + '\n' + jsText(js)).split(/[。！？；\n]/).map((x) => x.replace(/\s/g, '')).filter((x) => x.length);
+  const long = sents.filter((x) => x.length > 30);
+  ok(`启 ${k.n}：每句不超过 30 个字`, !long.length, long.slice(0, 3).join(' | '));
+  const paras = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map((m) => strip(m[1]).split(/[。！？]/).filter((x) => x.trim()).length);
+  ok(`启 ${k.n}：每段不超过 3 句`, paras.every((c) => c <= 3), `最多 ${Math.max(...paras)} 句`);
+}
+ok('启 4：示范那趟拍 8 张（第 0～7 秒）', M.tripTime(M.TRIP1) === 7);
+ok('启 6：前 3 秒紫车在前面，第 4 秒并排，第 5 秒红车在前', [1, 2, 3].every((t) => 20 + 10 * t > 15 * t) && 20 + 10 * 4 === 15 * 4 && 15 * 5 > 20 + 50);
+ok('启 6：3 秒红车走 45 米、紫车走 30 米', 15 * 3 === 45 && 10 * 3 === 30);
+ok('启 6：滑块默认值不是答案（第 4 秒追上，不是第 3 秒）', 20 / (15 - 10) === 4);
+
+console.log('— 启蒙篇：练习题（每个跑 400 遍，数字要能口算）');
+for (const k of kready) {
+  const gens = KGEN[k.n];
+  ok(`启 ${k.n} 有 4 个出题函数`, gens?.length === 4);
+  gens.forEach((gen, j) => {
+    let bad = '';
+    for (let s = 1; s <= 400 && !bad; s++) {
+      const q = gen(M.rng(s * 104729 + j)), all = q.q + q.opts.join('|') + q.why;
+      if (q.opts.length !== 4 || new Set(q.opts).size !== 4) bad = `选项不是 4 个不重复的（种子 ${s}）：${q.opts.join(' | ')}`;
+      else if (!(q.ans >= 0 && q.ans < 4)) bad = '答案下标不对';
+      else if (/NaN|undefined|Infinity/.test(all)) bad = `有 NaN（种子 ${s}）`;
+      else if (/[A-Za-z]/.test(all)) bad = `有字母（种子 ${s}）：${all.match(/[A-Za-z]+/)[0]}`;
+      else if (/[−-]\s?\d/.test(q.q + q.opts.join('|')) && !/\d\s[−-]\s\d/.test(q.q)) bad = `有负数（种子 ${s}）`;
+      else if ((q.q + q.opts.join('|')).match(/\d+(\.\d+)?/g)?.some((x) => /\.\d\d/.test(x))) bad = `数字超过一位小数（种子 ${s}）`;
+      else if (typeof q.val === 'number') { const m = q.opts[q.ans].match(/\d+(\.\d+)?/); if (!m || Math.abs(+m[0] - q.val) > 1e-9) bad = `正确选项 ${q.opts[q.ans]} 和 ${q.val} 对不上`; }
+    }
+    ok(`启 ${k.n} 第 ${j + 1} 题`, !bad, bad);
   });
 }
 console.log(`\n${pass} 项通过，${fail} 项失败`);

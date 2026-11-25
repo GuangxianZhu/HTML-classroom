@@ -121,3 +121,22 @@ b,strong{font-weight:700}
 @media (max-width:520px){ .qopts{grid-template-columns:minmax(0,1fr)} .top .where{order:3;flex-basis:100%} }
 @media (max-width:420px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
+
+/* 启蒙篇：一栏，字大一点，一步一步出来 */
+.kid{max-width:820px}
+.kid .beat{border-top:1px solid var(--line);padding-top:22px;display:flex;flex-direction:column;gap:10px;scroll-margin-top:12px}
+.kid .beat p{margin:0;font-size:17px;max-width:none}
+.kid .beat h2{margin:0}
+.kid .fig canvas.drive{touch-action:none;cursor:grab}
+.kid .hero .cap a{color:var(--ink3)}
+.go-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
+.go-row .go{font-size:16px;padding:10px 18px}
+.go-row .wait{font-size:14px;color:var(--ink3)}
+.go-row .wait.done{color:var(--ok);font-weight:700}
+.kid .guess{max-width:none}
+.kid .calc{font-family:var(--f-cn);font-size:16px;white-space:normal}
+.card{border:1px dashed var(--ink3);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.later{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--panel);font-size:15px}
+.later summary{cursor:pointer;color:var(--ink2)}
+.later p{margin:.5em 0 0;max-width:none}
+.btn:disabled{opacity:.5;cursor:default}

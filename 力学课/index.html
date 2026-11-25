@@ -126,6 +126,25 @@ b,strong{font-weight:700}
 @media (max-width:520px){ .qopts{grid-template-columns:minmax(0,1fr)} .top .where{order:3;flex-basis:100%} }
 @media (max-width:420px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
+
+/* 启蒙篇：一栏，字大一点，一步一步出来 */
+.kid{max-width:820px}
+.kid .beat{border-top:1px solid var(--line);padding-top:22px;display:flex;flex-direction:column;gap:10px;scroll-margin-top:12px}
+.kid .beat p{margin:0;font-size:17px;max-width:none}
+.kid .beat h2{margin:0}
+.kid .fig canvas.drive{touch-action:none;cursor:grab}
+.kid .hero .cap a{color:var(--ink3)}
+.go-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
+.go-row .go{font-size:16px;padding:10px 18px}
+.go-row .wait{font-size:14px;color:var(--ink3)}
+.go-row .wait.done{color:var(--ok);font-weight:700}
+.kid .guess{max-width:none}
+.kid .calc{font-family:var(--f-cn);font-size:16px;white-space:normal}
+.card{border:1px dashed var(--ink3);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.later{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--panel);font-size:15px}
+.later summary{cursor:pointer;color:var(--ink2)}
+.later p{margin:.5em 0 0;max-width:none}
+.btn:disabled{opacity:.5;cursor:default}
 </style></head>
 <body><style>
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -133,6 +152,8 @@ b,strong{font-weight:700}
 .cards li.ready>a:hover{border-color:var(--acc)}
 .cards li.todo>div{opacity:.55;background:transparent;border-style:dashed}
 .cards li.done>a{border-color:var(--ok)}
+.kidpart .lv{background:var(--a)}
+.kidpart .cards .n{color:var(--a)}
 .cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
 .cards .t{font-weight:700;line-height:1.45}
 .cards .h{font-size:13.5px;color:var(--ink2);line-height:1.55}
@@ -150,7 +171,7 @@ b,strong{font-weight:700}
   <header class="hero">
     <div class="eyebrow">力学课 · 从高中到大学</div>
     <h1>一辆车讲到底的力学</h1>
-    <p style="font-size:17px;color:var(--ink2)">同一辆车从停车场开出来，一路上遇到的每个问题就是一课：它在哪、多快、怎么停下、为什么会加速、拐弯要多大的力……每一课回答上一课留下的问题，再留一个新问题给下一课。前面用高中的工具，工具不够用了再换大学的。</p>
+    <p style="font-size:17px;color:var(--ink2)">同一辆车从停车场开出来，一路上遇到的每个问题就是一课：它在哪、多快、怎么停下、为什么会加速、拐弯要多大的力……每一课回答上一课留下的问题，再留一个新问题给下一课。前面用高中的工具，工具不够用了再换大学的。只会小学数学也没关系：先从最上面的“启蒙”开始。</p>
     <ul class="how">
       <li><b>先猜</b>每一节先猜一道选择题，猜错了更记得住。</li>
       <li><b>拖一拖</b>每个概念配一张能动的图，数字跟着变。</li>
@@ -161,6 +182,10 @@ b,strong{font-weight:700}
     <p id="prog" style="margin:0;color:var(--ink3);font-size:14px"></p>
   </header>
   <div class="parts">
+<section class="part kidpart">
+    <h2><span class="lv">启蒙</span>先玩明白</h2><p class="pnote">只要会小学数学。先开车、再画图、最后才起名字；学完再看高中第 1～5 课，就是第二遍。</p>
+    <ol class="cards"><li data-n="k1" class="todo"><div><span class="n">1</span><span class="t">车停在哪</span><span class="h">怎么在电话里说清楚车停在哪？</span><span class="st">还在做</span></div></li><li data-n="k2" class="todo"><div><span class="n">2</span><span class="t">家西边怎么编号</span><span class="h">家西边的路牌怎么编号？</span><span class="st">还在做</span></div></li><li data-n="k3" class="todo"><div><span class="n">3</span><span class="t">走了多远</span><span class="h">开出去 40 米又倒回 10 米，算走了多远？</span><span class="st">还在做</span></div></li><li data-n="k4" class="ready"><a href="lessons/k04.html"><span class="n">4</span><span class="t">把一趟车拍成连环画</span><span class="h">怎么把一整趟车记在一张纸上？</span><span class="st">可以学了</span></a></li><li data-n="k5" class="todo"><div><span class="n">5</span><span class="t">照着线开车</span><span class="h">反过来，只给你一条线，你能把车开出来吗？</span><span class="st">还在做</span></div></li><li data-n="k6" class="ready"><a href="lessons/k06.html"><span class="n">6</span><span class="t">谁更快</span><span class="h">两辆车，怎么看出谁快？</span><span class="st">可以学了</span></a></li><li data-n="k7" class="todo"><div><span class="n">7</span><span class="t">速度表上的 60</span><span class="h">速度表上的 60 是什么意思？</span><span class="st">还在做</span></div></li><li data-n="k8" class="todo"><div><span class="n">8</span><span class="t">把速度表也拍成照片</span><span class="h">能不能把速度表也拍成一排照片？</span><span class="st">还在做</span></div></li><li data-n="k9" class="todo"><div><span class="n">9</span><span class="t">轻踩和重踩</span><span class="h">轻踩和重踩油门，差在哪？</span><span class="st">还在做</span></div></li><li data-n="k10" class="todo"><div><span class="n">10</span><span class="t">数格子算路程</span><span class="h">只看速度图，能算出走了多远吗？</span><span class="st">还在做</span></div></li><li data-n="k11" class="todo"><div><span class="n">11</span><span class="t">越开越快走了多远</span><span class="h">越开越快的时候，走了多远？</span><span class="st">还在做</span></div></li><li data-n="k12" class="todo"><div><span class="n">12</span><span class="t">刹车要留多远</span><span class="h">车速快一倍，刹车要多留多远？</span><span class="st">还在做</span></div></li></ol>
+  </section>
 <section class="part">
     <h2><span class="lv">高中</span>描述运动</h2><p class="pnote">车在哪、多快、速度怎么变，先不问为什么</p>
     <ol class="cards"><li data-n="1" class="ready"><a href="lessons/01.html"><span class="n">1</span><span class="t">车在哪：位置、位移、路程</span><span class="h">往前开 40 m、又倒回 10 m，车到底“走了多远”？</span><span class="st">可以学了</span></a></li><li data-n="2" class="ready"><a href="lessons/02.html"><span class="n">2</span><span class="t">多快：速度</span><span class="h">x-t 图上的线有的地方陡、有的地方平，陡代表什么？</span><span class="st">可以学了</span></a></li><li data-n="3" class="ready"><a href="lessons/03.html"><span class="n">3</span><span class="t">速度怎么变：加速度</span><span class="h">速度表的指针一直在动，“变得有多快”怎么描述？</span><span class="st">可以学了</span></a></li><li data-n="4" class="ready"><a href="lessons/04.html"><span class="n">4</span><span class="t">反过来：从速度算距离</span><span class="h">知道速度怎么变，能不能反过来算出车走了多远？</span><span class="st">可以学了</span></a></li><li data-n="5" class="ready"><a href="lessons/05.html"><span class="n">5</span><span class="t">停下来：刹车距离和反应时间</span><span class="h">只知道车速和刹车的减速度，不知道刹了多久，停车要多远？</span><span class="st">可以学了</span></a></li><li data-n="6" class="todo"><div><span class="n">6</span><span class="t">量自己的反应时间：自由落体</span><span class="h">上一课的反应时间 0.8 s 是哪来的？我自己的是多少？</span><span class="st">还在做</span></div></li><li data-n="7" class="todo"><div><span class="n">7</span><span class="t">两个方向一起动：平抛</span><span class="h">东西带着水平速度飞出去，边飞边掉，怎么算？</span><span class="st">还在做</span></div></li><li data-n="8" class="todo"><div><span class="n">8</span><span class="t">拐弯也是加速度</span><span class="h">车速不变、只拐弯，算不算在加速？</span><span class="st">还在做</span></div></li></ol>
@@ -179,6 +204,6 @@ b,strong{font-weight:700}
   </section>
   </div>
 </div>
-<script>(()=>{var p="mech-course-v1";function n(){try{return JSON.parse(localStorage.getItem(p)||"{}")}catch{return{}}}var r=n(),e=0;document.querySelectorAll("[data-n]").forEach(t=>{let a=r[t.dataset.n];a?.done&&(e++,t.classList.add("done"),t.querySelector(".st").textContent=`\u5B66\u8FC7 \xB7 \u7EC3\u4E60\u6700\u597D ${a.best??0}/5`)});var o=document.getElementById("prog");o&&(o.textContent=e?`\u8FD9\u4E2A\u6D4F\u89C8\u5668\u91CC\u5DF2\u7ECF\u5B66\u8FC7 ${e} \u8BFE\u3002`:"\u8FD8\u6CA1\u5F00\u59CB\uFF1F\u4ECE\u7B2C 1 \u8BFE\u5F00\u59CB\u3002");})();
+<script>(()=>{var s="mech-course-v1";function o(){try{return JSON.parse(localStorage.getItem(s)||"{}")}catch{return{}}}var r=o(),a=0;document.querySelectorAll("[data-n]").forEach(t=>{let e=r[t.dataset.n];e?.done&&(a++,t.classList.add("done"),t.querySelector(".st").textContent=`\u5B66\u8FC7 \xB7 \u7EC3\u4E60\u6700\u597D ${e.best??0}/5`)});var n=document.getElementById("prog");n&&(n.textContent=a?`\u8FD9\u4E2A\u6D4F\u89C8\u5668\u91CC\u5DF2\u7ECF\u5B66\u8FC7 ${a} \u8BFE\u3002`:"\u8FD8\u6CA1\u5F00\u59CB\uFF1F\u53EA\u4F1A\u5C0F\u5B66\u6570\u5B66\uFF0C\u5C31\u4ECE\u201C\u542F\u8499\u201D\u5F00\u59CB\uFF1B\u5B66\u8FC7\u9AD8\u4E2D\u7684\uFF0C\u4ECE\u7B2C 1 \u8BFE\u5F00\u59CB\u3002");})();
 </script>
 </body></html>
