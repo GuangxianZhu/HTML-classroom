@@ -1,0 +1,84 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>速度表也能拍成一排照片吗？</h2>
+  <p>前面每秒拍一张车的位置，排起来就是位置-时间图。</p>
+  <p>这回换个东西拍：每秒拍一张速度表。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">车一直用每秒 10 米开了 5 秒。把 5 张速度表的读数连起来，线是什么样？</p>
+    <div class="row"><button class="btn" type="button">一条往上的斜线</button><button class="btn" type="button">一条平线</button><button class="btn" type="button">只有一个点</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="先开完一趟（10 秒）。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>踩油门，拍速度表</h2>
+  <p>按住“油门”，车越来越快。按住“刹车”，车越来越慢。</p>
+  <p>一共 10 秒。每秒拍一张速度表，下面的图上就多一个点。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是速度表和一辆在路上开的车，下面是速度-时间图，每秒多一个点"></canvas>
+    <div class="row"><button class="btn pedal" type="button" id="gas1">油门（按住）</button><button class="btn pedal" type="button" id="brk1">刹车（按住）</button><button class="btn" type="button" id="again1">重来</button></div>
+    <p class="cap" id="hint1"></p>
+    <div class="kpis" id="k1"></div>
+  </div>
+  <p class="cap">两个都不踩，这里的车就保持原来的快慢。真车会慢慢变慢，先不管它。</p>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>这张图叫“速度-时间图”</h2>
+  <p>每秒拍一张速度表，只留下读数那个点，按时间排好。</p>
+  <p>这张图叫<b class="qv">速度-时间图</b>。越往上，车越快。最下面那条线是速度 0，停着。</p>
+  <table class="tb">
+    <tr><th>你的脚</th><th>速度</th><th>图上的线</th></tr>
+    <tr><td>踩油门</td><td>越来越快</td><td>往上</td></tr>
+    <tr><td>都不踩</td><td>不变</td><td>平的</td></tr>
+    <tr><td>踩刹车</td><td>越来越慢</td><td>往下</td></tr>
+  </table>
+</section>
+
+<section class="beat" id="b4" data-gate="开出一段 3 秒的平线（速度不低于每秒 10 米）。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>任务：开出一段平线</h2>
+  <p>先踩油门，让速度到每秒 10 米以上。然后松开，保持 3 秒。</p>
+  <p>看一看：线平着的时候，车停下了吗？</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是速度表和一辆在路上开的车，下面是速度-时间图"></canvas>
+    <div class="row"><button class="btn pedal" type="button" id="gas2">油门（按住）</button><button class="btn pedal" type="button" id="brk2">刹车（按住）</button><button class="btn" type="button" id="again2">重来</button></div>
+    <p class="cap" id="hint2"></p>
+    <div class="kpis" id="k2"></div>
+  </div>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b5" data-gate="先按“开”，看完这一趟。">
+  <span class="num">第 5 步 · 陷阱</span>
+  <h2>同一趟车，两张图</h2>
+  <p>车用每秒 10 米开 5 秒。按“开”，两张图一起画。</p>
+  <div class="fig">
+    <canvas id="c3" aria-label="上面是路和车；下面两张图：位置-时间图是一条斜线，速度-时间图是一条平线"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go3">▶ 开</button></div>
+  </div>
+  <p>同一趟车，位置图上是斜线，速度图上是平线。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">速度-时间图上，线是平的，一直在 10 那么高。车在干什么？</p>
+    <div class="row"><button class="btn" type="button">停着不动</button><button class="btn" type="button">一直用每秒 10 米往前开</button><button class="btn" type="button">停在东 10 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">先看清是哪张图。位置图上平是停着，速度图上平是一样快。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>线往下，是什么意思？</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">速度-时间图上，线在往下走。车在干什么？</p>
+    <div class="row"><button class="btn" type="button">在往回开</button><button class="btn" type="button">越开越慢</button><button class="btn" type="button">在下坡</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>下次坐车，每过 10 秒看一眼速度表，把读数记下来。</p>
+    <p>记上十来个数，回家画成点，连成线。</p>
+  </div>
+</section>

@@ -1,0 +1,78 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>速度表上的 60，是 60 什么？</h2>
+  <p>上一小课说，速度是每秒走几米。</p>
+  <p>可是爸爸车上的速度表，指的是 60。车一秒可走不了 60 米。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你觉得这个 60 是什么意思？</p>
+    <div class="row"><button class="btn" type="button">一秒走 60 米</button><button class="btn" type="button">照这样开一小时，走 60 千米</button><button class="btn" type="button">已经开了 60 千米</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找到每秒正好走 10 米的那个数。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>拨一拨速度表</h2>
+  <p>拖滑块，拨动速度表的指针。下面的车会照着这个数开。</p>
+  <p>车头前面的箭头，是它一秒走的路。一辆车长大约 5 米。</p>
+  <p>任务：表上指着多少，车每秒正好走 10 米？</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是速度表，下面是一辆在路上开的车，车头前面的箭头标出一秒走多少米"></canvas>
+    <div class="ctl"><label for="s1">表上的数</label><input id="s1" type="range" min="0" max="108" step="18" value="54"><output id="s1o"></output></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 算一算</span>
+  <h2>为什么 36 就是每秒 10 米</h2>
+  <p>表上的数，说的是“照这样开一小时，走多少千米”。</p>
+  <p>它的全名是<b class="qv">千米每小时</b>。表上的 36，就是 36 千米每小时。</p>
+  <div class="calc"><div>一小时 = 60 分钟 = 3600 秒</div><div>36 千米 = 36000 米</div><div>36000 ÷ 3600 = <b class="qv">每秒 10 米</b></div></div>
+  <p>两种说法，说的是同一个快慢。记住这一对就够用了。</p>
+  <p class="key">36 千米每小时，就是每秒 10 米。</p>
+  <table class="tb">
+    <tr><th>表上的数</th><td>18</td><td>36</td><td>72</td><td>108</td></tr>
+    <tr><th>每秒走几米</th><td>5</td><td>10</td><td>20</td><td>30</td></tr>
+  </table>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 陷阱</span>
+  <h2>指着 60，就走了 60 千米吗？</h2>
+  <p>爸爸开了 10 分钟。这 10 分钟里，表一直指着 60。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">这 10 分钟，车走了多远？</p>
+    <div class="row"><button class="btn" type="button">60 千米</button><button class="btn" type="button">10 千米</button><button class="btn" type="button">6 千米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">表上的数只说现在有多快。走了多远，还要看开了多久。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 动手</span>
+  <h2>反过来：每秒几米，表上是多少</h2>
+  <p>拖滑块，选一个“每秒几米”。看看换成表上的数是多少。</p>
+  <div class="fig">
+    <div class="ctl"><label for="s2">每秒走</label><input id="s2" type="range" min="1" max="30" step="1" value="1"><output id="s2o"></output></div>
+    <div class="kpis" id="k2"></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <div class="calc"><div>每秒 1 米，一小时走 3600 米</div><div>3600 米 = 3.6 千米</div><div>所以：每秒几米 × 3.6 = 表上的数</div></div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>谁快？</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">甲车每秒走 15 米。乙车的表指着 36。谁快？</p>
+    <div class="row"><button class="btn" type="button">甲车快</button><button class="btn" type="button">乙车快，36 比 15 大</button><button class="btn" type="button">比不了</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>下次坐车，看一眼速度表。心里把它换成每秒几米。</p>
+    <p>再数一数：一秒钟，窗外过去了几个车长？</p>
+  </div>
+</section>
