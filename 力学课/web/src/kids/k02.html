@@ -1,0 +1,68 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>西边的路牌写什么数？</h2>
+  <p>路牌要编号。东边好办：离家 10 米写 10，20 米写 20。</p>
+  <p>可是西边 10 米也有一块路牌。它要是也写 10，就和东边那块分不清了。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">西边 10 米那块路牌，你会怎么写？</p>
+    <div class="row"><button class="btn" type="button">也写 10</button><button class="btn" type="button">写 10，再加一个记号</button><button class="btn" type="button">西边不编号</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="坐电梯到地下 2 层，才能往下走。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>电梯早就这么干了</h2>
+  <p>商场的电梯里，地上是 1、2、3 层。地下那两层，按钮上写的是 −1 和 −2。</p>
+  <p>那一小横就是记号，意思是“在地面的另一边”。按一按电梯的按钮，去地下 2 层看看。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="一栋楼的剖面：地上三层、地下两层，电梯停在其中一层"></canvas>
+    <div class="row" role="group" aria-label="电梯按钮" id="lift"><span class="cap">电梯按钮：</span><button class="btn" type="button" data-v="3">3</button><button class="btn" type="button" data-v="2">2</button><button class="btn" type="button" data-v="1" aria-pressed="true">1</button><button class="btn" type="button" data-v="-1">−1</button><button class="btn" type="button" data-v="-2">−2</button></div>
+    <p class="cap" id="cap1">电梯现在在地上 1 层。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3" data-gate="把车停到 −20 那块路牌，才能往下走。">
+  <span class="num">第 3 步 · 动手</span>
+  <h2>把电梯放倒，就是这条路</h2>
+  <p>路牌也这样编。东边照旧写 10、20、30。西边写 −10、−20、−30。</p>
+  <p>点“两种写法”来回看。再把车拖到 −20 那块路牌。</p>
+  <div class="fig">
+    <canvas id="c2" class="drive" aria-label="路和路牌，路牌可以写成东西加米数，也可以写成带正负号的数；车可以拖动"></canvas>
+    <div class="row" role="group" aria-label="路牌的写法" id="w2"><span class="cap">路牌的写法：</span><button class="btn" type="button" data-v="word">东 20 / 西 20</button><button class="btn" type="button" data-v="num" aria-pressed="true">20 / −20</button></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 起名字</span>
+  <h2>带一小横的数，叫“负数”</h2>
+  <p>−20 这样的数叫<b class="qx">负数</b>，读作“负二十”。那一小横叫负号。</p>
+  <p>在这条路上，负号只管一件事：说明在家的西边。后面的 20 还是 20 米。</p>
+  <p class="key">−20 不是“少了 20 米”。它是“在另一边 20 米”。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 陷阱</span>
+  <h2>谁离家远？</h2>
+  <p>红车停在 −30，紫车停在 10。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">哪辆车离家远？</p>
+    <div class="row"><button class="btn" type="button">紫车，10 比 −30 大</button><button class="btn" type="button">红车，它离家 30 米</button><button class="btn" type="button">一样远</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="fig"><canvas id="c3" aria-label="路上红车停在负三十，紫车停在十，各自到家的距离用线段标出"></canvas></div>
+  <p class="key">问远近，只看负号后面的数。负号只说在哪边。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>−40 是什么意思？</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">路牌上写着 −40。它在哪？</p>
+    <div class="row"><button class="btn" type="button">家西边 40 米</button><button class="btn" type="button">家东边 40 米</button><button class="btn" type="button">比家少 40 米的地方</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>后面的小课还是说“东 30 米、西 10 米”，这样不容易错。负号的写法，你认识就行。</p>
+</section>

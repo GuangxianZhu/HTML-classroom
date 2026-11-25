@@ -140,3 +140,8 @@ b,strong{font-weight:700}
 .later summary{cursor:pointer;color:var(--ink2)}
 .later p{margin:.5em 0 0;max-width:none}
 .btn:disabled{opacity:.5;cursor:default}
+.btn.pedal{font-size:16px;padding:14px 20px;touch-action:none;user-select:none;-webkit-user-select:none}
+.btn.pedal.held{background:var(--acc);border-color:var(--acc);color:var(--panel)}
+.kid table.tb{border-collapse:collapse;font-size:16px}
+.kid table.tb td,.kid table.tb th{border:1px solid var(--line);padding:5px 12px;text-align:center;font-weight:500}
+.kid table.tb th{background:var(--panel2);font-weight:700}

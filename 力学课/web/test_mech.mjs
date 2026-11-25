@@ -72,7 +72,7 @@ for (const k of kready) ok(`启 ${k.n} 的页面和脚本都在`, ['html', 'js']
 console.log('— 启蒙篇：页面上的字（读者只有小学数学）');
 // 孩子在页面上看得到的字：正文（去掉标签）+ 脚本里带中文的字符串 + 课表里显示的那几栏。“以后课本上会这样写”那一栏不算。
 const strip = (h) => h.replace(/<details class="later">[\s\S]*?<\/details>/g, '').replace(/<[^>]+>/g, '\n').replace(/&[a-z]+;/g, ' ');
-const jsText = (src) => [...src.matchAll(/(['`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2]).filter((x) => /[一-鿿]/.test(x) && !/=>| ? |\.join\(|\?\./.test(x)).map((x) => strip(x.replace(/\$\{[^}]*\}/g, '8'))).join('\n');
+const jsText = (src) => [...src.matchAll(/(['`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2]).filter((x) => /[一-鿿]/.test(x) && !/=>| \? |\.join\(|\?\./.test(x)).map((x) => strip(x.replace(/\$\{[^}]*\}/g, '8'))).join('\n');
 const common = jsText(fs.readFileSync('src/kid.js', 'utf8'));
 const TERMS = { 位置时间图: /位置-时间图/, 速度时间图: /速度-时间图/, 速度: /(?<!加)速度(?!表|-时间图)/, 加速度: /加速度/, 位移: /位移/, 路程: /路程/, 刹车距离: /刹车距离/, 反应距离: /反应距离/ };
 const named = (n) => new Set(KIDS.filter((k) => k.n <= n).flatMap((k) => k.words || []).map((w) => w.replace('-', '')));
@@ -109,7 +109,7 @@ for (const k of kready) {
       else if (!(q.ans >= 0 && q.ans < 4)) bad = '答案下标不对';
       else if (/NaN|undefined|Infinity/.test(all)) bad = `有 NaN（种子 ${s}）`;
       else if (/[A-Za-z]/.test(all)) bad = `有字母（种子 ${s}）：${all.match(/[A-Za-z]+/)[0]}`;
-      else if (/[−-]\s?\d/.test(q.q + q.opts.join('|')) && !/\d\s[−-]\s\d/.test(q.q)) bad = `有负数（种子 ${s}）`;
+      else if (!q.neg && /[−-]\s?\d/.test(q.q + q.opts.join('|')) && !/\d\s[−-]\s\d/.test(q.q)) bad = `有负数（种子 ${s}）`;
       else if ((q.q + q.opts.join('|')).match(/\d+(\.\d+)?/g)?.some((x) => /\.\d\d/.test(x))) bad = `数字超过一位小数（种子 ${s}）`;
       else if (typeof q.val === 'number') { const m = q.opts[q.ans].match(/\d+(\.\d+)?/); if (!m || Math.abs(+m[0] - q.val) > 1e-9) bad = `正确选项 ${q.opts[q.ans]} 和 ${q.val} 对不上`; }
     }

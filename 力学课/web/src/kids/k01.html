@@ -1,0 +1,65 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>车坏在路上了，怎么告诉拖车？</h2>
+  <p>车开到半路坏了。这是一条东西向的直路，你家就在路边。</p>
+  <p>你打电话叫拖车。拖车司机看不见你的车，只能听你说。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">哪句话能让司机一次就找到车？</p>
+    <div class="row"><button class="btn" type="button">车在路上，离我家不远</button><button class="btn" type="button">车离我家 30 米</button><button class="btn" type="button">车在我家东边 30 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="把可能的地方都点出来，才能往下走。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>“离我家 30 米”，司机该去哪？</h2>
+  <p>假如你说的是：“车离我家 30 米。”</p>
+  <p>你来当司机。路上每 10 米有一块路牌。</p>
+  <p>车可能在哪？把可能的地方都点出来。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="一条东西向的路，家在中间，两边每 10 米一块路牌；点路牌标出车可能在的地方"></canvas>
+    <p class="cap" id="cap1">点一点路牌。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3" data-gate="三个口令都停对，才能往下走。">
+  <span class="num">第 3 步 · 动手</span>
+  <h2>听口令停车</h2>
+  <p>一句话有两个地方，是因为少说了一样：往哪边。</p>
+  <p>这回换你听口令。按住车拖到口令说的地方，松手。</p>
+  <div class="fig">
+    <canvas id="c2" class="drive" aria-label="路和路牌，一辆可以拖动的车；按口令把车停到指定的地方"></canvas>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b4" data-gate="两种量法都看一看，才能往下走。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>换一个地方量起</h2>
+  <p>便利店在你家东边 30 米。司机不认识你家，只认识便利店。</p>
+  <p>那就从便利店量起。车没动，说法变了。点下面两个按钮看看。</p>
+  <div class="fig">
+    <canvas id="c3" class="drive" aria-label="路上有家和便利店，车可以拖动；可以选择从家量起或者从便利店量起，路牌上的字跟着变"></canvas>
+    <div class="row" role="group" aria-label="从哪量起" id="o3"><span class="cap">从哪量起：</span><button class="btn" type="button" data-v="0" aria-pressed="true">从我家</button><button class="btn" type="button" data-v="30">从便利店</button></div>
+    <div class="kpis" id="k3"></div>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 起名字</span>
+  <h2>车在哪，叫“位置”</h2>
+  <p>“车在哪”有个名字，叫<b class="qx">位置</b>。说清一个位置，要三样东西。</p>
+  <div class="calc"><div>① 从哪量起：我家</div><div>② 往哪边：东边</div><div>③ 多少米：30 米</div></div>
+  <p class="key">三样少一样，别人就找不到。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>哪句话说清楚了？</h2>
+  <div class="guess" data-guess="g2">
+    <p class="q">小红要告诉同学书包放在哪。哪句话说清楚了？</p>
+    <div class="row"><button class="btn" type="button">在讲台旁边 3 米</button><button class="btn" type="button">在讲台左边 3 米</button><button class="btn" type="button">在教室左边</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>

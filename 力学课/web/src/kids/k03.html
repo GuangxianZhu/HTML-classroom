@@ -1,0 +1,60 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>“走了多远”，到底是多远？</h2>
+  <p>车从家门口往东开了 40 米。开过头了，又倒回来 10 米，停在便利店门口。</p>
+  <p>爸爸问：“这一趟走了多远？”</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你会怎么回答？</p>
+    <div class="row"><button class="btn" type="button">30 米</button><button class="btn" type="button">50 米</button><button class="btn" type="button">两个数都对，要看问的是什么</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="让两个数不一样，才能往下走。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>开一趟，盯住两个数</h2>
+  <p>按住车拖着开，一共 8 秒。下面有两个数，一个记轮子滚了多少米，一个记车离出发的地方多远。</p>
+  <p>任务：想办法让这两个数不一样。</p>
+  <div class="fig">
+    <canvas id="c1" class="drive" aria-label="路和路牌，一辆可以拖着开的车；车走过的路用线画出来，从出发点到车现在的位置画一个箭头"></canvas>
+    <div class="row"><button class="btn" type="button" id="demo1">▶ 看示范</button><button class="btn" type="button" id="again1">重新开</button><span class="cap" id="hint1">按住车开始。</span></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>两个数，两个名字</h2>
+  <p>轮子滚过的米数，叫<b>路程</b>。不管往哪边开，开一米就加一米。</p>
+  <p>从出发的地方到停下的地方，挪了多少，叫<b class="qx">位移</b>。说位移要带上往哪边。</p>
+  <div class="calc"><div>开头那一趟：往东 40 米，再倒回 10 米</div><div>路程 = 40 + 10 = <b>50 米</b></div><div>位移 = 从家门口到东 30 米 = <b class="qx">往东 30 米</b></div></div>
+  <p class="key">路程看一路上，位移只看头和尾。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="路程 60 米以上，位移是 0，才能往下走。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>开了很远，位移却是 0</h2>
+  <p>任务：让路程超过 60 米，可是位移是 0。一共 10 秒。</p>
+  <p>先想一想：车最后要停在哪？</p>
+  <div class="fig">
+    <canvas id="c2" class="drive" aria-label="路和路牌，一辆可以拖着开的车；要开出去再回到出发的地方"></canvas>
+    <div class="row"><button class="btn" type="button" id="again2">重新开</button><span class="cap" id="hint2">按住车开始。</span></div>
+    <div class="kpis" id="k2"></div>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 讲给别人听</span>
+  <h2>出租车按哪个数收钱？</h2>
+  <div class="guess" data-guess="g2">
+    <p class="q">坐出租车去超市，又坐回家。司机按什么收钱？</p>
+    <div class="row"><button class="btn" type="button">按位移，回到家就不要钱</button><button class="btn" type="button">按路程，轮子滚多少算多少</button><button class="btn" type="button">两个数加起来</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>从你的座位走到门口，再走回来。数一数一共多少步。</p>
+    <p>这些步数是路程。你的位移是多少？</p>
+  </div>
+</section>
