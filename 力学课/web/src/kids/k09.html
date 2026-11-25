@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>轻踩和重踩，差在哪？</h2>
+  <p>踩油门，速度就往上涨。轻轻踩是涨，一脚踩到底也是涨。</p>
+  <p>这两种“涨”不一样。怎么说清楚差在哪？</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">轻踩和重踩各踩 5 秒。速度图上的两条线，差在哪？</p>
+    <div class="row"><button class="btn" type="button">重踩的线更陡</button><button class="btn" type="button">一样陡，重踩的整条更高</button><button class="btn" type="button">两条线一样</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三种踩法都试一遍。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>三种踩法，各踩 5 秒</h2>
+  <p>点一种踩法，车从停着开始，踩 5 秒。三种都试一遍。</p>
+  <p>盯住图上的小箭头：每过 1 秒，速度涨了多少？</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是速度表和车，下面是速度-时间图：三种踩法各画一条线，标出每秒涨多少"></canvas>
+    <div class="row" id="pick1"><button class="btn" type="button" data-v="1">轻轻踩</button><button class="btn" type="button" data-v="2">平常踩</button><button class="btn" type="button" data-v="3">重重踩</button></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+  <p class="cap">这一课的速度，都按每秒几米算。</p>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>速度每秒涨多少，叫“加速度”</h2>
+  <p>平常踩的时候，每秒记一次速度：</p>
+  <table class="tb">
+    <tr><th>第几秒</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+    <tr><th>速度</th><td>0</td><td>2</td><td>4</td><td>6</td><td>8</td><td>10</td></tr>
+  </table>
+  <p>每过 1 秒，速度就涨 2。重重踩，每过 1 秒涨 3。</p>
+  <p>“速度每秒涨多少”，有个名字叫<b class="qa">加速度</b>。</p>
+  <div class="calc"><div>加速度 = 速度涨了多少 ÷ 用了几秒</div><div>重重踩：15 ÷ 5 = <b class="qa">每秒涨 3</b></div><div>轻轻踩：5 ÷ 5 = <b class="qa">每秒涨 1</b></div></div>
+  <p class="key">速度图上，线越陡，加速度越大。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="两种刹法都试一遍。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>刹车：速度每秒掉多少</h2>
+  <p>这回车本来就在跑，速度是每秒 20 米。踩刹车。</p>
+  <p>两种刹法都试一遍。哪一种，线掉得更陡？</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是速度表和车，下面是速度-时间图：轻刹和急刹各画一条往下的线，标出每秒掉多少"></canvas>
+    <div class="row" id="pick2"><button class="btn" type="button" data-v="-5">轻轻刹</button><button class="btn" type="button" data-v="-10">急刹</button></div>
+    <div class="kpis" id="k2"></div>
+  </div>
+  <p class="key">速度每秒掉多少，也是加速度。只不过是往下掉。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 陷阱</span>
+  <h2>开得快，加速度就大吗？</h2>
+  <p>高速公路上，车稳稳地开，速度一直是每秒 30 米。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">这时候，车的加速度是多少？</p>
+    <div class="row"><button class="btn" type="button">很大，车开得那么快</button><button class="btn" type="button">是 0，速度没有变</button><button class="btn" type="button">每秒 30 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">速度说的是多快。加速度说的是速度变得多快。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>刚起步的那一刻</h2>
+  <p>绿灯亮了，司机一脚油门。车刚要动，速度还是 0。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">这一刻，加速度是 0 吗？</p>
+    <div class="row"><button class="btn" type="button">是 0，车还没动</button><button class="btn" type="button">不是 0，速度正要往上涨</button><button class="btn" type="button">没法说</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>坐车的时候闭上眼睛。只凭身体的感觉，说出车在变快、变慢，还是没变。</p>
+    <p>起步时后背贴紧座椅，刹车时身子往前。稳稳开的时候，什么感觉也没有。</p>
+  </div>
+</section>
