@@ -1,0 +1,67 @@
+<section class="sec" id="s1">
+  <div class="a">
+    <span class="num">1 · 回到上一课那趟车</span><h2>平均<span class="qv">速度</span>：位移 ÷ 时间</h2>
+    <p>上一课的 x-t 图，开车那段线很陡，停车那段是平的，倒车那段往下斜。陡说明同样的时间里位置变得多，也就是开得快。</p>
+    <p>把“快”写成数：<b>平均速度 = 位移 ÷ 时间</b>，<span class="qv">v</span> = <span class="qx">Δx</span> ÷ Δt，单位 m/s。在图上，它就是两点之间那条连线的<b>斜率</b>：竖着变了多少 ÷ 横着变了多少。</p>
+    <p>位移带正负号，速度也带：往西开，速度是负的。不管方向、只问一共跑了多少路，就用<b>平均速率</b> = 路程 ÷ 时间。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c1" aria-label="上一课那趟车的 x-t 图，两个时刻之间连一条线，线的斜率就是平均速度"></canvas>
+    <div class="ctl"><label for="c1-a">从</label><input id="c1-a" type="range" min="0" max="7" step="0.25" value="0"><output id="c1-ao"></output></div>
+    <div class="ctl"><label for="c1-b">到</label><input id="c1-b" type="range" min="0" max="7" step="0.25" value="7"><output id="c1-bo"></output></div>
+    <div class="kpis" id="k1"></div>
+    <div class="calc" id="m1"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g1">
+      <p class="q">整趟 7 s：往东开 40 m、倒回 10 m。平均速度和平均速率，哪个大？</p>
+      <div class="row"><button class="btn" type="button">平均速度大</button><button class="btn" type="button">平均速率大</button><button class="btn" type="button">一样大</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">把两个时刻拖到“倒车”那一段里：连线往下斜，平均速度是负的，说明车在往西走。</p>
+  </div>
+</section>
+
+<section class="sec" id="s2">
+  <div class="a">
+    <span class="num">2 · 速度表上的那个数</span><h2>瞬时<span class="qv">速度</span>：时间取得足够短</h2>
+    <p>车加速时一直越开越快，x-t 图是一条越来越陡的曲线。平均速度只能说一整段的情况，可速度表在每一刻都有一个读数。</p>
+    <p>办法是把那一段时间取得越来越短：从 t 到 t + Δt 的平均速度，Δt 越小，就越接近那一刻的快慢。Δt 小到看不出差别时，连线贴着曲线擦过去（叫<b>切线</b>），它的斜率就是<b>瞬时速度</b>，也就是速度表上的读数。</p>
+    <p>这里的车就是汽车模拟器那台，按平均 2.5 m/s² 起步（下一课会讲这个数是什么）。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c2" aria-label="加速起步的车的 x-t 图是一条越来越陡的曲线，两点连线随着时间间隔变小，贴近那一点的切线；左上角是速度表"></canvas>
+    <div class="ctl"><label for="c2-t">在第几秒</label><input id="c2-t" type="range" min="1" max="7" step="0.1" value="4"><output id="c2-to"></output></div>
+    <div class="ctl"><label for="c2-d">Δt 取多长</label><input id="c2-d" type="range" min="0" max="1" step="0.01" value="0"><output id="c2-do"></output></div>
+    <div class="kpis" id="k2"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g2">
+      <p class="q">把 Δt 越取越小，两点连线的斜率会怎样？</p>
+      <div class="row"><button class="btn" type="button">越来越接近速度表的读数</button><button class="btn" type="button">变成 0</button><button class="btn" type="button">越来越大，没有尽头</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">以后说“速度”，没有特别说明，指的都是瞬时速度：x-t 图上那一点切线的斜率。</p>
+  </div>
+</section>
+
+<section class="sec" id="s3">
+  <div class="a">
+    <span class="num">3 · 两种单位</span><h2>km/h 和 m/s</h2>
+    <p>速度表用 km/h，物理里算东西用 m/s。1 m/s 一小时走 3600 m，就是 3.6 km，所以 <b>km/h ÷ 3.6 = m/s</b>。</p>
+    <p>m/s 的好处是有画面：每秒走几米。换成车身来数更直观，这台车长 4.76 m。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c3" aria-label="一秒钟里车走过的距离，用一辆一辆的车身排出来"></canvas>
+    <div class="ctl"><label for="c3-v">速度表</label><input id="c3-v" type="range" min="10" max="150" step="5" value="60"><output id="c3-vo"></output></div>
+    <div class="kpis" id="k3"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g3">
+      <p class="q">100 km/h 时，车每秒大约走过几个车身？</p>
+      <div class="row"><button class="btn" type="button">约 2 个</button><button class="btn" type="button">约 6 个</button><button class="btn" type="button">约 20 个</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">从这一课起，算之前先把 km/h 换成 m/s，最后要给速度表看再乘回 3.6。</p>
+  </div>
+</section>

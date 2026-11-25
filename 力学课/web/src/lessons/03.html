@@ -1,0 +1,69 @@
+<section class="sec" id="s1">
+  <div class="a">
+    <span class="num">1 · 起步</span><h2><span class="qa">加速度</span>：速度每秒变多少</h2>
+    <p>上一课最后，速度表的指针一直往上走。有人轻轻起步，有人一脚油门到底，差别就在<b>速度变得有多快</b>。</p>
+    <p>写成数：<b>加速度 = 速度的变化 ÷ 时间</b>，<span class="qa">a</span> = Δ<span class="qv">v</span> ÷ Δt。速度的单位是 m/s，再除以秒，所以加速度的单位是 m/s²，读作“米每二次方秒”，意思是“每秒钟速度涨多少 m/s”。</p>
+    <p>下面是这台车三种起步。纵轴换成了速度，这张图叫 <b>v-t 图</b>。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c1" aria-label="三种起步的 v-t 图：三条从原点出发、陡缓不同的直线，选中的那条加粗"></canvas>
+    <div class="row" role="group" aria-label="起步方式" id="p1"><button class="btn" type="button" data-v="1">轻轻起步</button><button class="btn" type="button" data-v="2.5" aria-pressed="true">平常起步</button><button class="btn" type="button" data-v="4">油门到底</button></div>
+    <div class="ctl"><label for="c1-t">起步后</label><input id="c1-t" type="range" min="0" max="11" step="0.1" value="5"><output id="c1-to"></output></div>
+    <div class="kpis" id="k1"></div>
+    <div class="calc" id="m1"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g1">
+      <p class="q">这台车从 0 加速到 100 km/h 大约要 11 s。平均每秒车速涨多少？</p>
+      <div class="row"><button class="btn" type="button">约 1 km/h</button><button class="btn" type="button">约 9 km/h（2.5 m/s）</button><button class="btn" type="button">约 100 km/h</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">v-t 图上，线越陡加速度越大：加速度就是 <b>v-t 图的斜率</b>。和上一课“速度是 x-t 图的斜率”一模一样，只是往下挪了一层。</p>
+  </div>
+</section>
+
+<section class="sec" id="s2">
+  <div class="a">
+    <span class="num">2 · 三张图叠在一起</span><h2>x-t、v-t、a-t 一起看</h2>
+    <p>一趟典型的路：起步加速，匀速开一段，再刹车停下。把位置、速度、加速度三张图上下叠起来，同一个时刻对齐。</p>
+    <p>每一层都是下一层的“斜率来源”：<span class="qx">x</span> 的斜率是 <span class="qv">v</span>，<span class="qv">v</span> 的斜率是 <span class="qa">a</span>。匀速时 <span class="qv">v</span> 是平的，<span class="qa">a</span> 就是 0；刹车时 <span class="qv">v</span> 往下走，<span class="qa">a</span> 是负的。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c2" aria-label="上面是路和车，下面三张图上下对齐：位置、速度、加速度随时间变化"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="b2">▶ 播放</button></div>
+    <div class="ctl"><label for="c2-t">时间</label><input id="c2-t" type="range" min="0" max="20" step="0.05" value="0"><output id="c2-to"></output></div>
+    <div class="ctl"><label for="c2-a">起步加速度</label><input id="c2-a" type="range" min="1" max="4" step="0.1" value="2.5"><output id="c2-ao"></output></div>
+    <div class="ctl"><label for="c2-b">刹车减速度</label><input id="c2-b" type="range" min="1" max="7" step="0.1" value="4"><output id="c2-bo"></output></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g2">
+      <p class="q">刚起步的那一刻，车速是 0。那一刻的加速度也是 0 吗？</p>
+      <div class="row"><button class="btn" type="button">是，车还没动</button><button class="btn" type="button">不是，正在加速</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">速度是 0 和加速度是 0 是两回事：一个说现在多快，一个说快慢正在怎么变。</p>
+  </div>
+</section>
+
+<section class="sec" id="s3">
+  <div class="a">
+    <span class="num">3 · 正负号</span><h2><span class="qa">加速度</span>的方向</h2>
+    <p>加速度也带正负号，它说的是方向，不是快慢。判断车在加速还是减速，看<b>速度和加速度是不是同一个方向</b>：同方向越来越快，反方向越来越慢。</p>
+    <p>点下面四种情况，看两根箭头和速度表。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c3" aria-label="一辆车，上面一根速度箭头，下面一根加速度箭头，旁边一个随时间变化的速度读数"></canvas>
+    <div class="row" role="group" aria-label="四种情况" id="p3">
+      <button class="btn" type="button" data-v="++" aria-pressed="true">往东，加油门</button><button class="btn" type="button" data-v="+-">往东，踩刹车</button>
+      <button class="btn" type="button" data-v="--">往西倒车，加油门</button><button class="btn" type="button" data-v="-+">往西倒车，踩刹车</button></div>
+    <div class="kpis" id="k3"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g3">
+      <p class="q">朝东为正。某一刻 v = −5 m/s，a = +2 m/s²。车在加速还是减速？</p>
+      <div class="row"><button class="btn" type="button">加速，a 是正的</button><button class="btn" type="button">减速</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">“加速度是负的”不等于“在减速”。往西倒车时踩油门，加速度是负的，车却越倒越快。</p>
+  </div>
+</section>

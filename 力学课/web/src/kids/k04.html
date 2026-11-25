@@ -1,0 +1,68 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>只给一张纸，怎么记下一整趟车？</h2>
+  <p>上一小课你开了一趟：往东开 40 米，停一下，再倒回 10 米。</p>
+  <p>现在要把这一趟讲给没看见的人听。可你只有一张纸。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你会在纸上记什么？</p>
+    <div class="row"><button class="btn" type="button">只记最后车停在哪</button><button class="btn" type="button">每一秒记一次车在哪</button><button class="btn" type="button">记一共开了几秒</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="先开完一趟（7 秒），才能往下走。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>开一趟，每秒拍一张照片</h2>
+  <p>用手指按住路上的车，往左右拖，车就跟着开。一按下就开始计时，一共 7 秒。</p>
+  <p>每过 1 秒会“咔嚓”拍一张照片。照片里的车会留在路上，变成淡淡的影子。</p>
+  <p>怎么开都行。往东开，停一停，再倒回来，都可以。</p>
+  <div class="fig">
+    <canvas id="c1" class="drive" aria-label="一条东西向的路，每 10 米一块路牌，路上一辆车可以用手指拖着开；每秒拍一张照片，留下车的影子"></canvas>
+    <div class="row"><button class="btn" type="button" id="demo1">▶ 看示范</button><button class="btn" type="button" id="again1">重新开</button><span class="cap" id="hint1">按住车，往右拖试试。</span></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3" data-gate="三个按钮都按完，才能往下走。">
+  <span class="num">第 3 步 · 动手</span>
+  <h2>影子叠在一起，看不清</h2>
+  <p>停车那几秒的照片，车完全重在一起。哪张是第几秒，分不清。</p>
+  <p>办法是把照片一张一张分开摆。每张照片立起来放，东边朝上。第 0 秒放最左边，往右依次是第 1 秒、第 2 秒……</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是路和车的影子，下面把每一秒的照片竖着排成一排，再缩成点、连成线"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="next2">把照片排开 →</button><button class="btn" type="button" id="back2">从头再看</button></div>
+    <p class="cap" id="cap2">按上面的按钮，一步一步看。</p>
+  </div>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 起名字</span>
+  <h2>这张图叫“位置-时间图”</h2>
+  <p>刚才变出来的这张图，有个名字：<b class="qx">位置-时间图</b>。</p>
+  <p>看它只要记两件事。从左往右，是时间在走。点越往上，车越靠东。</p>
+  <p class="key">图上每一个点，都是一张照片：第几秒，车在哪。</p>
+  <p>回到上面那张图，点一点线上的点。那一秒的照片会在路上亮起来。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b5" data-gate="画出一段平的线，才能往下走。">
+  <span class="num">第 5 步 · 动手</span>
+  <h2>再开一趟，图跟着画</h2>
+  <p>这一次不用等照片了。你开到哪，图就画到哪。</p>
+  <p>任务：先开动，再让图上出现一段平的线。</p>
+  <div class="fig">
+    <canvas id="c3" class="drive" aria-label="上面是路和车，下面是位置-时间图，开车的时候线跟着画出来"></canvas>
+    <div class="row"><button class="btn" type="button" id="demo3">▶ 看示范</button><button class="btn" type="button" id="again3">重新开</button><span class="cap" id="hint3">按住车开始，一共 10 秒。</span></div>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>平的线是什么意思？</h2>
+  <div class="guess" data-guess="g2">
+    <p class="q">位置-时间图上，有一段线是平的。那几秒车在干什么？</p>
+    <div class="row"><button class="btn" type="button">在一段平路上开</button><button class="btn" type="button">停着不动</button><button class="btn" type="button">开得很稳</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">位置-时间图不是路的样子。线平，是因为车的位置一直没变。</p>
+</section>

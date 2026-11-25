@@ -1,0 +1,88 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>两辆车，谁更快？</h2>
+  <p>紫车从东 20 米出发，红车从家门口出发。两辆车同时往东开。</p>
+  <p>前 3 秒，紫车一直在红车前面。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你觉得谁快？</p>
+    <div class="row"><button class="btn" type="button">紫车快，它一直在前面</button><button class="btn" type="button">光看谁在前面，看不出来</button><button class="btn" type="button">红车快</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="先让两辆车开一趟。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>开一趟，数每秒挪了几格</h2>
+  <p>按“开”，两辆车一起开 5 秒。每秒还是拍一张照片，下面的图上就多两个点。</p>
+  <p>开完以后，点“第 1 秒”到“第 5 秒”。看看这一秒里，每辆车挪了几米。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是两条车道，红车和紫车往东开；下面是位置-时间图，红线和紫线"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">▶ 开</button><span class="cap">看哪一秒：</span><span class="row" role="group" aria-label="看哪一秒" id="sec1"></span></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>每秒走几米，叫“速度”</h2>
+  <p>红车每一秒都挪 15 米，紫车每一秒只挪 10 米。所以红车快。</p>
+  <p>“每秒走几米”，有个名字叫<b class="qv">速度</b>。红车的速度是每秒 15 米。</p>
+  <div class="calc"><div>速度 = 走的米数 ÷ 用的秒数</div><div>红车：45 ÷ 3 = <b class="qv">每秒 15 米</b></div><div>紫车：30 ÷ 3 = <b class="qv">每秒 10 米</b></div></div>
+  <p>再看上面的图。红线比紫线陡，因为红车每秒往上爬 15 米，紫车只爬 10 米。</p>
+  <p class="key">线越陡，车越快。线高不高，只说明车在哪。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 陷阱</span>
+  <h2>并排的那一刻</h2>
+  <p>第 4 秒，红车追上了紫车，两辆车并排。图上两条线交在一起。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">并排的这一刻，谁快？</p>
+    <div class="row"><button class="btn" type="button">一样快，它们在一起</button><button class="btn" type="button">红车快</button><button class="btn" type="button">紫车快</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">在一起，只是位置一样。快慢要看每秒走几米。</p>
+</section>
+
+<section class="beat" id="b5" data-gate="让红车正好在第 3 秒追上紫车。">
+  <span class="num">第 5 步 · 动手</span>
+  <h2>调一调：让红车第 3 秒追上</h2>
+  <p>拖下面三个滑块。图上两条线交叉的地方，就是红车追上紫车的时刻。</p>
+  <p>任务：让红车正好在第 3 秒追上紫车。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="位置-时间图：红线和紫线，交叉点标出红车追上紫车的时刻；下面是两条车道"></canvas>
+    <div class="ctl"><label for="c2-r">红车速度</label><input id="c2-r" type="range" min="5" max="20" step="1" value="15"><output id="c2-ro"></output></div>
+    <div class="ctl"><label for="c2-b">紫车速度</label><input id="c2-b" type="range" min="5" max="20" step="1" value="10"><output id="c2-bo"></output></div>
+    <div class="ctl"><label for="c2-h">紫车在前面</label><input id="c2-h" type="range" min="0" max="40" step="5" value="20"><output id="c2-ho"></output></div>
+    <div class="row"><button class="btn" type="button" id="go2">▶ 开</button><button class="btn" type="button" id="tip2">给个提示</button></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b6" data-gate="照着线开完一趟。">
+  <span class="num">第 6 步 · 动手</span>
+  <h2>照着线开车</h2>
+  <p>图上有一条虚线。照着它开，让你画出的线贴着它走。</p>
+  <p>先想一想：陡的那段，你的手要快还是慢？</p>
+  <div class="fig">
+    <canvas id="c3" class="drive" aria-label="上面是路和车，下面是位置-时间图：一条虚线是要照着开的，开车时画出自己的线"></canvas>
+    <div class="row"><button class="btn" type="button" id="again3">重新开</button><span class="cap" id="hint3">按住车开始，一共 5 秒。</span></div>
+  </div>
+</section>
+
+<section class="beat" id="b7">
+  <span class="num">第 7 步 · 讲给别人听</span>
+  <h2>哪句话是对的？</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">下面哪句话是对的？</p>
+    <div class="row"><button class="btn" type="button">在前面的车一定快</button><button class="btn" type="button">每秒走得多的车快</button><button class="btn" type="button">图上线越高，车越快</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>在走廊量出 10 米。请人帮你掐表，你走一趟。</p>
+    <div class="ctl"><label for="me">我走了</label><input id="me" type="range" min="4" max="20" step="1" value="8"><output id="meo"></output></div>
+    <p id="me-r" class="cap"></p>
+  </div>
+</section>

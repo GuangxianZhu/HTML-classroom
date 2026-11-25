@@ -1,0 +1,68 @@
+<section class="sec" id="s1">
+  <div class="a">
+    <span class="num">1 · 先立一把尺子</span><h2>位置：先定<span class="qx">原点</span>和正方向</h2>
+    <p>说“车在哪”，得先有一把尺子：从哪儿开始量（<b>原点</b>），往哪边算正（<b>正方向</b>），用什么单位（米）。这三样定了，车的位置就是一个数，记作 <span class="qx">x</span>。</p>
+    <p>这一课的路是一条东西向的直路，家在路边，便利店在家东边 30 m。原点和正方向都是你自己定的，换一种定法，同一辆车的 <span class="qx">x</span> 就换一个数。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c1" aria-label="一条东西向的路，家和便利店在路边，路下面是一把带刻度的尺子，车停在路上"></canvas>
+    <div class="row" role="group" aria-label="原点放在哪" id="o1"><span class="cap">原点：</span><button class="btn" type="button" data-v="home" aria-pressed="true">家门口</button><button class="btn" type="button" data-v="store">便利店</button></div>
+    <div class="row" role="group" aria-label="哪边算正" id="d1"><span class="cap">正方向：</span><button class="btn" type="button" data-v="1" aria-pressed="true">朝东 →</button><button class="btn" type="button" data-v="-1">朝西 ←</button></div>
+    <div class="ctl"><label for="c1-x">车停在</label><input id="c1-x" type="range" min="-20" max="60" step="1" value="45"><output id="c1-xo"></output></div>
+    <div class="kpis" id="k1"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g1">
+      <p class="q">便利店在家东边 30 m。把原点放在便利店、朝东为正，家的位置是多少？</p>
+      <div class="row"><button class="btn" type="button">+30 m</button><button class="btn" type="button">−30 m</button><button class="btn" type="button">0 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">负号不是“少了什么”，它只说明在原点的哪一边。</p>
+  </div>
+</section>
+
+<section class="sec" id="s2">
+  <div class="a">
+    <span class="num">2 · 开一趟</span><h2><span class="qx">位移</span>和路程</h2>
+    <p>车从家门口出发往东开，开过了便利店 10 m，停一下，再倒回来停进便利店门口。按播放看一遍。</p>
+    <p><b>位移</b>只看起点和终点：末位置 − 初位置，记作 <span class="qx">Δx</span>（Δ 读“德尔塔”，意思是“变了多少”）。<b>路程</b>把走过的每一段都加起来，不管方向。</p>
+    <p>下面那张图把每一刻的位置记了下来，横轴是时间，竖轴是位置，叫 <b>x-t 图</b>。线往上走是在往东开，平的是停着，往下走是在倒车。后面每一课都会用到它。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c2" aria-label="上面是路和车，下面是 x-t 图：先往上走到 40 m，平一段，再往下回到 30 m"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="p2">▶ 播放</button>
+      <span role="group" aria-label="原点放在哪" id="o2" class="row"><span class="cap">原点：</span><button class="btn" type="button" data-v="home" aria-pressed="true">家门口</button><button class="btn" type="button" data-v="store">便利店</button></span></div>
+    <div class="ctl"><label for="c2-t">时间</label><input id="c2-t" type="range" min="0" max="7" step="0.05" value="7"><output id="c2-to"></output></div>
+    <div class="kpis" id="k2"></div>
+    <div class="calc" id="m2"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g2">
+      <p class="q">往东开 40 m，再倒回 10 m。位移和路程分别是多少？</p>
+      <div class="row"><button class="btn" type="button">位移 30 m，路程 50 m</button><button class="btn" type="button">都是 50 m</button><button class="btn" type="button">都是 30 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">把原点换成便利店再看一遍：每一刻的位置都变了，位移和路程一点没变。位移只跟“从哪到哪”有关，跟尺子从哪儿量起无关。</p>
+  </div>
+</section>
+
+<section class="sec" id="s3">
+  <div class="a">
+    <span class="num">3 · 离开直路</span><h2><span class="qx">位移</span>其实是一个箭头</h2>
+    <p>在直路上，方向只有两个，一个正负号就够了。到了平地上，位移就是一根<b>从起点指向终点的箭头</b>：它有长短，也有方向。路程还是脚下走过的那条线的长度。</p>
+    <p>拖下面的滑块，沿着一个圆形场地跑。看箭头和走过的弧线什么时候差得最多。</p>
+  </div>
+  <div class="f"><div class="fig">
+    <canvas id="c3" aria-label="一个圆形场地，从最下面出发沿逆时针跑，走过的弧线和从起点指向现在位置的箭头"></canvas>
+    <div class="ctl"><label for="c3-f">跑了</label><input id="c3-f" type="range" min="0" max="1" step="0.01" value="0.5"><output id="c3-fo"></output></div>
+    <div class="kpis" id="k3"></div>
+  </div></div>
+  <div class="b">
+    <div class="guess" data-guess="g3">
+      <p class="q">绕一个半径 40 m 的圆形场地跑完整整一圈，位移是多少？</p>
+      <div class="row"><button class="btn" type="button">0</button><button class="btn" type="button">一圈的长度，约 251 m</button><button class="btn" type="button">直径，80 m</button></div>
+      <p class="r" hidden></p>
+    </div>
+    <p class="key">位移只管起点和终点；路程管一路上走了多少。回到起点，位移就是 0，不管绕了多远。</p>
+  </div>
+</section>
