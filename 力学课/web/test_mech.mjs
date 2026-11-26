@@ -2,7 +2,8 @@
 // 1) 课程表前后接得上；2) 文案和猜题里写死的数字；3) 每课的练习题跑几百遍：选项不重复、答案在里面、数值对得上。
 import fs from 'fs';
 import * as M from './src/mech.js';
-import { LESSONS, known, KIDS } from './src/course.js';
+import { LESSONS, known, KIDS, BOOKS } from './src/course.js';
+import { BGEN } from './src/books/problems.js';
 import { KGEN } from './src/kids/problems.js';
 import { GEN } from './src/problems.js';
 
@@ -103,6 +104,14 @@ ok('启 12：每秒掉 5，车速 10 / 20 / 30 的刹车距离是 10 / 40 / 90 �
 ok('启 12：湿路每秒 20 米正好 60 米停住，每秒 25 米停不住', 20 + 20 * 4 / 2 === 60 && 25 + 25 * 5 / 2 > 60);
 ok('启 14：每秒 10 米松油门，每秒掉 5 / 2 / 0.5，滑 10 / 25 / 100 米', [5, 2, 0.5].every((d, i) => 10 * (10 / d) / 2 === [10, 25, 100][i]));
 ok('启 20：重力 10000 牛，走 10 米升高 3 米往下拉 3000 牛；冰面（抓 1000 牛）最陡是升高 1 米', 10000 * 3 / 10 === 3000 && 10000 * 1 / 10 <= 1000 && 10000 * 2 / 10 > 1000);
+ok('启 13：每秒涨 10，3 秒掉 45 米；每秒 20 米往上扔 2 秒到顶', 3 * 30 / 2 === 45 && 20 / 10 === 2 && [1, 2, 3, 4].every((t) => t * 10 * t / 2 === 5 * t * t));
+ok('启 15：同样的力推 20 / 40 / 80 千克，每秒涨 4 / 2 / 1；80 千克要 4 个人才每秒涨 4', [20, 40, 80].every((m, i) => 80 / m === [4, 2, 1][i]) && 4 * 80 / 80 === 4);
+ok('启 16：2 千克每秒涨 3 要 6 牛；1000 千克 5 秒到每秒 20 米要 4000 牛；急刹每秒掉 5 要 5000 牛', 2 * 3 === 6 && 1000 * (20 / 5) === 4000 && 1000 * 5 === 5000 && 3000 / 6000 === 0.5);
+ok('启 17：推 3000 拖 1000 每秒涨 2；推 4000 拖 2000 也是；推多少最后拖多少（500 / 1000 / 2000 / 3500 稳在每秒 10 / 20 / 30 / 40 米）', (3000 - 1000) / 1000 === 2 && (4000 - 2000) / 1000 === 2);
+ok('启 18：每千克 10 牛，1 / 2 / 5 / 10 千克重 10 / 20 / 50 / 100 牛；重力 ÷ 质量总是 10；月球上 1200 牛的人是 200 牛', [1, 2, 5, 10].every((m) => m * 10 / m === 10) && 1200 / 6 === 200);
+ok('启 19：干 / 湿 / 冰最多抓 8000 / 4000 / 1000 牛，1000 千克每秒最多涨（掉）8 / 4 / 1；冰面刹车距离是干路 8 倍', [8000, 4000, 1000].every((f, i) => f / 1000 === [8, 4, 1][i]) && (20 * 20 / 1 / 2) / (20 * (20 / 8) / 2) === 8);
+ok('启 21：120 牛推 1 秒，30 千克每秒 4 米、60 千克每秒 2 米；两车各 1000 千克每秒涨 2，地面推 4000、绳子 2000', 120 / 30 === 4 && 120 / 60 === 2 && 4000 / 2000 === 2 && 1000 * 2 === 2000 && (4000 - 2000) / 1000 === 2);
+ok('启 22：50 千克每秒涨 2，秤 600 / 500 / 400 牛；往下每秒涨 10 秤是 0；一趟 7 秒走 20 米', 500 + 50 * 2 === 600 && 500 - 50 * 2 === 400 && 500 - 50 * 10 === 0 && 2 * 2 * 2 / 2 + 4 * 3 + 4 * 2 / 2 === 20);
 
 console.log('— 启蒙篇：练习题（每个跑 400 遍，数字要能口算）');
 for (const k of kready) {
@@ -121,6 +130,27 @@ for (const k of kready) {
       else if (typeof q.val === 'number') { const m = q.opts[q.ans].match(/\d+(\.\d+)?/); if (!m || Math.abs(+m[0] - q.val) > 1e-9) bad = `正确选项 ${q.opts[q.ans]} 和 ${q.val} 对不上`; }
     }
     ok(`启 ${k.n} 第 ${j + 1} 题`, !bad, bad);
+  });
+}
+
+console.log('— 课本对照页');
+ok('启蒙第二段起，做好的小课都有课本对照页可去', kready.filter((k) => (k.seg || 1) > 1).every((k) => BOOKS.some((b) => b.seg === k.seg)), '');
+for (const b of BOOKS.filter((x) => x.ready)) {
+  ok(`对照页 ${b.seg}：页面和脚本都在`, ['html', 'js'].every((e) => fs.existsSync(`src/books/t${b.seg}.${e}`)));
+  const html = fs.readFileSync(`src/books/t${b.seg}.html`, 'utf8'), cards = [...html.matchAll(/data-k="(\d+)"/g)].map((m) => +m[1]);
+  const want = KIDS.filter((k) => k.seg === b.seg).map((k) => k.n);
+  ok(`对照页 ${b.seg}：这一段的每一小课都有一张卡片`, want.every((n) => cards.includes(n)), want.filter((n) => !cards.includes(n)).join(' '));
+  const gens = BGEN[b.seg];
+  ok(`对照页 ${b.seg} 有 5 个出题函数`, gens?.length === 5);
+  (gens || []).forEach((gen, j) => {
+    let bad = '';
+    for (let s = 1; s <= 400 && !bad; s++) {
+      const q = gen(M.rng(s * 7919 + j));
+      if (!q.q || q.opts.length !== 4 || new Set(q.opts).size !== 4) bad = `选项不是 4 个不同的（种子 ${s}）：${q.opts.join(' | ')}`;
+      else if (!(q.ans >= 0 && q.ans < 4) || !q.why || /NaN|undefined|Infinity/.test(q.q + q.opts.join('') + q.why)) bad = `答案或讲解有问题（种子 ${s}）`;
+      else if (typeof q.val === 'number') { const m = q.opts[q.ans].match(/\d+(\.\d+)?/); if (!m || Math.abs(+m[0] - q.val) > 1e-9) bad = `正确选项 ${q.opts[q.ans]} 和 ${q.val} 对不上`; }
+    }
+    ok(`对照页 ${b.seg} 第 ${j + 1} 题`, !bad, bad);
   });
 }
 console.log(`\n${pass} 项通过，${fail} 项失败`);

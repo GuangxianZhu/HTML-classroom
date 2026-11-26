@@ -140,6 +140,7 @@ b,strong{font-weight:700}
 .go-row .wait.done{color:var(--ok);font-weight:700}
 .kid .guess{max-width:none}
 .kid .calc{font-family:var(--f-cn);font-size:16px;white-space:normal}
+.kid .calc div{min-width:0}
 .card{border:1px dashed var(--ink3);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
 .later{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--panel);font-size:15px}
 .later summary{cursor:pointer;color:var(--ink2)}
@@ -150,6 +151,20 @@ b,strong{font-weight:700}
 .kid table.tb{border-collapse:collapse;font-size:16px}
 .kid table.tb td,.kid table.tb th{border:1px solid var(--line);padding:5px 12px;text-align:center;font-weight:500}
 .kid table.tb th{background:var(--panel2);font-weight:700}
+
+/* 课本对照页 */
+.book .bkintro p{max-width:40em}
+.book .tbwrap{overflow-x:auto}
+.book table.bktb{min-width:520px}
+.book table.bktb td:nth-child(1){font:700 19px/1.3 var(--f-mono)}
+.book .bk{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:8px 22px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:13px 15px;margin:12px 0}
+.book .bk p{margin:.35em 0 0;max-width:none;font-size:15.5px}
+.book .bk-kid{border-right:1px dashed var(--line);padding-right:18px}
+.book .bk-kid a,.book .bk-kid b,.book .bk-book>b{font-weight:700;margin-left:8px}
+.book .bk .fx{font:500 19px/1.5 var(--f-mono);color:var(--ink);margin:.4em 0 .2em}
+.book .bk .eg{color:var(--ink2);background:var(--panel2);border-radius:5px;padding:6px 10px}
+.book ul.plain{margin:0;padding-left:1.3em;line-height:1.9}
+@media (max-width:700px){ .book .bk{grid-template-columns:1fr} .book .bk-kid{border-right:0;border-bottom:1px dashed var(--line);padding:0 0 9px} }
 </style></head>
 <body><style>
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -161,6 +176,9 @@ b,strong{font-weight:700}
 .kidpart h3.seg{margin:18px 0 8px;font-size:16px}
 .kidpart h3.seg small{font-weight:400;color:var(--ink3);margin-left:10px;font-size:13.5px}
 .kidpart .cards .n{color:var(--a)}
+.booklink{margin:10px 0 0;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.booklink a{font-weight:700}
+.booklink span{color:var(--ink3)}
 .cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
 .cards .t{font-weight:700;line-height:1.45}
 .cards .h{font-size:13.5px;color:var(--ink2);line-height:1.55}
@@ -194,7 +212,8 @@ b,strong{font-weight:700}
     <h3 class="seg">第一段 · 车怎么动<small>车在哪、多快、速度怎么变、走了多远</small></h3>
     <ol class="cards"><li data-n="k1" class="ready"><a href="lessons/k01.html"><span class="n">1</span><span class="t">车停在哪</span><span class="h">怎么在电话里说清楚车停在哪？</span><span class="st">可以学了</span></a></li><li data-n="k2" class="ready"><a href="lessons/k02.html"><span class="n">2</span><span class="t">家西边怎么编号</span><span class="h">家西边的路牌怎么编号？</span><span class="st">可以学了</span></a></li><li data-n="k3" class="ready"><a href="lessons/k03.html"><span class="n">3</span><span class="t">走了多远</span><span class="h">开出去 40 米又倒回 10 米，算走了多远？</span><span class="st">可以学了</span></a></li><li data-n="k4" class="ready"><a href="lessons/k04.html"><span class="n">4</span><span class="t">把一趟车拍成连环画</span><span class="h">怎么把一整趟车记在一张纸上？</span><span class="st">可以学了</span></a></li><li data-n="k5" class="ready"><a href="lessons/k05.html"><span class="n">5</span><span class="t">照着线开车</span><span class="h">反过来，只给你一条线，你能把车开出来吗？</span><span class="st">可以学了</span></a></li><li data-n="k6" class="ready"><a href="lessons/k06.html"><span class="n">6</span><span class="t">谁更快</span><span class="h">两辆车，怎么看出谁快？</span><span class="st">可以学了</span></a></li><li data-n="k7" class="ready"><a href="lessons/k07.html"><span class="n">7</span><span class="t">速度表上的 60</span><span class="h">速度表上的 60 是什么意思？</span><span class="st">可以学了</span></a></li><li data-n="k8" class="ready"><a href="lessons/k08.html"><span class="n">8</span><span class="t">把速度表也拍成照片</span><span class="h">能不能把速度表也拍成一排照片？</span><span class="st">可以学了</span></a></li><li data-n="k9" class="ready"><a href="lessons/k09.html"><span class="n">9</span><span class="t">轻踩和重踩</span><span class="h">轻踩和重踩油门，差在哪？</span><span class="st">可以学了</span></a></li><li data-n="k10" class="ready"><a href="lessons/k10.html"><span class="n">10</span><span class="t">数格子算路程</span><span class="h">只看速度图，能算出走了多远吗？</span><span class="st">可以学了</span></a></li><li data-n="k11" class="ready"><a href="lessons/k11.html"><span class="n">11</span><span class="t">越开越快走了多远</span><span class="h">越开越快的时候，走了多远？</span><span class="st">可以学了</span></a></li><li data-n="k12" class="ready"><a href="lessons/k12.html"><span class="n">12</span><span class="t">刹车要留多远</span><span class="h">车速快一倍，刹车要多留多远？</span><span class="st">可以学了</span></a></li></ol>
     <h3 class="seg">第二段 · 为什么会这样动<small>力从哪来，力怎么让速度变</small></h3>
-    <ol class="cards"><li data-n="k13" class="todo"><div><span class="n">13</span><span class="t">东西掉下来有多快</span><span class="h">松手以后，东西越掉越快，快多少？</span><span class="st">还在做</span></div></li><li data-n="k14" class="ready"><a href="lessons/k14.html"><span class="n">14</span><span class="t">不踩油门，车为什么会停</span><span class="h">不踩油门，车为什么会停？</span><span class="st">可以学了</span></a></li><li data-n="k15" class="todo"><div><span class="n">15</span><span class="t">推空车和推满车</span><span class="h">同样用力推，为什么满车起步慢？</span><span class="st">还在做</span></div></li><li data-n="k16" class="todo"><div><span class="n">16</span><span class="t">一牛有多大</span><span class="h">力能不能也用数来说？</span><span class="st">还在做</span></div></li><li data-n="k17" class="todo"><div><span class="n">17</span><span class="t">几个力一起推</span><span class="h">前面有人推，后面有人拉，听谁的？</span><span class="st">还在做</span></div></li><li data-n="k18" class="todo"><div><span class="n">18</span><span class="t">有多重</span><span class="h">轻的和重的，为什么掉得一样快？</span><span class="st">还在做</span></div></li><li data-n="k19" class="todo"><div><span class="n">19</span><span class="t">轮胎怎么推车</span><span class="h">发动机在车里面，是谁把车往前推？</span><span class="st">还在做</span></div></li><li data-n="k20" class="ready"><a href="lessons/k20.html"><span class="n">20</span><span class="t">上坡</span><span class="h">坡越陡越难开，差在哪？</span><span class="st">可以学了</span></a></li><li data-n="k21" class="todo"><div><span class="n">21</span><span class="t">拖车</span><span class="h">车拖着另一辆车，绳子两头的力一样大吗？</span><span class="st">还在做</span></div></li><li data-n="k22" class="todo"><div><span class="n">22</span><span class="t">电梯里的秤</span><span class="h">电梯起步的时候，人为什么觉得变重了？</span><span class="st">还在做</span></div></li></ol>
+    <ol class="cards"><li data-n="k13" class="ready"><a href="lessons/k13.html"><span class="n">13</span><span class="t">东西掉下来有多快</span><span class="h">松手以后，东西越掉越快，快多少？</span><span class="st">可以学了</span></a></li><li data-n="k14" class="ready"><a href="lessons/k14.html"><span class="n">14</span><span class="t">不踩油门，车为什么会停</span><span class="h">不踩油门，车为什么会停？</span><span class="st">可以学了</span></a></li><li data-n="k15" class="ready"><a href="lessons/k15.html"><span class="n">15</span><span class="t">推空车和推满车</span><span class="h">同样用力推，为什么满车起步慢？</span><span class="st">可以学了</span></a></li><li data-n="k16" class="ready"><a href="lessons/k16.html"><span class="n">16</span><span class="t">一牛有多大</span><span class="h">力能不能也用数来说？</span><span class="st">可以学了</span></a></li><li data-n="k17" class="ready"><a href="lessons/k17.html"><span class="n">17</span><span class="t">几个力一起推</span><span class="h">前面有人推，后面有人拉，听谁的？</span><span class="st">可以学了</span></a></li><li data-n="k18" class="ready"><a href="lessons/k18.html"><span class="n">18</span><span class="t">有多重</span><span class="h">轻的和重的，为什么掉得一样快？</span><span class="st">可以学了</span></a></li><li data-n="k19" class="ready"><a href="lessons/k19.html"><span class="n">19</span><span class="t">轮胎怎么推车</span><span class="h">发动机在车里面，是谁把车往前推？</span><span class="st">可以学了</span></a></li><li data-n="k20" class="ready"><a href="lessons/k20.html"><span class="n">20</span><span class="t">上坡</span><span class="h">坡越陡越难开，差在哪？</span><span class="st">可以学了</span></a></li><li data-n="k21" class="ready"><a href="lessons/k21.html"><span class="n">21</span><span class="t">拖车</span><span class="h">车拖着另一辆车，绳子两头的力一样大吗？</span><span class="st">可以学了</span></a></li><li data-n="k22" class="ready"><a href="lessons/k22.html"><span class="n">22</span><span class="t">电梯里的秤</span><span class="h">电梯起步的时候，人为什么觉得变重了？</span><span class="st">可以学了</span></a></li></ol>
+    <p class="booklink"><a href="lessons/t2.html">课本对照 · 力和运动 →</a><span>学完这一段再看：同样的事，课本上怎么写。</span></p>
     <h3 class="seg">第三段 · 拐弯和飞出去<small>不在一条直线上的时候</small></h3>
     <ol class="cards"><li data-n="k23" class="todo"><div><span class="n">23</span><span class="t">两个方向各管各</span><span class="h">从桌边开出去的小车，边飞边掉，怎么算？</span><span class="st">还在做</span></div></li><li data-n="k24" class="todo"><div><span class="n">24</span><span class="t">拐弯也算速度在变</span><span class="h">速度表不动，只打方向盘，速度变了吗？</span><span class="st">还在做</span></div></li><li data-n="k25" class="todo"><div><span class="n">25</span><span class="t">弯道为什么限速</span><span class="h">开多快，车会被甩出弯道？</span><span class="st">还在做</span></div></li><li data-n="k26" class="todo"><div><span class="n">26</span><span class="t">卫星为什么掉不下来</span><span class="h">一直在掉，又一直掉不到地上，可能吗？</span><span class="st">还在做</span></div></li></ol>
     <h3 class="seg">第四段 · 换一本账<small>不看过程，只看前后：功、能量、动量</small></h3>
@@ -220,6 +239,6 @@ b,strong{font-weight:700}
   </section>
   </div>
 </div>
-<script>(()=>{var r="mech-course-v1";function s(){try{return JSON.parse(localStorage.getItem(r)||"{}")}catch{return{}}}var n=s(),e=0;document.querySelectorAll("[data-n]").forEach(t=>{let a=n[t.dataset.n];a?.done&&(e++,t.classList.add("done"),t.querySelector(".st").textContent=`\u5B66\u8FC7 \xB7 \u7EC3\u4E60\u6700\u597D ${a.best??0}/5`)});var o=document.getElementById("prog");o&&(o.textContent=e?`\u8FD9\u4E2A\u6D4F\u89C8\u5668\u91CC\u5DF2\u7ECF\u5B66\u8FC7 ${e} \u8BFE\u3002`:"\u8FD8\u6CA1\u5F00\u59CB\uFF1F\u53EA\u4F1A\u5C0F\u5B66\u6570\u5B66\uFF0C\u5C31\u4ECE\u201C\u542F\u8499\u201D\u5F00\u59CB\uFF1B\u5B66\u8FC7\u9AD8\u4E2D\u7684\uFF0C\u4ECE\u7B2C 1 \u8BFE\u5F00\u59CB\u3002");})();
+<script>(()=>{var o="mech-course-v1";function s(){try{return JSON.parse(localStorage.getItem(o)||"{}")}catch{return{}}}var n=s(),e=0;document.querySelectorAll("[data-n]").forEach(t=>{let a=n[t.dataset.n];a?.done&&(e++,t.classList.add("done"),t.querySelector(".st").textContent=`\u5B66\u8FC7 \xB7 \u7EC3\u4E60\u6700\u597D ${a.best??0}/5`)});var r=document.getElementById("prog");r&&(r.textContent=e?`\u8FD9\u4E2A\u6D4F\u89C8\u5668\u91CC\u5DF2\u7ECF\u5B66\u8FC7 ${e} \u8BFE\u3002`:"\u8FD8\u6CA1\u5F00\u59CB\uFF1F\u53EA\u4F1A\u5C0F\u5B66\u6570\u5B66\uFF0C\u5C31\u4ECE\u201C\u542F\u8499\u201D\u5F00\u59CB\uFF1B\u5B66\u8FC7\u9AD8\u4E2D\u7684\uFF0C\u4ECE\u7B2C 1 \u8BFE\u5F00\u59CB\u3002");})();
 </script>
 </body></html>

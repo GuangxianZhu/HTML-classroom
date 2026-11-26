@@ -1,0 +1,85 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>同样用力推，为什么满车起步慢？</h2>
+  <p>超市里有两辆一样的手推车。一辆是空的，一辆装满了东西。</p>
+  <p>满车连车带货，是空车的 4 倍那么多。你用同样大的力，各推 4 秒。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">4 秒后，满车的速度是空车的多少？</p>
+    <div class="row"><button class="btn" type="button">一样快，力一样大嘛</button><button class="btn" type="button">慢一点点</button><button class="btn" type="button">只有空车的四分之一</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三辆车都推一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>一个人，推三辆车</h2>
+  <p>三辆车连车带货：20 千克、40 千克、80 千克。地面很滑，先不算往后拖的力。</p>
+  <p>每次都是同一个人，用同样大的力推 4 秒。看速度每秒涨多少。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是手推车和一个红色箭头（一个人往前推）；下面是速度-时间图，三辆车各一条线"></canvas>
+    <div class="row" id="pick1"><span class="cap">推哪辆：</span><button class="btn" type="button" data-v="20">20 千克</button><button class="btn" type="button" data-v="40">40 千克</button><button class="btn" type="button" data-v="80">80 千克</button></div>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">连车带货（千克）</th><td>20</td><td>40</td><td>80</td></tr>
+      <tr><th style="white-space:nowrap">速度每秒涨</th><td id="a20">？</td><td id="a40">？</td><td id="a80">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>千克数量的是“质量”</h2>
+  <p>千克数说的是一个东西里有多少“料”。它有个名字，叫<b class="qm">质量</b>。</p>
+  <p>质量越大，越难让它的速度变。推它难，让它停下来也难。</p>
+  <table class="tb">
+    <tr><th>质量</th><td>20 千克</td><td>40 千克</td><td>80 千克</td></tr>
+    <tr><th>速度每秒涨</th><td>4</td><td>2</td><td>1</td></tr>
+    <tr><th>两个数乘起来</th><td>80</td><td>80</td><td>80</td></tr>
+  </table>
+  <p class="key">同样的力，质量变成 2 倍，速度就涨得慢一半。</p>
+  <p>乘起来都是 80，不是凑巧。下一小课就用它来量力的大小。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="让 80 千克的车也每秒涨 4。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>让满车也起步那么快</h2>
+  <p>20 千克的空车，一个人推，速度每秒涨 4。</p>
+  <p>任务：让 80 千克的满车，也每秒涨 4。要几个人一起推？</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是 80 千克的车和几个红色箭头；下面是速度-时间图，虚线是空车的线"></canvas>
+    <div class="ctl"><label for="s2">几个人推</label><input id="s2" type="range" min="1" max="5" step="1" value="1"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">▶ 推 4 秒</button></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <p class="key">质量是几倍，力也要几倍，速度才涨得一样快。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>停下来也一样</h2>
+  <p>两辆一样的货车，一辆空着，一辆装满了货。</p>
+  <p>它们车速一样，刹车往后拖的力也一样大。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">哪一辆要滑得更远才停？</p>
+    <div class="row"><button class="btn" type="button">空车，它轻，容易滑</button><button class="btn" type="button">满车，它的速度掉得慢</button><button class="btn" type="button">一样远</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>所以装满货的大车，要离前车更远。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>飘在太空站里</h2>
+  <p>太空站里，东西都飘着，放到秤上也称不出轻重。</p>
+  <p>面前飘着一个大铁箱，还有一个乒乓球。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">用同样的力各推一下，哪个更难推动？</p>
+    <div class="row"><button class="btn" type="button">一样，反正都没有重量了</button><button class="btn" type="button">大铁箱，它的质量还在</button><button class="btn" type="button">乒乓球</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>把书包里的书全拿出来，放在光滑的地板上，用一根手指推它。</p>
+    <p>再把书全装回去，用同样的力气推。哪次起步慢？</p>
+  </div>
+</section>

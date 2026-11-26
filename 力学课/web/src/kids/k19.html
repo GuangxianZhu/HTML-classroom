@@ -1,0 +1,87 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>是谁把车往前推？</h2>
+  <p>车要变快，得有一个往前的力推它。前面一直说“发动机往前推”。</p>
+  <p>可是发动机装在车里面。你坐在车里使劲推前面的座椅，车一点也不会走。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">真正把整辆车往前推的，是谁？</p>
+    <div class="row"><button class="btn" type="button">发动机</button><button class="btn" type="button">地面</button><button class="btn" type="button">车轮自己</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找出冰面上起步最快的油门。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>在冰面上起步</h2>
+  <p>发动机做的事，是让车轮转。车轮一转，轮胎就往后蹬地。</p>
+  <p>选路面，拖滑块改轮胎往后蹬的力，再按“起步”。看车走不走。</p>
+  <p>任务：在冰面上，找出起步最快的那一档。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="车和车轮下面的两个红色箭头：轮胎往后蹬地，地面往前推车；打滑时车轮空转"></canvas>
+    <div class="row" id="road1" role="group" aria-label="路面"><span class="cap">路面：</span><button class="btn" type="button" data-v="8000">干路</button><button class="btn" type="button" data-v="4000">湿路</button><button class="btn" type="button" data-v="1000" aria-pressed="true">冰面</button></div>
+    <div class="ctl"><label for="s1">往后蹬</label><input id="s1" type="range" min="1000" max="6000" step="1000" value="4000"><output id="s1o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">▶ 起步</button></div>
+    <div class="kpis" id="k1"></div>
+    <p class="cap" id="cap1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>地面抓住轮胎的力，叫“摩擦力”</h2>
+  <p>两个东西贴在一起，一个想在另一个上面滑，就会被拽住。这个力叫<b class="qF">摩擦力</b>。</p>
+  <p>轮胎往后蹬地，地面不让它往后滑，就往前推轮胎。车是被地面推着走的。</p>
+  <table class="tb">
+    <tr><th>路面</th><td>干路</td><td>湿路</td><td>冰面</td></tr>
+    <tr><th style="white-space:nowrap">最多能抓（牛）</th><td>8000</td><td>4000</td><td>1000</td></tr>
+  </table>
+  <p class="key">是地面推车。轮胎往后蹬地，地面用摩擦力把车往前推。</p>
+  <p>摩擦力有个上限。蹬得比它还大，轮胎就打滑，推车的力反而变小。</p>
+  <p class="cap" id="echo1"></p>
+  <p class="cap">表里的数是这辆 1000 千克的车、取整以后的数。</p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 先猜再想</span>
+  <h2>刹车靠的也是它</h2>
+  <p>踩刹车，是让车轮转得慢。轮胎往前蹭地，地面就用摩擦力往后拖车。</p>
+  <p>第 14 小课里，把车拖慢的那个力，也是摩擦力。</p>
+  <table class="tb">
+    <tr><th>路面</th><td>干路</td><td>湿路</td><td>冰面</td></tr>
+    <tr><th style="white-space:nowrap">最多往后拖（牛）</th><td>8000</td><td>4000</td><td>1000</td></tr>
+    <tr><th style="white-space:nowrap">速度每秒最多掉</th><td>8</td><td>4</td><td>1</td></tr>
+  </table>
+  <div class="guess" data-guess="g2">
+    <p class="q">同样的车速，冰面上的刹车距离是干路的几倍？</p>
+    <div class="row"><button class="btn" type="button">差不多</button><button class="btn" type="button">2 倍</button><button class="btn" type="button">8 倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 再想一步</span>
+  <h2>要是一点摩擦力都没有</h2>
+  <p>第 14 小课想过一种一点都不拖车的地面。车开在上面，永远不停。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">把一辆停着的车，放在这种地面上。踩油门，会怎样？</p>
+    <div class="row"><button class="btn" type="button">起步特别快，没有东西拖它</button><button class="btn" type="button">车轮空转，车一动不动</button><button class="btn" type="button">和平时一样</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>摩擦力拖慢车，也推动车。起步、刹车、拐弯，全靠它。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>人走路也一样</h2>
+  <p>人往前走的时候，脚是往后蹬地的。</p>
+  <div class="guess" data-guess="g4">
+    <p class="q">地面给脚的摩擦力，朝哪边？</p>
+    <div class="row"><button class="btn" type="button">朝后，摩擦力总是拦着人</button><button class="btn" type="button">朝前，是它把人往前推</button><button class="btn" type="button">朝下</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>穿着袜子，在光滑的地板上猛地起跑。脚往哪边滑？</p>
+    <p>再换上运动鞋试一次。鞋底的花纹是干什么用的？</p>
+  </div>
+</section>

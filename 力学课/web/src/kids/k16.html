@@ -1,0 +1,86 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>力能不能也用数来说？</h2>
+  <p>上一小课只能说“一个人的力”“四个人的力”。可是每个人力气不一样，这样说不准。</p>
+  <p>长度有米，质量有千克。力也要有自己的单位。</p>
+  <p>大家这样约定：让 1 千克的东西，速度每秒涨 1，这么大的力叫 <b class="qF">1 牛</b>。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">那么让 2 千克的东西，速度每秒涨 3，要几牛？</p>
+    <div class="row"><button class="btn" type="button">5 牛</button><button class="btn" type="button">6 牛</button><button class="btn" type="button">3 牛</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找出 3 种不同的办法，都正好要 4 牛。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>在冰面上拉木块</h2>
+  <p>冰面很滑，不拖木块。用一个带刻度的弹簧秤拉它，秤上能读出拉力是几牛。</p>
+  <p>换质量，换每秒涨多少，看要多大的力。</p>
+  <p>任务：找出 3 种不同的办法，都正好要 4 牛。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="冰面上一个木块，被弹簧秤往右拉；红色箭头是拉力，旁边写着几牛"></canvas>
+    <div class="row" id="m1" role="group" aria-label="质量"><span class="cap">质量：</span><button class="btn" type="button" data-v="1" aria-pressed="true">1 千克</button><button class="btn" type="button" data-v="2">2 千克</button><button class="btn" type="button" data-v="3">3 千克</button><button class="btn" type="button" data-v="4">4 千克</button></div>
+    <div class="row" id="a1" role="group" aria-label="速度每秒涨多少"><span class="cap">每秒涨：</span><button class="btn" type="button" data-v="1" aria-pressed="true">1</button><button class="btn" type="button" data-v="2">2</button><button class="btn" type="button" data-v="3">3</button><button class="btn" type="button" data-v="4">4</button></div>
+    <div class="kpis" id="k1"></div>
+    <p class="cap" id="cap1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>两个数乘起来</h2>
+  <table class="tb">
+    <tr><th>质量</th><th>速度每秒涨</th><th>要的力</th></tr>
+    <tr><td>1 千克</td><td>4</td><td>4 牛</td></tr>
+    <tr><td>2 千克</td><td>2</td><td>4 牛</td></tr>
+    <tr><td>4 千克</td><td>1</td><td>4 牛</td></tr>
+    <tr><td>2 千克</td><td>3</td><td>6 牛</td></tr>
+  </table>
+  <div class="calc"><div>力 = 质量 × 速度每秒涨多少</div><div>2 × 3 = <b class="qF">6 牛</b></div></div>
+  <p class="key">力 = 质量 × 速度每秒涨多少。力的单位是牛。</p>
+  <p>“牛”是为了纪念一位叫牛顿的科学家。这条规律就是他写下来的。</p>
+  <p>1 牛有多大？手心托着一个小苹果，手往上托的力大约就是 1 牛。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="让车 5 秒正好到每秒 20 米。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>推一辆真车要多少牛？</h2>
+  <p>这辆车连人带车 1000 千克。先不算往后拖的力。</p>
+  <p>任务：让车从停着开始，5 秒正好到每秒 20 米。往前推的力要多少牛？</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是车和红色箭头（往前推的力）；下面是速度-时间图，有一个目标点：第 5 秒每秒 20 米"></canvas>
+    <div class="ctl"><label for="s2">往前推</label><input id="s2" type="range" min="1000" max="6000" step="1000" value="1000"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">▶ 开 5 秒</button></div>
+    <div class="calc" id="calc2"></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>刹车要多大的力？</h2>
+  <p>第 12 小课里，急刹车时速度每秒掉 5。车还是 1000 千克。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">地面往后拖车的力，要多大？</p>
+    <div class="row"><button class="btn" type="button">5 牛</button><button class="btn" type="button">1005 牛</button><button class="btn" type="button">5000 牛</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>涨和掉是同一条规律。力往前，速度涨。力往后，速度掉。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>同样 3000 牛</h2>
+  <p>轿车 1000 千克，大货车 6000 千克。两辆车都用 3000 牛往前推。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">货车的速度每秒涨多少？</p>
+    <div class="row"><button class="btn" type="button">3，和轿车一样</button><button class="btn" type="button">0.5</button><button class="btn" type="button">2</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>找一个小苹果或者两个鸡蛋，放在手心托着，记住这个分量。这大约是 1 牛。</p>
+    <p>再托一瓶 500 毫升的水，大约是 5 牛。</p>
+  </div>
+</section>

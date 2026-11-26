@@ -2,7 +2,7 @@
 // 产出 ../index.html（总目录）和 ../lessons/NN.html（每课一个离线单文件）。课程表在 src/course.js。
 import { build } from 'esbuild';
 import fs from 'fs';
-import { LESSONS, PARTS, QUANTS, KIDS, KID_PART, KID_SEGS, lessonFile, kidFile } from './src/course.js';
+import { LESSONS, PARTS, QUANTS, KIDS, KID_PART, KID_SEGS, BOOKS, lessonFile, kidFile, bookFile } from './src/course.js';
 
 const css = fs.readFileSync('src/style.css', 'utf8');
 const FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">';
@@ -73,6 +73,27 @@ ${inner}
   nk++;
 }
 
+// 课本对照页：启蒙篇每一段配一页，字母和公式都在这里
+let nb = 0;
+for (const Bk of BOOKS.filter((b) => b.ready)) {
+  const inner = fs.readFileSync(`src/books/t${Bk.seg}.html`, 'utf8'), sg = KID_SEGS.find((x) => x.id === Bk.seg);
+  const body = `<div class="wrap kid book">
+  <nav class="top" id="top" aria-label="课程导航"></nav>
+  <header class="hero">
+    <div class="eyebrow">课本对照 · ${sg.name.split(' · ')[0]}</div>
+    <h1>${Bk.title.split(' · ')[1]}：课本上怎么写</h1>
+    <p class="cap">${Bk.note}。左边是小课里的说法，右边是课本的写法。</p>
+  </header>
+${inner}
+  <section class="end" id="end">
+    <h2>用课本的写法做 5 道题</h2>
+    <div class="quiz" id="quiz" aria-live="polite"></div>
+  </section>
+</div>`;
+  fs.writeFileSync(`../lessons/${bookFile(Bk.seg)}`, doc(Bk.title, body, await bundle(`src/books/t${Bk.seg}.js`)));
+  nb++;
+}
+
 // 总目录
 const parts = PARTS.map((p) => `<section class="part">
     <h2><span class="lv">${p.level}</span>${p.name}</h2><p class="pnote">${p.note}</p>
@@ -85,10 +106,11 @@ const kidCard = (k) => {
   const inner = `<span class="n">${k.n}</span><span class="t">${k.title}</span><span class="h">${k.ask}</span><span class="st">${k.ready ? '可以学了' : '还在做'}</span>`;
   return `<li data-n="k${k.n}" class="${k.ready ? 'ready' : 'todo'}">${k.ready ? `<a href="lessons/${kidFile(k.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
 };
+const bookLink = (seg) => { const b = BOOKS.find((x) => x.seg === seg && x.ready); return b ? `\n    <p class="booklink"><a href="lessons/${bookFile(seg)}">${b.title} →</a><span>学完这一段再看：同样的事，课本上怎么写。</span></p>` : ''; };
 const kidPart = `<section class="part kidpart">
     <h2><span class="lv">${KID_PART.level}</span>${KID_PART.name}</h2><p class="pnote">${KID_PART.note}</p>
     ${KID_SEGS.map((sg) => `<h3 class="seg">${sg.name}<small>${sg.note}</small></h3>
-    <ol class="cards">${KIDS.filter((k) => (k.seg || 1) === sg.id).map(kidCard).join('')}</ol>`).join('\n    ')}
+    <ol class="cards">${KIDS.filter((k) => (k.seg || 1) === sg.id).map(kidCard).join('')}</ol>${bookLink(sg.id)}`).join('\n    ')}
   </section>`;
 const idxCss = `
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -100,6 +122,9 @@ const idxCss = `
 .kidpart h3.seg{margin:18px 0 8px;font-size:16px}
 .kidpart h3.seg small{font-weight:400;color:var(--ink3);margin-left:10px;font-size:13.5px}
 .kidpart .cards .n{color:var(--a)}
+.booklink{margin:10px 0 0;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.booklink a{font-weight:700}
+.booklink span{color:var(--ink3)}
 .cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
 .cards .t{font-weight:700;line-height:1.45}
 .cards .h{font-size:13.5px;color:var(--ink2);line-height:1.55}
@@ -134,4 +159,4 @@ ${parts}
   </div>
 </div>`;
 fs.writeFileSync('../index.html', doc('力学课：一辆车讲到底', index.replace('</header>', '</header>').replace('<div class="wrap">', `<style>${idxCss}</style><div class="wrap">`), await bundle('src/index.js')));
-console.log(`index.html + ${n} 课 + 启蒙 ${nk} 小课`);
+console.log(`index.html + ${n} 课 + 启蒙 ${nk} 小课 + 课本对照 ${nb} 页`);

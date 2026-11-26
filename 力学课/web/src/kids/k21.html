@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>绳子两头的力，一样大吗？</h2>
+  <p>前车用一根绳子拖着后车，两辆车一起越开越快。</p>
+  <p>绳子往前拉后车。后车也通过绳子，往后拉着前车。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">这两个力，哪个大？</p>
+    <div class="row"><button class="btn" type="button">前车拉后车的大，不然拖不动</button><button class="btn" type="button">一样大</button><button class="btn" type="button">后车拉前车的大</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三种推法都试一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>两个人在冰上互相推</h2>
+  <p>小孩 30 千克，大人 60 千克，都穿着冰鞋，面对面站着。</p>
+  <p>换三种推法，各试一次。看两个人各受多大的力，各往哪边滑。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="冰面上一个小孩和一个大人面对面；推的时候两个人身上各有一个红色箭头，一样长，方向相反"></canvas>
+    <div class="row" id="pick1"><span class="cap">谁来推：</span><button class="btn" type="button" data-v="0">小孩推大人</button><button class="btn" type="button" data-v="1">大人推小孩</button><button class="btn" type="button" data-v="2">两个人一起推</button></div>
+    <table class="tb">
+      <tr><th></th><th>小孩</th><th>大人</th></tr>
+      <tr><th style="white-space:nowrap">受到的力</th><td id="f0">？</td><td id="f1">？</td></tr>
+      <tr><th style="white-space:nowrap">分开以后的速度</th><td id="u0">？</td><td id="u1">？</td></tr>
+    </table>
+    <p class="cap" id="cap1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>力总是一对一对的</h2>
+  <p>不管谁先动手，结果都一样。小孩推大人 120 牛，大人身上就有 120 牛。</p>
+  <p>同一时刻，小孩身上也有 120 牛，方向反过来。你推不了别人，而自己不被推。</p>
+  <p class="key">力总是成对的：你推我多大，我就推你多大，方向相反。</p>
+  <p>力一样大，可小孩的质量只有一半。所以小孩滑走的速度是大人的 2 倍。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="让两辆车的速度每秒涨 2。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>一样大，那前车怎么拖得动？</h2>
+  <p>这一对力，一个在后车身上，一个在前车身上。它们不在同一辆车上，不能互相抵掉。</p>
+  <p>两辆车都是 1000 千克。算合力的时候，一辆一辆分开看。</p>
+  <p>任务：拖滑块，让两辆车的速度每秒涨 2。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="前车用绳子拖着后车；红色箭头：地面往前推前车，绳子往后拉前车，绳子往前拉后车"></canvas>
+    <div class="ctl"><label for="s2">地面推前车</label><input id="s2" type="range" min="2000" max="6000" step="2000" value="2000"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <p class="key">后车被绳子拉着变快。前车被地面推着，推的比绳子往后拉的大，也变快。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>穿着冰鞋推墙</h2>
+  <p>你穿着冰鞋，站在墙边，用手使劲推墙一下。墙没动，你往后滑走了。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">是谁把你往后推的？</p>
+    <div class="row"><button class="btn" type="button">你自己的手</button><button class="btn" type="button">墙</button><button class="btn" type="button">冰面</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>上一小课也是这回事。轮胎往后蹬地，地面往前推车，是同一对力。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>大货车撞小轿车</h2>
+  <p>一辆大货车和一辆小轿车撞在一起。小轿车被撞得很惨。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">撞的那一下，谁受到的力大？</p>
+    <div class="row"><button class="btn" type="button">小轿车受到的力大</button><button class="btn" type="button">一样大</button><button class="btn" type="button">大货车受到的力大</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>吹一个气球，不扎口，松手。气球把空气往后推，空气把气球往哪边推？</p>
+    <p>再和同学各伸一只手掌对推。你能做到只推他，而他不推你吗？</p>
+  </div>
+</section>

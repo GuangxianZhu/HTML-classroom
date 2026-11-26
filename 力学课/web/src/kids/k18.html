@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>轻的和重的，为什么掉得一样快？</h2>
+  <p>第 13 小课留了一个问题：大铁球和小铁球同时松手，同时落地。</p>
+  <p>东西会往下掉，是因为地球在往下拉它。先比一比地球拉它们的力。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">地球拉 10 千克铁球的力，和拉 1 千克铁球的力比？</p>
+    <div class="row"><button class="btn" type="button">一样大，所以掉得一样快</button><button class="btn" type="button">是 10 倍</button><button class="btn" type="button">拉大球的力反而小</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="四个都挂上去称一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>用弹簧秤称一称</h2>
+  <p>把东西挂在弹簧秤下面，等它不动。这时候合力是 0。</p>
+  <p>秤往上拉多少牛，地球就往下拉多少牛。读秤上的数就行。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="一个弹簧秤挂着一个铁块；红色箭头：地球往下拉，秤往上拉，一样长"></canvas>
+    <div class="row" id="pick1"><span class="cap">挂上：</span><button class="btn" type="button" data-v="1">1 千克</button><button class="btn" type="button" data-v="2">2 千克</button><button class="btn" type="button" data-v="5">5 千克</button><button class="btn" type="button" data-v="10">10 千克</button></div>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">质量（千克）</th><td>1</td><td>2</td><td>5</td><td>10</td></tr>
+      <tr><th style="white-space:nowrap">地球拉它（牛）</th><td id="w1">？</td><td id="w2">？</td><td id="w5">？</td><td id="w10">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>地球往下拉的力，叫“重力”</h2>
+  <p>地球往下拉东西的力，叫<b class="qF">重力</b>。平时说一个东西“有多重”，说的就是它。</p>
+  <div class="calc"><div>重力 = 质量 × 10</div><div>5 千克：5 × 10 = <b class="qF">50 牛</b></div></div>
+  <p class="key">每 1 千克，地球拉它大约 10 牛。质量是几倍，重力就是几倍。</p>
+  <p>一直开的那辆车是 1000 千克，它的重力是 10000 牛。</p>
+  <p class="cap" id="echo1"></p>
+  <p class="cap">10 是取整的数，量出来大约是 9.8。</p>
+</section>
+
+<section class="beat" id="b4" data-gate="换 3 种质量，各松手一次。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>那为什么掉得一样快？</h2>
+  <p>松手以后，球只受一个力：重力。它就是合力。</p>
+  <p>左边的球一直是 1 千克。拖滑块换右边球的质量，再按“松手”。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="两个球并排往下掉，右边的球大；每个球上有一个往下的红色箭头，大球的箭头长"></canvas>
+    <div class="ctl"><label for="s2">右边的球</label><input id="s2" type="range" min="1" max="10" step="1" value="2"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">松手</button></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <p class="key">重的东西，拉它的力大，可它也更难拉动。两边正好扯平，每秒都涨 10。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>到了月球上</h2>
+  <p>月球比地球小得多，拉东西的力只有地球的六分之一左右。</p>
+  <p>一位宇航员连人带衣服 120 千克。在地球上，重力是 1200 牛。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">到了月球上，变的是什么？</p>
+    <div class="row"><button class="btn" type="button">质量变成 20 千克，重力不变</button><button class="btn" type="button">质量还是 120 千克，重力变成 200 牛</button><button class="btn" type="button">质量和重力都没了</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>所以宇航员在月球上一蹦老高。可要推动他，还是一样费劲。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>站着为什么不往下掉？</h2>
+  <p>你站在地上不动。假设你是 50 千克，重力 500 牛一直往下拉你。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">你为什么没有往下掉？</p>
+    <div class="row"><button class="btn" type="button">站着的时候没有重力</button><button class="btn" type="button">地面往上托你 500 牛，合力是 0</button><button class="btn" type="button">重力太小，拉不动人</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>看看家里的东西上印的千克数，比如一袋米、一桶水。算一算它的重力是多少牛。</p>
+    <p>再算算你自己的重力。</p>
+  </div>
+</section>

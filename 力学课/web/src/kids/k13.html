@@ -1,0 +1,82 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>松手以后，球掉得多快？</h2>
+  <p>站在很高的楼顶，手里拿一个小铁球。松手，球往下掉。</p>
+  <p>不用扔，只是松开手。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你觉得球往下掉的时候，速度是怎样的？</p>
+    <div class="row"><button class="btn" type="button">一直一样快</button><button class="btn" type="button">越来越快，每秒涨得一样多</button><button class="btn" type="button">一开始最快，后来慢下来</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="按“松手”，看球掉满 3 秒。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>每秒拍一张</h2>
+  <p>还是老办法：每过 1 秒拍一张照片，把球留在照片上。</p>
+  <p>右边同时画速度-时间图。看每一秒，速度涨了多少。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="左边是一栋高楼，球从楼顶往下掉，每秒留一个影子；右边是速度-时间图，一条往上的直线"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">松手</button></div>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">过了几秒</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+      <tr><th style="white-space:nowrap">速度（每秒几米）</th><td>0</td><td id="v1">？</td><td id="v2">？</td><td id="v3">？</td></tr>
+      <tr><th style="white-space:nowrap">一共掉了（米）</th><td>0</td><td id="d1">？</td><td id="d2">？</td><td id="d3">？</td></tr>
+    </table>
+  </div>
+  <p class="cap">真的球掉得太快，看不清。这里的动画放慢了一半。</p>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>每秒涨 10</h2>
+  <p>速度是 0、10、20、30。每过 1 秒，正好涨 10。</p>
+  <p>速度每秒涨多少，第 9 小课起过名字，叫加速度。</p>
+  <p class="key">东西往下掉，速度每秒涨 10。加速度是 10。</p>
+  <p>第 9 小课里，重踩油门是每秒涨 3。掉下来的球，比那辆车快得多。</p>
+  <p class="cap" id="echo1"></p>
+  <p class="cap">10 是取整的数，量出来大约是 9.8。空气挡得很少的时候才是这样。羽毛和纸片被空气挡得多，飘得慢。</p>
+</section>
+
+<section class="beat" id="b4" data-gate="调到石头掉了 3 秒，看井有多深。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>一口井有多深？</h2>
+  <p>往井里丢一块石头，过了 3 秒才听到水声。井有多深？</p>
+  <p>第 11 小课学过：速度-时间图上，线下面的面积就是走过的路程。</p>
+  <p>拖滑块，看掉了几秒，三角形有多大。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="速度-时间图，一条每秒涨 10 的直线，线下面涂色的三角形是掉了多远"></canvas>
+    <div class="ctl"><label for="s2">掉了</label><input id="s2" type="range" min="1" max="4" step="1" value="1"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <p class="cap">声音传上来也要一点时间，这里先不算。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>重的球和轻的球</h2>
+  <p>一个大铁球，一个小铁球，大的比小的重 10 倍。两个球从同一层楼同时松手。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">谁先落地？</p>
+    <div class="row"><button class="btn" type="button">大铁球先落地</button><button class="btn" type="button">差不多同时落地</button><button class="btn" type="button">小铁球先落地</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>四百多年前，大家都以为重的掉得快。有一位叫伽利略的人不信，动手去试。</p>
+  <p>为什么会同时落地？这个问题留到第 18 小课。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>往上扔呢？</h2>
+  <p>把球竖直往上扔，出手时是每秒 20 米。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">球往上飞的时候，速度怎么变？</p>
+    <div class="row"><button class="btn" type="button">一直是每秒 20 米，到顶突然停</button><button class="btn" type="button">每秒掉 10，过 2 秒到最高点</button><button class="btn" type="button">每秒涨 10，越飞越快</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>一只手拿硬币，一只手拿橡皮，举到一样高，同时松手。听落地的声音是一声还是两声。</p>
+    <p>再拿一张纸和硬币比。然后把纸揉成一团，再比一次。</p>
+  </div>
+</section>

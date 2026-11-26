@@ -135,6 +135,7 @@ b,strong{font-weight:700}
 .go-row .wait.done{color:var(--ok);font-weight:700}
 .kid .guess{max-width:none}
 .kid .calc{font-family:var(--f-cn);font-size:16px;white-space:normal}
+.kid .calc div{min-width:0}
 .card{border:1px dashed var(--ink3);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
 .later{border:1px solid var(--line);border-radius:6px;padding:10px 14px;background:var(--panel);font-size:15px}
 .later summary{cursor:pointer;color:var(--ink2)}
@@ -145,3 +146,17 @@ b,strong{font-weight:700}
 .kid table.tb{border-collapse:collapse;font-size:16px}
 .kid table.tb td,.kid table.tb th{border:1px solid var(--line);padding:5px 12px;text-align:center;font-weight:500}
 .kid table.tb th{background:var(--panel2);font-weight:700}
+
+/* 课本对照页 */
+.book .bkintro p{max-width:40em}
+.book .tbwrap{overflow-x:auto}
+.book table.bktb{min-width:520px}
+.book table.bktb td:nth-child(1){font:700 19px/1.3 var(--f-mono)}
+.book .bk{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:8px 22px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:13px 15px;margin:12px 0}
+.book .bk p{margin:.35em 0 0;max-width:none;font-size:15.5px}
+.book .bk-kid{border-right:1px dashed var(--line);padding-right:18px}
+.book .bk-kid a,.book .bk-kid b,.book .bk-book>b{font-weight:700;margin-left:8px}
+.book .bk .fx{font:500 19px/1.5 var(--f-mono);color:var(--ink);margin:.4em 0 .2em}
+.book .bk .eg{color:var(--ink2);background:var(--panel2);border-radius:5px;padding:6px 10px}
+.book ul.plain{margin:0;padding-left:1.3em;line-height:1.9}
+@media (max-width:700px){ .book .bk{grid-template-columns:1fr} .book .bk-kid{border-right:0;border-bottom:1px dashed var(--line);padding:0 0 9px} }

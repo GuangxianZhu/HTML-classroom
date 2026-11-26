@@ -1,6 +1,6 @@
 // 启蒙篇共用的东西：一步一步展开、路和路牌、能用手指拖着开的车、位置-时间图的格子、先猜一下、练习、上下导航。
 // 启蒙篇的读者只有小学数学基础：页面上的字不用字母和符号（test_mech.mjs 会查），位置一律说成“东 30 米 / 西 10 米 / 家门口”。
-import { KIDS, kidFile, lessonFile, loadProgress, saveProgress } from './course.js';
+import { KIDS, BOOKS, kidFile, bookFile, lessonFile, loadProgress, saveProgress } from './course.js';
 import { $, T, txt, drawCar, rr, dot, arrow, NUM } from './ui.js';
 import { rng } from './mech.js';
 
@@ -350,7 +350,9 @@ export function kidChrome(n) {
     : '<span class="tag">从这里开始</span><p>只要会小学数学。</p>';
   $('ask').textContent = L.ask;
   $('got').textContent = L.got;
-  $('backlink').innerHTML = `<a href="${lessonFile(L.back)}">高中第 ${L.back} 课</a>`;
+  const book = BOOKS.find((b) => b.seg === (L.seg || 1));
+  $('backlink').innerHTML = (L.seg || 1) === 1 ? `<a href="${lessonFile(L.back)}">高中第 ${L.back} 课</a>`
+    : book?.ready ? `<a href="${bookFile(book.seg)}">${book.title}</a>` : '这一段的课本对照页（还在做）';
   $('next').innerHTML = next
     ? `<span class="tag">留一个问题给下一小课</span><p class="big">${next.ask}</p><p>第 ${next.n} 小课 · ${next.title}${next.ready ? `　<a class="btn primary" href="${kidFile(n + 1)}">去下一小课 →</a>` : '（还在做）'}</p>`
     : '';

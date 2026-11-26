@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>电梯起步，人为什么觉得变重了？</h2>
+  <p>把一台体重秤搬进电梯，人站上去。这个人 50 千克，重力是 500 牛。</p>
+  <p>电梯停着的时候，秤往上托他 500 牛。秤上显示的，就是它托人的力。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">电梯从 1 楼往上起步的那一下，秤上的数会怎样？</p>
+    <div class="row"><button class="btn" type="button">变大</button><button class="btn" type="button">不变，人又没变重</button><button class="btn" type="button">变小</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="上楼、下楼各坐一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>坐一趟电梯，盯着秤</h2>
+  <p>按“上楼”，再按“下楼”。每一趟都有三段：起步、稳稳走、快到了。</p>
+  <p>看每一段秤上是多少牛。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="左边是电梯井和电梯；右边放大了电梯里的人和秤，红色箭头：重力往下，秤往上托"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="up1">▲ 上楼</button><button class="btn primary" type="button" id="dn1">▼ 下楼</button></div>
+    <table class="tb">
+      <tr><th></th><th>起步</th><th>稳稳走</th><th>快到了</th></tr>
+      <tr><th style="white-space:nowrap">上楼</th><td id="u0">？</td><td id="u1">？</td><td id="u2">？</td></tr>
+      <tr><th style="white-space:nowrap">下楼</th><td id="d0">？</td><td id="d1">？</td><td id="d2">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>重力没变，变的是秤托你的力</h2>
+  <p>人身上一直只有两个力：重力 500 牛往下，秤往上托。</p>
+  <p>往上起步时，人的速度每秒往上涨 2。那就得有往上的合力。</p>
+  <div class="calc"><div>合力 = 质量 × 每秒涨多少 = 50 × 2 = 100 牛，往上</div><div>秤往上托 = 500 + 100 = <b class="qF">600 牛</b></div></div>
+  <p>稳稳走的时候速度不变，合力是 0，秤上又回到 500 牛。</p>
+  <p class="key">秤上的数是地板托你的力。电梯往上越来越快时，它比你的重力大。</p>
+  <p>你觉得“变重了”，是脚底感觉到地板托得更使劲了。重力一点没变。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="找出秤上正好是 0 的情况。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>秤上能变成 0 吗？</h2>
+  <p>电梯往下走，而且越来越快。拖滑块，改它的速度每秒涨多少。</p>
+  <p>任务：找出秤上正好是 0 的情况。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="电梯里的人和秤；重力的箭头不变，秤往上托的箭头越来越短"></canvas>
+    <div class="ctl"><label for="s2">往下，每秒涨</label><input id="s2" type="range" min="0" max="10" step="2" value="0"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>太空站里为什么飘着？</h2>
+  <p>太空站离地面 400 千米。那里的重力只比地面小一点点。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">宇航员为什么飘着？</p>
+    <div class="row"><button class="btn" type="button">那里没有重力</button><button class="btn" type="button">太空站和人一起在掉，谁也不托谁</button><button class="btn" type="button">太空里没有空气</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>一直在掉，为什么掉不到地上？这个问题留到第 26 小课。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>被按在座椅上</h2>
+  <p>车猛地起步，你觉得后背被按在座椅上。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">这时候，你身上往前往后的力是哪个？</p>
+    <div class="row"><button class="btn" type="button">有一个力把你往后按</button><button class="btn" type="button">座椅靠背往前推你</button><button class="btn" type="button">没有力</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>下次坐电梯，手心平托一本厚书。起步和快停的时候，注意手上的感觉。</p>
+    <p>家里有体重秤的话，带进电梯站上去看一看。</p>
+  </div>
+</section>

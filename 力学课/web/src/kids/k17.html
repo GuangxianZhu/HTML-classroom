@@ -1,0 +1,90 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>一个往前推，一个往后拖，听谁的？</h2>
+  <p>车在路上，从来不是只有一个力。发动机往前推，地面和空气往后拖。</p>
+  <p>这辆车 1000 千克。往前推的力是 3000 牛，往后拖的力是 1000 牛。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">车的速度每秒涨多少？</p>
+    <div class="row"><button class="btn" type="button">3，听大的那个</button><button class="btn" type="button">2，先抵掉一部分</button><button class="btn" type="button">4，两个加起来</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="用 2 种不同的推和拖，都让速度每秒涨 2。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>一边推，一边拖</h2>
+  <p>车一开始是每秒 10 米。拖两个滑块，再按“开 5 秒”。</p>
+  <p>任务：让速度每秒正好涨 2。找出 2 种不同的办法。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是车和两个红色箭头：往前推、往后拖，下面一个深色箭头是抵掉以后剩下的；再下面是速度-时间图"></canvas>
+    <div class="ctl"><label for="s1">往前推</label><input id="s1" type="range" min="0" max="5000" step="1000" value="3000"><output id="s1o"></output></div>
+    <div class="ctl"><label for="s2">往后拖</label><input id="s2" type="range" min="0" max="5000" step="1000" value="3000"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">▶ 开 5 秒</button></div>
+    <p class="cap" id="cap1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>抵掉以后剩下的，叫“合力”</h2>
+  <p>往两边的力先互相抵掉。剩下的那一份，才管速度怎么变。它叫<b class="qF">合力</b>。</p>
+  <table class="tb">
+    <tr><th>往前推</th><th>往后拖</th><th>合力</th><th>速度</th></tr>
+    <tr><td>3000</td><td>1000</td><td>往前 2000</td><td>每秒涨 2</td></tr>
+    <tr><td>4000</td><td>2000</td><td>往前 2000</td><td>每秒涨 2</td></tr>
+    <tr><td>1000</td><td>3000</td><td>往后 2000</td><td>每秒掉 2</td></tr>
+    <tr><td>3000</td><td>3000</td><td>0</td><td>不变</td></tr>
+  </table>
+  <p class="key">上一小课的规律，说全了是：合力 = 质量 × 速度每秒涨多少。</p>
+  <p>要是两个力朝同一边，就加起来。两个人一起往前推，各 300 牛，合力是 600 牛。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 先猜再想</span>
+  <h2>稳稳地开，合力是多少？</h2>
+  <p>车在高速路上稳稳地开，速度一直是每秒 30 米，一点不变。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">这时候，车受到的合力是多少？</p>
+    <div class="row"><button class="btn" type="button">很大，不然开不了这么快</button><button class="btn" type="button">0</button><button class="btn" type="button">正好等于发动机推的力</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>第 14 小课说过：没有力，速度就不变。现在可以说得更准了。</p>
+  <p class="key">合力是 0，速度就不变。车可以停着，也可以正开得飞快。</p>
+</section>
+
+<section class="beat" id="b5" data-gate="找出让车最后稳在每秒 20 米的推力。">
+  <span class="num">第 5 步 · 挑战</span>
+  <h2>油门踩住不动，车会一直变快吗？</h2>
+  <p>车开得越快，空气往后顶得越厉害。往后拖的力跟着车速变。</p>
+  <p>下面表里，车速是每秒几米，往后拖的力是几牛。</p>
+  <table class="tb">
+    <tr><th style="white-space:nowrap">车速</th><td>10</td><td>20</td><td>30</td><td>40</td></tr>
+    <tr><th style="white-space:nowrap">往后拖</th><td>500</td><td>1000</td><td>2000</td><td>3500</td></tr>
+  </table>
+  <p>选一个推力，一直不变，从停着开始开。看车速最后停在哪。</p>
+  <p>任务：找出让车最后稳在每秒 20 米的推力。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是车和两个红色箭头，往后拖的箭头随车速变长；下面是速度-时间图，线先往上，后来变平"></canvas>
+    <div class="row" id="pick2" role="group" aria-label="往前推的力"><span class="cap">往前推：</span><button class="btn" type="button" data-v="500">500 牛</button><button class="btn" type="button" data-v="1000">1000 牛</button><button class="btn" type="button" data-v="2000">2000 牛</button><button class="btn" type="button" data-v="3500">3500 牛</button></div>
+    <div class="kpis" id="k2"></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <p class="cap">时间很长，动画放快了 10 倍。表里的数是取整的。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>跳伞</h2>
+  <p>跳伞的人刚跳出飞机，越掉越快。掉了十几秒以后，速度就不再涨了。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">速度为什么不再涨？</p>
+    <div class="row"><button class="btn" type="button">地球不再往下拉他了</button><button class="btn" type="button">空气往上顶的力，和往下拉的力一样大了</button><button class="btn" type="button">他掉累了</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>和同学面对面，各用一只手掌顶住一本书的两边。两人用一样的力，书不动。</p>
+    <p>一个人多用一点力，书往哪边走？走得快不快，看的是多出来的那一点。</p>
+  </div>
+</section>
