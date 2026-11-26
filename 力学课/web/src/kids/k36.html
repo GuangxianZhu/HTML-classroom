@@ -1,0 +1,78 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>过了减速带，车为什么晃几下就停？</h2>
+  <p>车身和车轮之间装着弹簧。过减速带时，弹簧被猛地压了一下，车身就上下晃。</p>
+  <p>先想一辆少了零件的车：只有弹簧，别的什么都没有。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">这辆车过了减速带，会晃多久？</p>
+    <div class="row"><button class="btn" type="button">晃一下就停</button><button class="btn" type="button">越晃越小，几下就停</button><button class="btn" type="button">一直晃，停不下来</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="过一次减速带，多看几秒。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>只有弹簧的车</h2>
+  <p>这里只画了车的一个角：下面是车轮，上面是车身，中间是弹簧。</p>
+  <p>点按钮，车身被压低 6 厘米再松开。看它怎么晃，也看下面那根条。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="左边是车轮、弹簧和车身，车身上下晃；右边的线记下车身的高低；下面的条分成弹簧里存着的劲、动能和热"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">过减速带</button></div>
+    <p class="cap" id="cap1">车身停在平时的高度。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>弹簧的脾气</h2>
+  <p>弹簧压得越扁，往回推得越狠。拉得越长，往回拉得越狠。它的力一直在变。</p>
+  <p>车身被压低，弹簧把它往上推。回到平时的高度时，车身正跑得最快，停不住，冲过了头。</p>
+  <p>冲高了，弹簧又把它往下拉。就这样来来回回。</p>
+  <p class="key">弹簧里存着的劲和动能倒来倒去，一点不少，所以一直晃。</p>
+  <p>这和第 29 小课的坡是一回事。坡顶存着的劲变成动能，冲上对面又变回去。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="三种车都过一次减速带。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>装上减震器</h2>
+  <p>减震器是一根装着油的筒。车身一动，油就被挤过小孔，蹭来蹭去，发热。</p>
+  <p>选一种车，点一下就过减速带。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="和上面一样的车轮、弹簧和车身，弹簧旁边多了一根减震器；条里多出一段热"></canvas>
+    <div class="row" id="pick2"><button class="btn" type="button" data-v="0">没有减震器</button><button class="btn" type="button" data-v="1">旧的，漏油了</button><button class="btn" type="button" data-v="2">好的减震器</button></div>
+    <table class="tb">
+      <tr><th>减震器</th><th>没有</th><th>旧的</th><th>好的</th></tr>
+      <tr><th>晃几下</th><td id="n0">？</td><td id="n1">？</td><td id="n2">？</td></tr>
+    </table>
+  </div>
+  <p class="key">弹簧让车晃。减震器把晃的劲变成热，车才稳得下来。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>减震器坏了的车</h2>
+  <p>有辆旧车，减震器里的油漏光了。它开过一个坑。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">车里的人会觉得怎么样？</p>
+    <div class="row"><button class="btn" type="button">更舒服，软软的</button><button class="btn" type="button">像坐船，晃好多下才稳</button><button class="btn" type="button">硬邦邦，一点不晃</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>秋千为什么越荡越低？</h2>
+  <p>荡秋千，没人推也不自己使劲，就会越荡越低，最后停下。可秋千上没装减震器。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">是谁把秋千的能量拿走了？</p>
+    <div class="row"><button class="btn" type="button">重力</button><button class="btn" type="button">空气，还有轴上的摩擦</button><button class="btn" type="button">没人拿，它自己累了</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>把一把塑料尺压在桌边，露出一大半，拨一下。看它抖多久。</p>
+    <p>再拨一次，这回用手指轻轻贴着它。你的手指就是减震器。</p>
+  </div>
+  <p>36 小课到这里走完了。车在哪、多快、为什么这样动、劲去了哪，你都亲手玩过一遍。</p>
+</section>

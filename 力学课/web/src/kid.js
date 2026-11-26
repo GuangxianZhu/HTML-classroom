@@ -361,8 +361,8 @@ export function kidChrome(n) {
   $('got').textContent = L.got;
   const book = BOOKS.find((b) => b.seg === (L.seg || 1));
   $('backlink').innerHTML = (L.seg || 1) === 1 ? `<a href="${lessonFile(L.back)}">课本对照 ${L.back}</a>`
-    : book?.ready ? `<a href="${bookFile(book.seg)}">${book.title}</a>` : '这一段的课本对照页（还在做）';
+    : book?.ready ? `<a href="${bookFile(book.seg)}">${book.title}</a>` : (L.seg === 5 ? `<a href="${bookFile(4)}">${BOOKS.find((b) => b.seg === 4).title}</a>（这一段是选做，没有单独的对照页，最接近的是这一页）` : '这一段的课本对照页（还在做）');
   $('next').innerHTML = next
     ? `<span class="tag">留一个问题给下一小课</span><p class="big">${next.ask}</p><p>第 ${next.n} 小课 · ${next.title}${next.ready ? `　<a class="btn primary" href="${kidFile(n + 1)}">去下一小课 →</a>` : '（还在做）'}</p>`
-    : '';
+    : '<span class="tag">全部走完了</span><p class="big">36 小课，你都学完了。</p><p>想知道课本上怎么写，可以去看每一段的课本对照。　<a class="btn primary" href="../index.html">回目录</a></p>';
 }

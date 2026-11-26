@@ -1,0 +1,82 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>油门踩到底，车为什么不会一直快下去？</h2>
+  <p>路又直又长，油门踩到底不松。车越来越快，可是到了某个车速，就再也上不去了。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">到最高车速的时候，发生了什么？</p>
+    <div class="row"><button class="btn" type="button">发动机不出力了</button><button class="btn" type="button">往后拖的力追上了往前推的力</button><button class="btn" type="button">车轮转不了更快了</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="让车一直跑到最高车速。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>踩到底，盯着两个箭头</h2>
+  <p>发动机还是 50000 瓦。第 31 小课说过：车越快，往前的推力越小。</p>
+  <p>风正相反：车越快，往后拖得越狠。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是车，一个红箭头往前推，一个红箭头往后拖；下面是速度图，线越来越平"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">油门踩到底</button></div>
+    <div class="kpis" id="k1"></div>
+    <p class="cap">动画放快了 6 倍。电脑是用上一小课的办法，一小步一小步算的。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>两个力碰头的地方</h2>
+  <table class="tb">
+    <tr><th>每秒几米</th><td>10</td><td>20</td><td>25</td><td>40</td><td>50</td></tr>
+    <tr><th>往前推</th><td>5000</td><td>2500</td><td>2000</td><td>1250</td><td>1000</td></tr>
+    <tr><th>往后拖</th><td>40</td><td>160</td><td>250</td><td>640</td><td>1000</td></tr>
+    <tr><th>合力</th><td>4960</td><td>2340</td><td>1750</td><td>610</td><td>0</td></tr>
+  </table>
+  <p>力的单位都是牛。往前推的一路变小，往后拖的一路变大。到每秒 50 米，两个正好一样大。</p>
+  <p class="key">合力是 0，速度就不再变。这个车速就是最高车速。</p>
+  <p>注意，车没有停，发动机也还在全力干活。它每秒做的 50000 焦，全被风变成了热。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="四种车都看一遍。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>想再快一点，怎么改车？</h2>
+  <p>有两个办法。一个是换功率大一倍的发动机。一个是把车身做得更流线，让风的力减半。</p>
+  <div class="fig">
+    <div class="row" id="pick2"><button class="btn" type="button" data-v="0">原来的车</button><button class="btn" type="button" data-v="1">功率加倍</button><button class="btn" type="button" data-v="2">风的力减半</button><button class="btn" type="button" data-v="3">两样都改</button></div>
+    <div class="calc" id="calc2"><div>选一种车。</div></div>
+    <table class="tb">
+      <tr><th>改法</th><th>原车</th><th>大功率</th><th>风减半</th><th>都改</th></tr>
+      <tr><th>最高</th><td id="m0">？</td><td id="m1">？</td><td id="m2">？</td><td id="m3">？</td></tr>
+    </table>
+  </div>
+  <p class="cap">表里是最高车速，每秒几米。</p>
+  <p class="key">功率大了一倍，最高车速只多了四分之一。</p>
+  <p>因为风的力涨得太凶：车速翻倍，它是 4 倍。回头看上面的表，10 到 20，40 变成了 160。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>上坡的时候呢？</h2>
+  <p>同一辆车，油门照样踩到底，开上一个长长的上坡。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">最高车速会怎么样？</p>
+    <div class="row"><button class="btn" type="button">不变，发动机没变</button><button class="btn" type="button">变低，重力也在往后拖</button><button class="btn" type="button">变高，坡把车托起来了</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>自行车选手为什么趴得那么低？</h2>
+  <p>人的功率比发动机小得多，使劲蹬也就几百瓦。想更快，只能在另一个力上想办法。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">趴低身子，改的是哪一个？</p>
+    <div class="row"><button class="btn" type="button">让往前推的力变大</button><button class="btn" type="button">让风往后拖的力变小</button><button class="btn" type="button">让车变轻</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>找一块大硬纸板，在空地上跑两趟。一趟把纸板正着举在胸前，一趟侧着拿。</p>
+    <p>你出的力气差不多。哪一趟跑得快？</p>
+  </div>
+</section>

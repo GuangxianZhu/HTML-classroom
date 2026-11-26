@@ -122,6 +122,9 @@ ok('启 30：坡上有摩擦的三档账目对得上', [[0, 20], [72000, 16], [1
 ok('启 31：到每秒 10 / 20 / 30 米是第 1 / 4 / 9 秒，推力表对得上', [[10, 1], [20, 4], [30, 9]].every(([v, t]) => 500 * v * v === 50000 * t) && [[5, 10000], [10, 5000], [25, 2000], [50, 1000]].every(([v, f]) => v * f === 50000));
 ok('启 32：三次追尾和三次迎面撞，动量前后相等', [[1000, 10], [3000, 5], [9000, 2]].every(([m, v]) => (1000 + m) * v === 20000) && [[10, 5], [20, 0], [30, 5]].every(([u, v]) => Math.abs(20000 - 1000 * u) === 2000 * v));
 ok('启 33：四种停法，力 × 时间都是 500', [[100, 5], [500, 1], [5000, 0.1], [50000, 0.01]].every(([f, t]) => Math.abs(f * t - 500) < 1e-9));
+ok('启 34：一步 5 秒是 40、20、10、5；一步 1 秒、0.1 秒时第 5 秒是 23.6、24.2', (() => { const f = (h) => { let v = 40; for (let i = 0; i < Math.round(5 / h); i++) v -= v * 100 / 1000 * h; return Math.round(v * 10) / 10; }; return f(5) === 20 && f(1) === 23.6 && f(0.1) === 24.2 && Math.abs(40 * Math.exp(-0.5) - 24.3) < 0.05; })());
+ok('启 35：推力和风的力在每秒 50 米碰头；改车以后是 63、63、79', [[10, 5000, 40], [20, 2500, 160], [25, 2000, 250], [40, 1250, 640], [50, 1000, 1000]].every(([v, a, b]) => 50000 / v === a && 0.4 * v * v === b) && [[1e5, 0.4, 63], [5e4, 0.2, 63], [1e5, 0.2, 79]].every(([P, c, v]) => Math.round(Math.cbrt(P / c)) === v));
+ok('启 36：三种减震器的晃法对得上表里的说法', (() => { const peak = (z, t1) => { let y = -6, v = 0, m = 0; const w = 2 * Math.PI, h = 0.001; for (let t = 0; t < 9; t += h) { v += (-w * w * y - 2 * z * w * v) * h; y += v * h; if (t > t1) m = Math.max(m, Math.abs(y)); } return m; }; return peak(0, 8) > 5.5 && peak(0.08, 3) > 1 && peak(0.08, 8) < 0.3 && peak(0.35, 1.5) < 0.3; })());
 
 console.log('— 启蒙篇：练习题（每个跑 400 遍，数字要能口算）');
 for (const k of kready) {
@@ -145,7 +148,7 @@ for (const k of kready) {
 
 console.log('— 课本对照页');
 ok('高中第 1～5 课都有“小课里说 → 课本上写”的表，第一段每一小课都对得上其中一课', LESSONS.filter((l) => l.n <= 5).every((l) => l.map?.length >= 3) && KIDS.filter((k) => (k.seg || 1) === 1).every((k) => LESSONS.find((l) => l.n === k.back)?.map));
-ok('启蒙第二段起，做好的小课都有课本对照页可去', kready.filter((k) => (k.seg || 1) > 1).every((k) => BOOKS.some((b) => b.seg === k.seg)), '');
+ok('启蒙第二到四段，做好的小课都有课本对照页可去（第五段选做，指到第四段那页）', kready.filter((k) => (k.seg || 1) > 1 && k.seg < 5).every((k) => BOOKS.some((b) => b.seg === k.seg)), '');
 for (const b of BOOKS.filter((x) => x.ready)) {
   ok(`对照页 ${b.seg}：页面和脚本都在`, ['html', 'js'].every((e) => fs.existsSync(`src/books/t${b.seg}.${e}`)));
   const html = fs.readFileSync(`src/books/t${b.seg}.html`, 'utf8'), cards = [...html.matchAll(/data-k="(\d+)"/g)].map((m) => +m[1]);

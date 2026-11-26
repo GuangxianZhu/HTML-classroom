@@ -1,0 +1,81 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>力一直在变，怎么算？</h2>
+  <p>前面算的力都老老实实不变。可风不是这样：车越快，风往后拖得越狠。</p>
+  <p>这辆车 1000 千克。风往后拖的力，就按“车速 × 100 牛”来算。</p>
+  <p>车每秒 40 米的时候松开油门，只剩风在拖它。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">5 秒以后，车速是多少？</p>
+    <div class="row"><button class="btn" type="button">正好每秒 20 米</button><button class="btn" type="button">比每秒 20 米快</button><button class="btn" type="button">比每秒 20 米慢</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="一步一步算到第 15 秒。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>先迈大步：一步 5 秒</h2>
+  <p>办法很笨：假装这 5 秒里，力一直是这一步开头那么大。算完这一步，再用新的车速算下一步。</p>
+  <div class="fig">
+    <table class="tb">
+      <tr><th>第几秒</th><td>0</td><td>5</td><td>10</td><td>15</td></tr>
+      <tr><th>车速</th><td>40</td><td id="v1">？</td><td id="v2">？</td><td id="v3">？</td></tr>
+    </table>
+    <div class="calc" id="calc1"><div>车速按每秒几米写。点下面的按钮，算第一步。</div></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">算下一步</button></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>这个办法哪里不对劲？</h2>
+  <p>第一步里，我们假装风一直用 4000 牛在拖。</p>
+  <p>可是车一慢下来，风就小了。到第 5 秒，风只剩 2000 牛左右。</p>
+  <p class="key">大步把拖的力算多了，所以车速算低了。真的车速比每秒 20 米快。</p>
+  <p>怎么补救？把步子切小。一步越短，这一步里力变得越少，假装它不变就越说得过去。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="三种步子都试一次。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>把步子切小</h2>
+  <p>换一换每一步的长短，让电脑替你算。看第 5 秒的车速变成多少。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="速度图：三种步子算出来的三条线，步子越小线越光滑，靠得越近"></canvas>
+    <div class="row" id="pick2"><span class="cap">一步：</span><button class="btn" type="button" data-v="5">5 秒</button><button class="btn" type="button" data-v="1">1 秒</button><button class="btn" type="button" data-v="0.1">0.1 秒</button></div>
+    <table class="tb">
+      <tr><th>一步多长</th><td>5 秒</td><td>1 秒</td><td>0.1 秒</td></tr>
+      <tr><th>算了几步</th><td>1</td><td>5</td><td>50</td></tr>
+      <tr><th>第 5 秒的车速</th><td id="r5">？</td><td id="r1">？</td><td id="r0.1">？</td></tr>
+    </table>
+  </div>
+  <p class="key">步子越小，算得越准，可是要算的步数也越多。</p>
+  <p>从 5 秒切到 1 秒，答案变了 3.6。再切到 0.1 秒，只变了 0.6。越往后越稳。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>再切小十倍呢？</h2>
+  <p>一步 0.1 秒，算出来是每秒 24.2 米。现在切到一步 0.01 秒，要算 500 步。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">答案会怎么样？</p>
+    <div class="row"><button class="btn" type="button">还会变很多</button><button class="btn" type="button">几乎不变，还是 24 出头</button><button class="btn" type="button">会变成 0</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>这门课的动画，都是这么算的</h2>
+  <p>你在前面每一小课里看到的车，都是电脑一小步一小步算出来的。一秒算 60 步。</p>
+  <p>天气预报、火箭往哪飞、游戏里的东西怎么掉，也都是这个办法。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">这种笨办法，为什么适合交给电脑？</p>
+    <div class="row"><button class="btn" type="button">电脑会更聪明的算法</button><button class="btn" type="button">每一步都很简单，电脑不怕重复</button><button class="btn" type="button">电脑不用算，它本来就知道</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>拿纸笔或者计算器，自己算一步 1 秒的那一行。</p>
+    <p>从 40 开始，每一步减掉自己的十分之一。40、36、32.4……算满 5 步，是不是 23.6？</p>
+  </div>
+</section>
