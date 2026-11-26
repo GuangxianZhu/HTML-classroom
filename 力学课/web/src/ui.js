@@ -239,11 +239,11 @@ export function quiz(n, gens) {
 export function chrome(n) {
   const L = LESSONS.find((l) => l.n === n), prev = LESSONS.find((l) => l.n === n - 1), next = LESSONS.find((l) => l.n === n + 1);
   const part = PARTS.find((p) => p.id === L.part);
-  $('top').innerHTML = `<a href="../index.html">← 力学课目录</a><span class="where">${part.level} · ${part.name} · 第 ${n} 课 / 共 ${LESSONS.length} 课</span>
+  $('top').innerHTML = `<a href="../index.html">← 力学课目录</a><span class="where">${L.map ? `课本对照 ${n} / 5 · 启蒙第一段` : `${part.level} · ${part.name} · 第 ${n} 课 / 共 ${LESSONS.length} 课`}</span>
     <span class="pn">${prev ? `<a href="${lessonFile(n - 1)}" title="${prev.title}">← 上一课</a>` : ''}${next?.ready ? `<a href="${lessonFile(n + 1)}" title="${next.title}">下一课 →</a>` : ''}</span>`;
   $('recap').innerHTML = prev
     ? `<span class="tag">上一课</span><a href="${lessonFile(n - 1)}">第 ${prev.n} 课 · ${prev.title}</a><p>${prev.got}</p>`
-    : '<span class="tag">从这里开始</span><p>不用任何基础。每一课先猜一题，再拖一拖图，最后做 5 道练习题，数字每次都会变。</p>';
+    : '<span class="tag">怎么用这一页</span><p>启蒙小课里玩明白的事，这里用课本的写法再走一遍：先猜一题，再拖一拖图，最后做 5 道练习题，数字每次都会变。</p>';
   $('ask').textContent = L.ask;
   const kn = known(n);
   $('quants').innerHTML = QUANTS.map((q) => {

@@ -20,6 +20,16 @@ ${FONTS}
 </body></html>
 `;
 
+// 高中第 1～5 课现在是启蒙第一段的课本对照：开头先放一张“小课里说 → 课本上写”的表，和对应小课的链接
+const bridge = (L) => {
+  const ks = KIDS.filter((k) => (k.seg || 1) === 1 && k.back === L.n);
+  return `<section class="bridge">
+    <span class="tag">课本对照 · 启蒙第一段</span>
+    <p>这一页讲的事，启蒙小课里都玩过了：${ks.map((k) => `<a href="${kidFile(k.n)}">启 ${k.n} ${k.title}</a>`).join('、')}。这里换成课本的字母和公式，再走一遍。还没玩过的话，先去玩小课。</p>
+    <div class="tbwrap"><table class="tb"><tr><th>小课里说</th><th>课本上写</th></tr>${L.map.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table></div>
+  </section>`;
+};
+
 fs.mkdirSync('../lessons', { recursive: true });
 let n = 0;
 for (const L of LESSONS.filter((l) => l.ready)) {
@@ -29,11 +39,12 @@ for (const L of LESSONS.filter((l) => l.ready)) {
   const body = `<div class="wrap">
   <nav class="top" id="top" aria-label="课程导航"></nav>
   <header class="hero">
-    <div class="eyebrow">第 ${L.n} 课</div>
+    <div class="eyebrow">${L.map ? `课本对照 ${L.n} · 启蒙第一段` : `第 ${L.n} 课`}</div>
     <h1>${L.title}</h1>
     <div class="hero-grid"><div class="recap" id="recap"></div><div class="ask"><span class="tag">这一课回答</span><p id="ask"></p></div></div>
     <ul class="quants" id="quants" aria-label="到这一课为止认识的量"></ul>
   </header>
+${L.map ? bridge(L) : ''}
 ${inner}
   <section class="end" id="end">
     <div class="remember"><span class="tag">这一课记住一句话</span><p id="got"></p></div>
@@ -95,18 +106,30 @@ ${inner}
 }
 
 // 总目录
-const parts = PARTS.map((p) => `<section class="part">
+// 目录下半部分：大学部分照旧；原来排在高中的第 6～19 课已经并进启蒙主线，收在一个折叠栏里留底
+const lessonCard = (l, label) => {
+  const inner = `<span class="n">${label || l.n}</span><span class="t">${l.title}</span><span class="h">${l.ask}</span><span class="st">${l.ready ? '可以学了' : '还在做'}</span>`;
+  return `<li data-n="${l.n}" class="${l.ready ? 'ready' : 'todo'}">${l.ready ? `<a href="lessons/${lessonFile(l.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
+};
+const parts = PARTS.filter((p) => p.level === '大学').map((p) => `<section class="part">
     <h2><span class="lv">${p.level}</span>${p.name}</h2><p class="pnote">${p.note}</p>
-    <ol class="cards">${LESSONS.filter((l) => l.part === p.id).map((l) => {
-      const inner = `<span class="n">${l.n}</span><span class="t">${l.title}</span><span class="h">${l.ask}</span><span class="st">${l.ready ? '可以学了' : '还在做'}</span>`;
-      return `<li data-n="${l.n}" class="${l.ready ? 'ready' : 'todo'}">${l.ready ? `<a href="lessons/${lessonFile(l.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
-    }).join('')}</ol>
-  </section>`).join('\n');
+    <ol class="cards">${LESSONS.filter((l) => l.part === p.id).map((l) => lessonCard(l)).join('')}</ol>
+  </section>`).join('\n') + `
+  <details class="merged"><summary>原来排在高中部分的第 6～19 课去哪了？</summary>
+    <p>都并进上面的启蒙主线了（启 13～33），用同样“先玩再起名字”的办法讲。课本的写法放在每一段的课本对照页里。原来的题目留在这里备查：</p>
+    <ul>${LESSONS.filter((l) => l.n >= 6 && l.n <= 19).map((l) => `<li>${l.title}</li>`).join('')}</ul>
+  </details>`;
 const kidCard = (k) => {
   const inner = `<span class="n">${k.n}</span><span class="t">${k.title}</span><span class="h">${k.ask}</span><span class="st">${k.ready ? '可以学了' : '还在做'}</span>`;
-  return `<li data-n="k${k.n}" class="${k.ready ? 'ready' : 'todo'}">${k.ready ? `<a href="lessons/${kidFile(k.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
+  return `<li data-n="k${k.n}" data-of="4" class="${k.ready ? 'ready' : 'todo'}">${k.ready ? `<a href="lessons/${kidFile(k.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
 };
-const bookLink = (seg) => { const b = BOOKS.find((x) => x.seg === seg && x.ready); return b ? `\n    <p class="booklink"><a href="lessons/${bookFile(seg)}">${b.title} →</a><span>学完这一段再看：同样的事，课本上怎么写。</span></p>` : ''; };
+// 每一段小课后面跟着这一段的课本对照：第一段是原来的高中第 1～5 课，后面每段一页
+const bookLink = (seg) => {
+  const b = BOOKS.find((x) => x.seg === seg && x.ready);
+  const cards = seg === 1 ? LESSONS.filter((l) => l.map).map((l) => lessonCard(l, `对照 ${l.n}`)).join('')
+    : b ? `<li data-n="t${seg}" class="ready"><a href="lessons/${bookFile(seg)}"><span class="n">对照</span><span class="t">${b.title.split(' · ')[1]}：课本上怎么写</span><span class="h">${b.note}</span><span class="st">可以学了</span></a></li>` : '';
+  return cards ? `\n    <p class="booknote">课本对照（学完这一段再看：同样的事，课本上怎么写）</p>\n    <ol class="cards bookcards">${cards}</ol>` : '';
+};
 const kidPart = `<section class="part kidpart">
     <h2><span class="lv">${KID_PART.level}</span>${KID_PART.name}</h2><p class="pnote">${KID_PART.note}</p>
     ${KID_SEGS.map((sg) => `<h3 class="seg">${sg.name}<small>${sg.note}</small></h3>
@@ -122,9 +145,13 @@ const idxCss = `
 .kidpart h3.seg{margin:18px 0 8px;font-size:16px}
 .kidpart h3.seg small{font-weight:400;color:var(--ink3);margin-left:10px;font-size:13.5px}
 .kidpart .cards .n{color:var(--a)}
-.booklink{margin:10px 0 0;font-size:14.5px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
-.booklink a{font-weight:700}
-.booklink span{color:var(--ink3)}
+.booknote{margin:12px 0 6px;font-size:13.5px;color:var(--ink3)}
+.kidpart .bookcards .n{font-size:15px;color:var(--acc);align-self:start;padding-top:4px}
+.kidpart .bookcards li>a{background:transparent}
+.merged{border:1px dashed var(--line);border-radius:6px;padding:10px 14px;font-size:14.5px;color:var(--ink2)}
+.merged summary{cursor:pointer}
+.merged ul{columns:2;margin:.5em 0 0;padding-left:1.2em}
+@media (max-width:600px){.merged ul{columns:1}}
 .cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
 .cards .t{font-weight:700;line-height:1.45}
 .cards .h{font-size:13.5px;color:var(--ink2);line-height:1.55}
@@ -141,14 +168,14 @@ const idxCss = `
 `;
 const index = `<div class="wrap">
   <header class="hero">
-    <div class="eyebrow">力学课 · 从高中到大学</div>
+    <div class="eyebrow">力学课 · 从小学数学到大学</div>
     <h1>一辆车讲到底的力学</h1>
-    <p style="font-size:17px;color:var(--ink2)">同一辆车从停车场开出来，一路上遇到的每个问题就是一课：它在哪、多快、怎么停下、为什么会加速、拐弯要多大的力……每一课回答上一课留下的问题，再留一个新问题给下一课。前面用高中的工具，工具不够用了再换大学的。只会小学数学也没关系：先从最上面的“启蒙”开始。</p>
+    <p style="font-size:17px;color:var(--ink2)">同一辆车从停车场开出来，一路上遇到的每个问题就是一小课：它在哪、多快、怎么停下、为什么会变快、拐弯要多大的力……每一小课回答上一课留下的问题，再留一个新问题给下一课。只要会小学数学：先玩、再画图、最后才起名字。课本上的字母和公式，放在每一段后面的“课本对照”里。</p>
     <ul class="how">
       <li><b>先猜</b>每一节先猜一道选择题，猜错了更记得住。</li>
       <li><b>拖一拖</b>每个概念配一张能动的图，数字跟着变。</li>
-      <li><b>算式代数字</b>公式下面把当前的数代进去，一步不跳。</li>
-      <li><b>练习</b>每课 5 道题，数字每次都变，可以一直刷。</li>
+      <li><b>算式代数字</b>算式下面把当前的数代进去，一步不跳。</li>
+      <li><b>练习</b>每课 4～5 道题，数字每次都变，可以一直刷。</li>
     </ul>
     <ul class="quants" aria-label="全课程用到的量和颜色">${QUANTS.map((q) => `<li class="on"><i style="background:var(--${q.c})"></i><b>${q.k}</b><span>${q.name}（${q.unit}）</span></li>`).join('')}</ul>
     <p id="prog" style="margin:0;color:var(--ink3);font-size:14px"></p>

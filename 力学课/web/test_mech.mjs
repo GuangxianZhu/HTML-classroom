@@ -134,6 +134,7 @@ for (const k of kready) {
 }
 
 console.log('— 课本对照页');
+ok('高中第 1～5 课都有“小课里说 → 课本上写”的表，第一段每一小课都对得上其中一课', LESSONS.filter((l) => l.n <= 5).every((l) => l.map?.length >= 3) && KIDS.filter((k) => (k.seg || 1) === 1).every((k) => LESSONS.find((l) => l.n === k.back)?.map));
 ok('启蒙第二段起，做好的小课都有课本对照页可去', kready.filter((k) => (k.seg || 1) > 1).every((k) => BOOKS.some((b) => b.seg === k.seg)), '');
 for (const b of BOOKS.filter((x) => x.ready)) {
   ok(`对照页 ${b.seg}：页面和脚本都在`, ['html', 'js'].every((e) => fs.existsSync(`src/books/t${b.seg}.${e}`)));

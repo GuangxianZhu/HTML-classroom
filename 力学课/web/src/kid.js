@@ -351,7 +351,7 @@ export function kidChrome(n) {
   $('ask').textContent = L.ask;
   $('got').textContent = L.got;
   const book = BOOKS.find((b) => b.seg === (L.seg || 1));
-  $('backlink').innerHTML = (L.seg || 1) === 1 ? `<a href="${lessonFile(L.back)}">高中第 ${L.back} 课</a>`
+  $('backlink').innerHTML = (L.seg || 1) === 1 ? `<a href="${lessonFile(L.back)}">课本对照 ${L.back}</a>`
     : book?.ready ? `<a href="${bookFile(book.seg)}">${book.title}</a>` : '这一段的课本对照页（还在做）';
   $('next').innerHTML = next
     ? `<span class="tag">留一个问题给下一小课</span><p class="big">${next.ask}</p><p>第 ${next.n} 小课 · ${next.title}${next.ready ? `　<a class="btn primary" href="${kidFile(n + 1)}">去下一小课 →</a>` : '（还在做）'}</p>`
