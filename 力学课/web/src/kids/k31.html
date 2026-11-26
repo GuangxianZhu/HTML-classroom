@@ -1,0 +1,83 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>为什么越快，越难再快？</h2>
+  <p>车停着，油门踩到底，一直不松。车速从 0 涨到每秒 10 米，再涨到 20，再涨到 30。</p>
+  <p>每一段都是快了每秒 10 米。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">哪一段用的时间最长？</p>
+    <div class="row"><button class="btn" type="button">一样长，油门没变</button><button class="btn" type="button">第一段，起步最费劲</button><button class="btn" type="button">最后一段，从 20 到 30</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="让车一直加速到每秒 30 米。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>油门到底，掐表</h2>
+  <p>这台发动机油门到底时，每 1 秒能做 50000 焦的功。不多也不少。</p>
+  <p>路很滑，不算摩擦和风。做的功全变成车的动能。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="车在路上加速；下面的条表示动能，上面标着每秒 10、20、30 米对应的位置"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">油门踩到底</button></div>
+    <div class="kpis" id="k1"></div>
+    <table class="tb">
+      <tr><th>车速到了</th><td>10</td><td>20</td><td>30</td></tr>
+      <tr><th>表上几秒</th><td id="t10">？</td><td id="t20">？</td><td id="t30">？</td></tr>
+      <tr><th>这段用了</th><td id="d10">？</td><td id="d20">？</td><td id="d30">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>每秒做多少功，叫“功率”</h2>
+  <p>每 1 秒能做多少功，叫<b class="qE">功率</b>。1 秒做 1 焦，就是 1 瓦。</p>
+  <p>这台发动机的功率是 50000 瓦。它给劲的快慢是有数的。</p>
+  <div class="calc"><div>0 到 10：动能要多 50000 焦，用 <b>1 秒</b></div><div>10 到 20：要多 150000 焦，用 <b>3 秒</b></div><div>20 到 30：要多 250000 焦，用 <b>5 秒</b></div></div>
+  <p>同样是快每秒 10 米，越往后要添的动能越多。发动机每秒只给这么多，只好多等几秒。</p>
+  <p class="key">功率 = 做的功 ÷ 用了几秒。它说的是干活有多快。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="调到每秒 50 米，看推力还剩多少。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>换个角度：推力变小了</h2>
+  <p>功 = 力 × 距离。车速是每秒几米，1 秒里就走几米。</p>
+  <div class="fig">
+    <div class="ctl"><label for="s2">车速：每秒</label><input id="s2" type="range" min="0" max="3" step="1" value="0"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <table class="tb">
+    <tr><th>每秒几米</th><td>5</td><td>10</td><td>25</td><td>50</td></tr>
+    <tr><th>推力几牛</th><td>10000</td><td>5000</td><td>2000</td><td>1000</td></tr>
+  </table>
+  <p class="key">功率不变，车越快，往前的推力越小。</p>
+  <p>所以上陡坡要挂低挡慢慢爬：车速慢，推力才大。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>两个人搬书上楼</h2>
+  <p>一样重的两箱书，都搬上三楼。小东用了 20 秒，小西用了 60 秒。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">下面哪句话对？</p>
+    <div class="row"><button class="btn" type="button">小东做的功多</button><button class="btn" type="button">做的功一样，小东功率大</button><button class="btn" type="button">做的功一样，功率也一样</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>电器上写的“瓦”</h2>
+  <p>台灯上写着 10 瓦，电水壶上写着 1500 瓦。说的就是每秒用掉多少焦的能量。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">电水壶开 1 分钟用的能量，够台灯亮多久？</p>
+    <div class="row"><button class="btn" type="button">1 分钟</button><button class="btn" type="button">15 分钟</button><button class="btn" type="button">150 分钟</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>掐着表走上一层楼，再掐着表跑上一层楼。哪次更喘？</p>
+    <p>算算你的功率。体重 40 千克，重力就是 400 牛。一层楼高 3 米，要做 1200 焦的功。</p>
+    <p>用 6 秒跑上去，就是 1200 ÷ 6 = 200 瓦。</p>
+  </div>
+</section>

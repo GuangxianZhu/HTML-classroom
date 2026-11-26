@@ -1,0 +1,73 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>车停了，它带着的劲去哪了？</h2>
+  <p>上一小课，车从 20 米高的坡顶滑到坡底。这时它带着 200000 焦的动能。</p>
+  <p>现在它在平地上踩刹车，停住了。车不在高处，也不动了。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">那 200000 焦去哪了？</p>
+    <div class="row"><button class="btn" type="button">用完了，没有了</button><button class="btn" type="button">变成了热，刹车烫了</button><button class="btn" type="button">还藏在车里，下次能用</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="滑下去，再把车刹停。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>盯着这根条看</h2>
+  <p>先松开手刹，让车滑下去。到了平地，再踩刹车。</p>
+  <p>下面的条分三段：高处存着的劲、动能、热。看每一段怎么变，整根条有多长。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="车从坡顶滑到平地再刹停；下面一根条分成三段，分别是高处存着的劲、动能和热"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go1">松开手刹</button><button class="btn" type="button" id="br1" disabled>踩刹车</button><button class="btn" type="button" id="re1">重来</button></div>
+    <div class="kpis" id="k1"></div>
+    <p class="cap" id="cap1">车停在坡顶，20 米高。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>这些劲，合起来叫“能量”</h2>
+  <p>高处存着的劲、动能、热，都是同一种东西的不同样子。它叫<b class="qE">能量</b>，单位都是焦。</p>
+  <div class="calc"><div>坡顶：高处存着 200000，动能 0，热 0</div><div>坡底：高处存着 0，动能 200000，热 0</div><div>停住：高处存着 0，动能 0，热 200000</div><div>加起来，一直是 <b class="qE">200000 焦</b></div></div>
+  <p class="key">能量不会消失，也不会多出来，只会换一个样子。</p>
+  <p>刹车就是用摩擦把动能变成热。赛车连续急刹，刹车盘会烧得发红。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="调到“摩擦很大”，看坡底的车速。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>坡上有摩擦呢？</h2>
+  <p>上一小课说“不算摩擦”。现在把它算上：一路滑，一路有动能变成热。</p>
+  <div class="fig">
+    <div class="ctl"><label for="s2">坡面</label><input id="s2" type="range" min="0" max="2" step="1" value="0"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <p>坡顶存着的能量一样多。路上变成热的越多，剩给动能的越少，到底就越慢。</p>
+  <p class="key">算这种题只要记账：开头有多少，后来每一样各是多少，加起来相等。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>皮球为什么越弹越低？</h2>
+  <p>皮球从 1 米高掉下来，弹回来只到 0.6 米。再弹，更低。最后停在地上。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">少掉的那部分能量去哪了？</p>
+    <div class="row"><button class="btn" type="button">被地面吸走存起来了</button><button class="btn" type="button">变成了热和声音</button><button class="btn" type="button">消失了</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>有人说他造了一台“永动机”</h2>
+  <p>他说：这台机器不用加油，不用充电，自己一直转，还能往外发电。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">你信吗？</p>
+    <div class="row"><button class="btn" type="button">信，做得够精密就行</button><button class="btn" type="button">不信，能量不会自己多出来</button><button class="btn" type="button">转一小会儿可以，发电不行</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>两只手掌对着，用力快搓 20 下。手心是不是热了？</p>
+    <p>你的手在动，带着动能。摩擦把它变成了热，和刹车是一回事。</p>
+  </div>
+</section>

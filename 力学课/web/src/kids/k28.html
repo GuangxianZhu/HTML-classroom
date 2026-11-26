@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>车带着的劲，有多少？</h2>
+  <p>上一小课说：对车做了功，车就快起来。功没有丢，变成了车带着的劲。</p>
+  <p>车越快，带着的劲越多。要让它停下，就得把这些劲全拿走。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">车速从每秒 10 米变成每秒 20 米，车带着的劲变成几倍？</p>
+    <div class="row"><button class="btn" type="button">2 倍</button><button class="btn" type="button">4 倍</button><button class="btn" type="button">不到 2 倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三个车速都推到一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>推到这么快，要做多少功？</h2>
+  <p>车 1000 千克，停在很滑的路上。一直用 2000 牛往前推，推到你选的车速就松手。</p>
+  <p>看要推多远，一共做了多少功。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="车被红色箭头推着往前，下面的条越来越长，表示已经做了多少功"></canvas>
+    <div class="row" id="pick1"><span class="cap">推到：</span><button class="btn" type="button" data-v="10">每秒 10 米</button><button class="btn" type="button" data-v="20">每秒 20 米</button><button class="btn" type="button" data-v="30">每秒 30 米</button></div>
+    <div class="kpis" id="k1"></div>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">每秒几米</th><td>10</td><td>20</td><td>30</td></tr>
+      <tr><th style="white-space:nowrap">推了几米</th><td id="d10">？</td><td id="d20">？</td><td id="d30">？</td></tr>
+      <tr><th style="white-space:nowrap">做了几焦</th><td id="w10">？</td><td id="w20">？</td><td id="w30">？</td></tr>
+    </table>
+  </div>
+  <p class="cap">动画放快了 3 倍。</p>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>跑起来带着的劲，叫“动能”</h2>
+  <p>东西因为在动而带着的劲，叫<b class="qE">动能</b>。它的单位和功一样，也是焦。</p>
+  <p>对车做了多少功，车就多了多少动能。</p>
+  <div class="calc"><div>动能 = 质量 × 速度 × 速度 ÷ 2</div><div>1000 × 20 × 20 ÷ 2 = <b class="qE">200000 焦</b></div></div>
+  <p class="key">车速翻倍，动能是 4 倍。车速 3 倍，动能是 9 倍。</p>
+  <p>速度又是乘两次。和刹车距离、拐弯要的力是同一个脾气。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="调到每秒 30 米，看刹车距离。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>回头看刹车距离</h2>
+  <p>刹车就是倒过来：地面用 5000 牛往后拖，把车的动能一点点拿走。</p>
+  <p>动能有多少，就要拖多远。拖滑块换车速。</p>
+  <div class="fig">
+    <div class="ctl"><label for="s2">车速：每秒</label><input id="s2" type="range" min="10" max="30" step="10" value="10"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <p>第 12 小课数格子，数出来 10 米、40 米、90 米。这里用除法就算出来了。</p>
+  <p class="key">刹车距离是 4 倍，是因为要拿走的动能是 4 倍。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>大货车慢慢开，小轿车快快开</h2>
+  <p>货车 2000 千克，车速每秒 10 米。轿车 1000 千克，车速每秒 20 米。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">谁的动能大？</p>
+    <div class="row"><button class="btn" type="button">货车，它重一倍</button><button class="btn" type="button">一样大，一个重一倍，一个快一倍</button><button class="btn" type="button">轿车，快一倍顶得上重四倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>“只是快了一半”</h2>
+  <p>限速每秒 20 米的路上，有人开到了每秒 30 米。他说：只是快了一半。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">他的车带着的动能，是不超速时的多少？</p>
+    <div class="row"><button class="btn" type="button">多了一半</button><button class="btn" type="button">2 倍还多</button><button class="btn" type="button">一样</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>找一个沙坑，或者一盆面粉。让一颗弹珠从 10 厘米高掉下去，看砸出多深的坑。</p>
+    <p>再从 40 厘米高掉一次。落到底的速度是 2 倍，坑深了多少？</p>
+  </div>
+</section>

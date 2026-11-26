@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>从坡顶滑下来，到坡底有多快？</h2>
+  <p>坡顶比坡底高 20 米。车停在坡顶，松开刹车，不踩油门，自己滑下来。</p>
+  <p>有三个坡：一个陡，一个缓，一个先陡后平。都是 20 米高，都很滑，不算摩擦。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">从哪个坡滑下来，到坡底最快？</p>
+    <div class="row"><button class="btn" type="button">陡坡，往下拉的力大</button><button class="btn" type="button">缓坡，滑得久，一直在变快</button><button class="btn" type="button">一样快</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三个坡都滑一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>三个坡各滑一次</h2>
+  <p>点一个坡，车就从坡顶滑下来。看到坡底的时候有多快，用了几秒。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="三个一样高的坡：陡坡、缓坡、先陡后平的弯坡；车从坡顶滑到坡底"></canvas>
+    <div class="row" id="pick1"><span class="cap">滑哪个：</span><button class="btn" type="button" data-v="0">陡坡</button><button class="btn" type="button" data-v="1">缓坡</button><button class="btn" type="button" data-v="2">弯坡</button></div>
+    <table class="tb">
+      <tr><th></th><th>陡坡</th><th>缓坡</th><th>弯坡</th></tr>
+      <tr><th style="white-space:nowrap">到坡底的速度</th><td id="v0">？</td><td id="v1">？</td><td id="v2">？</td></tr>
+      <tr><th style="white-space:nowrap">用了几秒</th><td id="t0">？</td><td id="t1">？</td><td id="t2">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>用的时间不一样，到底一样快</h2>
+  <p>把车往下拉的是重力，10000 牛。车一共往下走了 20 米。</p>
+  <div class="calc"><div>重力做的功 = 10000 × 20 = 200000 焦</div><div>这些功全变成了动能：200000 焦，正好是每秒 <b class="qv">20 米</b></div></div>
+  <p>缓坡上，往下拉的力小，可是路长。上上小课说过：斜坡省力，不省功。</p>
+  <p class="key">到坡底有多快，只看坡有多高，不看坡是什么样子。</p>
+  <p>车在坡顶的时候，就像存着一份劲。高度一点点降下来，这份劲一点点变成动能。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="调到 45 米高，看坡底的速度。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>换个高度</h2>
+  <p>拖滑块，换坡的高度。看到坡底有多快。</p>
+  <div class="fig">
+    <div class="ctl"><label for="s2">坡高</label><input id="s2" type="range" min="0" max="2" step="1" value="0"><output id="s2o"></output></div>
+    <div class="calc" id="calc2"></div>
+  </div>
+  <table class="tb">
+    <tr><th style="white-space:nowrap">高度（米）</th><td>5</td><td>20</td><td>45</td></tr>
+    <tr><th style="white-space:nowrap">到底的速度（每秒几米）</th><td>10</td><td>20</td><td>30</td></tr>
+  </table>
+  <p>这张表在第 13 小课见过。球掉 5 米、20 米、45 米，速度就是 10、20、30。</p>
+  <p class="key">沿着坡滑下来，和直直掉下来，到底一样快。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>反过来：冲上坡</h2>
+  <p>车在平地上开到每秒 20 米，然后松开油门，冲上一个很长的坡。不算摩擦。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">它最多能冲到多高？</p>
+    <div class="row"><button class="btn" type="button">20 米</button><button class="btn" type="button">要看坡陡不陡</button><button class="btn" type="button">40 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>过山车</h2>
+  <p>过山车一开始被链条拉到最高的坡顶，然后松开，后面全靠自己滑。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">后面的坡，能比第一个坡还高吗？</p>
+    <div class="row"><button class="btn" type="button">能，冲得够快就行</button><button class="btn" type="button">不能，它带的劲只够回到第一个坡那么高</button><button class="btn" type="button">想多高就多高</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>把一本硬皮书斜搭在几本书上当坡。让弹珠从坡顶滚下来，看它在桌上滚多远。</p>
+    <p>把坡搭得陡一点，但顶上一样高，再滚一次。远近差多少？</p>
+  </div>
+</section>

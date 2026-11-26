@@ -71,4 +71,36 @@ export const BGEN = {
         why: `s = vt = 7.9 × ${t} = ${d} km。小课里取整成了每秒 8 千米。` };
     },
   ],
+  4: [
+    (r) => { // 动能
+      const m = r.pick([2, 4, 10, 1000]), v = r.pick([2, 4, 10, 20]), E = m * v * v / 2;
+      return { q: `质量 m = ${m} kg 的物体以 v = ${v} m/s 运动。它的动能 E<sub>k</sub> 是多少？`,
+        opts: pick4(`${E} J`, [`${m * v} J`, `${m * v * v} J`, `${m * v / 2} J`, `${E + 10} J`, `${E * 4} J`]), ans: 0, val: E,
+        why: `E<sub>k</sub> = ½mv² = ½ × ${m} × ${v}² = ${E} J。` };
+    },
+    (r) => { // 机械能守恒
+      const [h, v] = r.pick([[5, 10], [20, 20], [45, 30], [80, 40]]), m = r.pick([1, 2, 50]);
+      return { q: `质量 m = ${m} kg 的物体从 h = ${h} m 高的光滑斜面顶端由静止滑下，g 取 10 m/s²。到斜面底端时速度 v 是多少？`,
+        opts: pick4(`${v} m/s`, [`${h} m/s`, `${10 * h} m/s`, `${v * m} m/s`, `${v + 5} m/s`, `${v * 2} m/s`, `${v + 15} m/s`]), ans: 0, val: v,
+        why: `机械能守恒：mgh = ½mv²，m 约掉，v = √(2gh) = √(2 × 10 × ${h}) = ${v} m/s，和质量无关。` };
+    },
+    (r) => { // P = Fv
+      const v = r.pick([10, 20, 25]), F = r.pick([1000, 2000, 3000]), P = F * v / 1000;
+      return { q: `汽车发动机的功率 P = ${P} kW，以 v = ${v} m/s 匀速行驶。牵引力 F 是多少？`,
+        opts: pick4(`${F} N`, [`${P * v} N`, `${F / 1000} N`, `${F * 2} N`, `${F + 500} N`, `${F * 10} N`]), ans: 0, val: F,
+        why: `P = Fv，F = P/v = ${P * 1000} ÷ ${v} = ${F} N。先把 kW 换成 W。` };
+    },
+    (r) => { // 动量守恒
+      const [m1, m2] = r.pick([[1, 1], [1, 3], [2, 2], [2, 6], [1, 4]]), u = r.pick([2, 3, 5]), v = u * (m1 + m2) / m1;
+      return { q: `光滑水平面上，m₁ = ${m1} kg 的滑块以 v₁ = ${v} m/s 撞上静止的 m₂ = ${m2} kg 的滑块，碰后粘在一起。共同速度 v 是多少？`,
+        opts: pick4(`${u} m/s`, [`${v} m/s`, '0', `${u * 2} m/s`, `${u + 1} m/s`, `${u + 4} m/s`]), ans: 0, val: u,
+        why: `动量守恒：m₁v₁ = (m₁ + m₂)v，${m1} × ${v} = ${m1 + m2} × v，v = ${u} m/s。` };
+    },
+    (r) => { // 动量定理
+      const m = r.pick([50, 60, 80]), v = r.pick([5, 10, 20]), t = r.pick([0.1, 0.5, 2]), F = Math.round(m * v / t);
+      return { q: `质量 m = ${m} kg 的人以 v = ${v} m/s 的速度撞上气囊，经 t = ${t} s 停下。气囊对人的平均作用力大小是多少？`,
+        opts: pick4(`${F} N`, [`${m * v} N`, `${Math.round(m * v * t)} N`, `${m * 10} N`, `${F + 100} N`, `${F * 3} N`]), ans: 0, val: F,
+        why: `动量定理：Ft = mv − 0，F = mv/t = ${m} × ${v} ÷ ${t} = ${F} N。` };
+    },
+  ],
 };

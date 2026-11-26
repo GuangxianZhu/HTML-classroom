@@ -1,0 +1,84 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>同样的力，推 1 米和推 10 米，差在哪？</h2>
+  <p>前面一直在问：力有多大，速度每秒涨多少。这一段换一个问法。</p>
+  <p>不看过程，只问结果：推完以后，车得到了多少？</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">冰面上的雪橇，一次用 100 牛推 8 米，一次用 400 牛推 2 米。哪次推完更快？</p>
+    <div class="row"><button class="btn" type="button">100 牛推 8 米，推得远</button><button class="btn" type="button">400 牛推 2 米，力气大</button><button class="btn" type="button">一样快</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找出 3 种推法，推完都是每秒 4 米。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>选力，选推多远</h2>
+  <p>雪橇连人 100 千克，停在冰面上。选一个力，选推多远，再按“推”。</p>
+  <p>手只推这一段，推完就松开。看松开时雪橇有多快。</p>
+  <p>任务：找出 3 种不同的推法，推完都是每秒 4 米。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="冰面上的雪橇，红色箭头是推力；地上标着推的那一段有多长"></canvas>
+    <div class="row" id="f1" role="group" aria-label="推力"><span class="cap">推力：</span><button class="btn" type="button" data-v="100" aria-pressed="true">100 牛</button><button class="btn" type="button" data-v="200">200 牛</button><button class="btn" type="button" data-v="400">400 牛</button></div>
+    <div class="row" id="d1" role="group" aria-label="推多远"><span class="cap">推多远：</span><button class="btn" type="button" data-v="2" aria-pressed="true">2 米</button><button class="btn" type="button" data-v="4">4 米</button><button class="btn" type="button" data-v="8">8 米</button></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">▶ 推</button></div>
+    <p class="cap" id="cap1"></p>
+    <p class="cap" id="log1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>力 × 推过的距离，叫“功”</h2>
+  <table class="tb">
+    <tr><th>推力</th><th>推多远</th><th>乘起来</th><th>推完的速度</th></tr>
+    <tr><td>100 牛</td><td>8 米</td><td>800</td><td>每秒 4 米</td></tr>
+    <tr><td>200 牛</td><td>4 米</td><td>800</td><td>每秒 4 米</td></tr>
+    <tr><td>400 牛</td><td>2 米</td><td>800</td><td>每秒 4 米</td></tr>
+  </table>
+  <p>力和距离乘起来一样，推完就一样快。这个乘出来的数叫<b class="qE">功</b>。</p>
+  <p class="key">功 = 力 × 推过的距离。单位叫焦：1 牛的力推 1 米，是 1 焦。</p>
+  <p>1 焦有多大？把一个小苹果举高 1 米，大约做 1 焦的功。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 先猜再想</span>
+  <h2>推不动，算不算做功？</h2>
+  <p>你用 500 牛的力推一堵墙，推了 10 秒，累得满头大汗。墙一动没动。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">你对墙做了多少功？</p>
+    <div class="row"><button class="btn" type="button">5000 焦</button><button class="btn" type="button">500 焦</button><button class="btn" type="button">0</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>功只看两样：力，和顺着力走过的距离。和推了多久、累不累没有关系。</p>
+  <p>力对着走的方向，就是在往回拿。刹车时，地面的摩擦力就是这样把车的劲拿走的。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>用斜坡省力，省功吗？</h2>
+  <p>要把一个 500 牛重的箱子，抬到 1 米高的车上。直接抬，要用 500 牛。</p>
+  <p>搭一块 10 米长的板子当坡。第 20 小课算过：只要重力的十分之 1，就是 50 牛。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">沿着坡推上去，做的功和直接抬比？</p>
+    <div class="row"><button class="btn" type="button">少得多，只有十分之一</button><button class="btn" type="button">一样，都是 500 焦</button><button class="btn" type="button">多得多</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">斜坡省力，不省功。力小了，路长了。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>提着书包走</h2>
+  <p>你提着 50 牛重的书包。先把它从地上提高 1 米，再提着它在平地上走 100 米。</p>
+  <div class="guess" data-guess="g4">
+    <p class="q">在平地上走的那 100 米，手往上提的力做了多少功？</p>
+    <div class="row"><button class="btn" type="button">5000 焦</button><button class="btn" type="button">50 焦</button><button class="btn" type="button">0</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>称一称你的书包有几千克，乘 10 就是它有几牛重。</p>
+    <p>把它从地上提到桌上，量一量提高了几米。算一算你做了多少焦的功。</p>
+  </div>
+</section>

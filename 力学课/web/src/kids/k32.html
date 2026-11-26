@@ -1,0 +1,80 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>两辆车撞成一团，以后往哪边走？</h2>
+  <p>结了冰的路上，很滑。甲车每秒 20 米开过来，撞上停着的乙车。</p>
+  <p>两辆车一样重，都是 1000 千克。撞完粘在一起，接着往前滑。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">粘在一起以后，是每秒几米？</p>
+    <div class="row"><button class="btn" type="button">每秒 20 米，甲车没减速</button><button class="btn" type="button">每秒 10 米</button><button class="btn" type="button">当场停住</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三种乙车都撞一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>撞三次</h2>
+  <p>甲车一直是 1000 千克，每秒 20 米。换乙车的质量，各撞一次。</p>
+  <p>看撞完以后，它们一起滑得多快。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="冰面上，甲车从左边开过来撞上停着的乙车，两辆车粘在一起往右滑"></canvas>
+    <div class="row" id="pick1"><span class="cap">乙车：</span><button class="btn" type="button" data-v="1000">1000 千克</button><button class="btn" type="button" data-v="3000">3000 千克</button><button class="btn" type="button" data-v="9000">9000 千克</button></div>
+    <table class="tb">
+      <tr><th>乙车几千克</th><td>1000</td><td>3000</td><td>9000</td></tr>
+      <tr><th>两车一共</th><td>2000</td><td>4000</td><td>10000</td></tr>
+      <tr><th>撞后每秒</th><td id="u1000">？</td><td id="u3000">？</td><td id="u9000">？</td></tr>
+    </table>
+    <p class="cap" id="cap1">动画放慢了一半。</p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 起名字</span>
+  <h2>质量 × 速度，叫“动量”</h2>
+  <p>把表里“两车一共”和“撞后每秒”乘起来看看。</p>
+  <div class="calc"><div>2000 × 10 = 20000</div><div>4000 × 5 = 20000</div><div>10000 × 2 = 20000</div><div>撞之前，甲车：1000 × 20 = <b class="qp">20000</b></div></div>
+  <p>质量 × 速度，叫<b class="qp">动量</b>。乙车停着，动量是 0。</p>
+  <p class="key">撞之前和撞之后，两辆车的动量加起来不变。</p>
+  <p>动能就不是这样。撞前是 200000 焦，一样重的两车撞完只剩 100000 焦。少的一半变成了热，还把车撞瘪了。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="乙车的三种车速都撞一次。">
+  <span class="num">第 4 步 · 动手</span>
+  <h2>迎面撞</h2>
+  <p>动量有方向。这回两辆车都是 1000 千克。甲车往东每秒 20 米，乙车往西开过来。</p>
+  <p>往东的动量和往西的动量，会互相抵掉。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="冰面上，甲车往东、乙车往西，迎面撞在一起"></canvas>
+    <div class="row" id="pick2"><span class="cap">乙车往西：</span><button class="btn" type="button" data-v="10">每秒 10 米</button><button class="btn" type="button" data-v="20">每秒 20 米</button><button class="btn" type="button" data-v="30">每秒 30 米</button></div>
+    <div class="calc" id="calc2"><div>选一个乙车的车速，撞一次。</div></div>
+  </div>
+  <p class="key">两边的动量一样大，撞完就停在原地。谁的动量大，撞完就往谁的方向走。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>冰面上互相一推</h2>
+  <p>爸爸 80 千克，小孩 40 千克，穿着冰鞋面对面站着不动。两人互相一推，分开了。</p>
+  <p>小孩往后滑，每秒 2 米。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">爸爸呢？</p>
+    <div class="row"><button class="btn" type="button">站着不动，他重</button><button class="btn" type="button">往另一边滑，每秒 1 米</button><button class="btn" type="button">往另一边滑，每秒 2 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>火箭在太空里推着什么往前走？</h2>
+  <p>车往前走，是轮胎往后蹬地。可是太空里没有地，也没有空气。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">火箭靠什么往前？</p>
+    <div class="row"><button class="btn" type="button">喷出的火推着后面的空气</button><button class="btn" type="button">把燃气往后喷，自己得到往前的动量</button><button class="btn" type="button">太空里不用推，自己会走</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>吹鼓一个气球，捏住口不扎。然后松手。</p>
+    <p>气往后喷，气球往前窜。和火箭是一回事。</p>
+  </div>
+</section>
