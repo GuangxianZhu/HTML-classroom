@@ -1,0 +1,91 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>松开油门，车为什么会停？</h2>
+  <p>车在平路上开着。司机把脚从油门上拿开，也不踩刹车。</p>
+  <p>车越来越慢，最后停了。这件事天天都能看到。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">你觉得车为什么会停？</p>
+    <div class="row"><button class="btn" type="button">没人推它了，东西不推就会停</button><button class="btn" type="button">有东西在往后拖它</button><button class="btn" type="button">它跑累了</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="三种地面都滑一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>同一辆车，换三种地面</h2>
+  <p>车每次都开到每秒 10 米，然后松开油门，让它自己滑。</p>
+  <p>换三种地面各滑一次。看看车停在哪，速度图上的线有什么不一样。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="上面是路，车松开油门后滑行，红色箭头是地面往后拖车的力；下面是速度-时间图，三种地面各一条往下的线"></canvas>
+    <div class="row" id="pick1"><span class="cap">地面：</span><button class="btn" type="button" data-v="5">沙地</button><button class="btn" type="button" data-v="2">柏油路</button><button class="btn" type="button" data-v="0.5">冰面</button></div>
+    <table class="tb">
+      <tr><th>地面</th><td>沙地</td><td>柏油路</td><td>冰面</td></tr>
+      <tr><th>速度每秒掉</th><td id="a5">？</td><td id="a2">？</td><td id="a0.5">？</td></tr>
+      <tr><th>滑了多远</th><td id="d5">？</td><td id="d2">？</td><td id="d0.5">？</td></tr>
+    </table>
+  </div>
+  <p class="cap">冰面上滑得久，动画放快了 4 倍。</p>
+</section>
+
+<section class="beat" id="b3" data-gate="按一下“一点都不拖”，看 10 秒。">
+  <span class="num">第 3 步 · 再猜一次</span>
+  <h2>要是地面一点都不拖呢？</h2>
+  <p>地面越滑，往后拖得越少，车就滑得越远。</p>
+  <p>再往下想：有一种地面，一点都不拖车。也没有风。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">在这种地面上松开油门，车会怎样？</p>
+    <div class="row"><button class="btn" type="button">滑得很远，最后还是会停</button><button class="btn" type="button">永远不停，一直每秒 10 米</button><button class="btn" type="button">越滑越快</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="fig">
+    <canvas id="c2" aria-label="上面是一直往前滑的车，没有往后拖的箭头；下面是速度-时间图，一条平线"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="go2">一点都不拖</button></div>
+    <div class="kpis" id="k2"></div>
+  </div>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 起名字</span>
+  <h2>推、拉、拖，都叫“力”</h2>
+  <p>地面往后拖车，风往后顶车，手推车，绳子拉车。这些都叫<b class="qF">力</b>。</p>
+  <p>力干的事只有一件：让速度变。</p>
+  <table class="tb">
+    <tr><th>车受到的力</th><th>速度</th></tr>
+    <tr><td>往前推</td><td>越来越快</td></tr>
+    <tr><td>往后拖</td><td>越来越慢</td></tr>
+    <tr><td>没有力</td><td>不变</td></tr>
+  </table>
+  <p class="key">车不会自己停。是力把它拖慢的。没有力，速度就不变。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b5" data-gate="让速度连着 3 秒不变（车不能停）。">
+  <span class="num">第 5 步 · 动手</span>
+  <h2>那为什么要一直踩着油门？</h2>
+  <p>真的路总在往后拖车。这里往后拖的力一直是 3 格。</p>
+  <p>拖滑块，改发动机往前推的力，再按“开 8 秒”。开着的时候也能拖。</p>
+  <p>任务：让车的速度连着 3 秒不变。</p>
+  <div class="fig">
+    <canvas id="c3" aria-label="上面是车和两个红色箭头：发动机往前推，地面和空气往后拖；下面是速度-时间图"></canvas>
+    <div class="ctl"><label for="s3">往前推</label><input id="s3" type="range" min="0" max="6" step="1" value="0"><output id="s3o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go3">▶ 开 8 秒</button></div>
+    <p class="cap" id="cap3"></p>
+  </div>
+  <p class="key">踩着油门稳稳开：往前推的和往后拖的一样大，正好抵掉。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>冰壶</h2>
+  <p>冰壶比赛里，运动员松手以后，冰壶还能在冰上滑几十米。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">松手以后，是什么在推着冰壶往前走？</p>
+    <div class="row"><button class="btn" type="button">手的力还留在冰壶上</button><button class="btn" type="button">没有东西在推，它本来就会一直走</button><button class="btn" type="button">冰在推它</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>在桌上弹一枚硬币，看它滑多远。再铺一条毛巾，在毛巾上弹。</p>
+    <p>想一想：桌面要是比玻璃还滑，硬币会滑到哪？</p>
+  </div>
+</section>

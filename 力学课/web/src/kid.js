@@ -186,6 +186,13 @@ export function vtGrid(g, box, { t1, v1, vs = 5, ts = 1, vfmt = (v) => `${v}`, n
   if (note) txt(g, note, box.x - 4, box.y - 8, { c: T.v, size: 11.5, w: 700 });
   return { X, Y };
 }
+/** 力的箭头：一律红色，旁边写谁在推（拉、拖）。len 是像素长度，方向用 (dx, dy) 给（不用是单位长度） */
+export function farrow(g, x, y, dx, dy, len, label, { side = -1, size = 12.5 } = {}) {
+  if (len < 2) return;
+  const d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, x1 = x + ux * len, y1 = y + uy * len;
+  arrow(g, x, y, x1, y1, T.F, 4, 11);
+  if (label) txt(g, label, (x + x1) / 2 - uy * side * -14, (y + y1) / 2 + ux * side * 14 + 4, { c: T.F, size, w: 700, a: 'center' });
+}
 /** 一串 {t, v} 连成线（速度-时间图用） */
 export function vline(g, pts, X, Y, c, lw = 3, alpha = 1) {
   if (pts.length < 2) return;

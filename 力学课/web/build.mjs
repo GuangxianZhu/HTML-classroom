@@ -2,7 +2,7 @@
 // 产出 ../index.html（总目录）和 ../lessons/NN.html（每课一个离线单文件）。课程表在 src/course.js。
 import { build } from 'esbuild';
 import fs from 'fs';
-import { LESSONS, PARTS, QUANTS, KIDS, KID_PART, lessonFile, kidFile } from './src/course.js';
+import { LESSONS, PARTS, QUANTS, KIDS, KID_PART, KID_SEGS, lessonFile, kidFile } from './src/course.js';
 
 const css = fs.readFileSync('src/style.css', 'utf8');
 const FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">';
@@ -81,12 +81,14 @@ const parts = PARTS.map((p) => `<section class="part">
       return `<li data-n="${l.n}" class="${l.ready ? 'ready' : 'todo'}">${l.ready ? `<a href="lessons/${lessonFile(l.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
     }).join('')}</ol>
   </section>`).join('\n');
+const kidCard = (k) => {
+  const inner = `<span class="n">${k.n}</span><span class="t">${k.title}</span><span class="h">${k.ask}</span><span class="st">${k.ready ? '可以学了' : '还在做'}</span>`;
+  return `<li data-n="k${k.n}" class="${k.ready ? 'ready' : 'todo'}">${k.ready ? `<a href="lessons/${kidFile(k.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
+};
 const kidPart = `<section class="part kidpart">
     <h2><span class="lv">${KID_PART.level}</span>${KID_PART.name}</h2><p class="pnote">${KID_PART.note}</p>
-    <ol class="cards">${KIDS.map((k) => {
-      const inner = `<span class="n">${k.n}</span><span class="t">${k.title}</span><span class="h">${k.ask}</span><span class="st">${k.ready ? '可以学了' : '还在做'}</span>`;
-      return `<li data-n="k${k.n}" class="${k.ready ? 'ready' : 'todo'}">${k.ready ? `<a href="lessons/${kidFile(k.n)}">${inner}</a>` : `<div>${inner}</div>`}</li>`;
-    }).join('')}</ol>
+    ${KID_SEGS.map((sg) => `<h3 class="seg">${sg.name}<small>${sg.note}</small></h3>
+    <ol class="cards">${KIDS.filter((k) => (k.seg || 1) === sg.id).map(kidCard).join('')}</ol>`).join('\n    ')}
   </section>`;
 const idxCss = `
 .cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -95,6 +97,8 @@ const idxCss = `
 .cards li.todo>div{opacity:.55;background:transparent;border-style:dashed}
 .cards li.done>a{border-color:var(--ok)}
 .kidpart .lv{background:var(--a)}
+.kidpart h3.seg{margin:18px 0 8px;font-size:16px}
+.kidpart h3.seg small{font-weight:400;color:var(--ink3);margin-left:10px;font-size:13.5px}
 .kidpart .cards .n{color:var(--a)}
 .cards .n{grid-row:span 3;font:700 26px/1 var(--f-num);color:var(--acc);min-width:1.4em}
 .cards .t{font-weight:700;line-height:1.45}

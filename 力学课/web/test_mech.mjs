@@ -63,7 +63,7 @@ for (const l of ready) {
 }
 
 console.log('— 启蒙篇：课表');
-ok('启蒙篇 12 小课，编号连续', KIDS.length === 12 && KIDS.every((k, i) => k.n === i + 1));
+ok('启蒙篇 36 小课，编号连续', KIDS.length === 36 && KIDS.every((k, i) => k.n === i + 1));
 ok('每小课都有问题、一句话、对应的高中课', KIDS.every((k) => k.ask && k.got && LESSONS.some((l) => l.n === k.back)));
 ok('每小课最多 2 个新词', KIDS.every((k) => (k.words || []).length <= 2));
 const kready = KIDS.filter((k) => k.ready);
@@ -74,7 +74,7 @@ console.log('— 启蒙篇：页面上的字（读者只有小学数学）');
 const strip = (h) => h.replace(/<details class="later">[\s\S]*?<\/details>/g, '').replace(/<[^>]+>/g, '\n').replace(/&[a-z]+;/g, ' ');
 const jsText = (src) => [...src.matchAll(/(['`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2]).filter((x) => /[一-鿿]/.test(x) && !/=>| \? |\.join\(|\?\./.test(x)).map((x) => strip(x.replace(/\$\{[^}]*\}/g, '8'))).join('\n');
 const common = jsText(fs.readFileSync('src/kid.js', 'utf8'));
-const TERMS = { 位置时间图: /位置-时间图/, 速度时间图: /速度-时间图/, 速度: /(?<!加)速度(?!表|-时间图)/, 加速度: /加速度/, 位移: /位移/, 路程: /路程/, 刹车距离: /刹车距离/, 反应距离: /反应距离/ };
+const TERMS = { 位置时间图: /位置-时间图/, 速度时间图: /速度-时间图/, 速度: /(?<!加)速度(?!表|-时间图)/, 加速度: /加速度/, 位移: /位移/, 路程: /路程/, 刹车距离: /刹车距离/, 反应距离: /反应距离/, 质量: /质量/, 合力: /合力/, 重力: /重力/, 摩擦力: /摩擦力/, 动能: /动能/, 能量: /能量/, 功率: /功率/, 动量: /动量/ };
 const named = (n) => new Set(KIDS.filter((k) => k.n <= n).flatMap((k) => k.words || []).map((w) => w.replace('-', '')));
 for (const k of kready) {
   const id = String(k.n).padStart(2, '0');
@@ -101,6 +101,7 @@ ok('启 9：三种踩法 5 秒后是每秒 5、10、15 米；每秒 20 米轻刹
 ok('启 11：每秒涨 2 开 4 秒，1 + 3 + 5 + 7 = 16 = 4 × 8 ÷ 2；8 秒是 64，4 倍', 1 + 3 + 5 + 7 === 16 && 4 * 8 / 2 === 16 && 8 * 16 / 2 === 64);
 ok('启 12：每秒掉 5，车速 10 / 20 / 30 的刹车距离是 10 / 40 / 90 米', [10, 20, 30].every((v) => v * (v / 5) / 2 === v * v / 10) && 10 * 10 / 10 === 10 && 20 * 20 / 10 === 40 && 30 * 30 / 10 === 90);
 ok('启 12：湿路每秒 20 米正好 60 米停住，每秒 25 米停不住', 20 + 20 * 4 / 2 === 60 && 25 + 25 * 5 / 2 > 60);
+ok('启 14：每秒 10 米松油门，每秒掉 5 / 2 / 0.5，滑 10 / 25 / 100 米', [5, 2, 0.5].every((d, i) => 10 * (10 / d) / 2 === [10, 25, 100][i]));
 
 console.log('— 启蒙篇：练习题（每个跑 400 遍，数字要能口算）');
 for (const k of kready) {
