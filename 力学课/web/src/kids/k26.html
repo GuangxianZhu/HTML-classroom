@@ -1,0 +1,79 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>一直在掉，又掉不到地上？</h2>
+  <p>站在一座很高很高的山顶，把石头平着扔出去。扔得越快，落得越远。</p>
+  <p>三百多年前，牛顿想：要是一直加快，快到不得了呢？</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">扔得足够快，石头会怎样？</p>
+    <div class="row"><button class="btn" type="button">再快也会落地，只是更远</button><button class="btn" type="button">再也落不到地上，绕着地球转</button><button class="btn" type="button">马上飞得没影，再不回来</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找出让炮弹绕地球一整圈的速度。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>山顶上的大炮</h2>
+  <p>山顶架一门大炮，平着开炮。拖滑块改炮弹的速度，再按“开炮”。</p>
+  <p>任务：找出让炮弹绕地球一整圈的速度。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="一个圆圆的地球，顶上有一座山和一门炮；炮弹飞出去的路线是弯的，速度越大落得越远，够快就绕一整圈"></canvas>
+    <div class="ctl"><label for="s1">炮弹：每秒</label><input id="s1" type="range" min="2" max="8" step="2" value="2"><output id="s1o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">开炮</button></div>
+    <p class="cap" id="cap1"></p>
+  </div>
+  <p class="cap">山画得特别高，是为了看得清。这里不算空气。</p>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>地面在它脚下弯走了</h2>
+  <p>炮弹每一秒都在往下掉。第 1 秒掉 5 米，和第 13 小课一样。</p>
+  <p>可是地球是圆的。往前走 8 千米，地面也正好往下弯了 5 米。</p>
+  <table class="tb">
+    <tr><th>1 秒里</th><th>炮弹</th><th>地面</th></tr>
+    <tr><td>往前</td><td>飞了 8 千米</td><td>—</td></tr>
+    <tr><td>往下</td><td>掉了 5 米</td><td>弯下去 5 米</td></tr>
+  </table>
+  <p class="key">卫星一直在往下掉，只是横着飞得太快，地面总在它脚下弯走。</p>
+  <p>掉了 5 米，离地面还是一样高。下一秒还是这样，于是一圈一圈转下去。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 先猜再想</span>
+  <h2>卫星要一直开着发动机吗？</h2>
+  <p>卫星被火箭送上去，加快到每秒 8 千米左右，然后火箭就关了。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">之后，卫星靠什么一直转下去？</p>
+    <div class="row"><button class="btn" type="button">一直开着发动机往前推</button><button class="btn" type="button">什么都不用。没有空气拖它，重力只管让它拐弯</button><button class="btn" type="button">靠太阳能板</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>前两小课说过：拐弯要一个朝里的力。卫星拐弯的力，就是地球的重力。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 再想一步</span>
+  <h2>要是重力突然没了</h2>
+  <p>第 22 小课说，太空站里的人飘着，不是因为没有重力。他们和太空站一起在掉。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">假如地球的重力突然消失，卫星会怎样？</p>
+    <div class="row"><button class="btn" type="button">停在原地不动</button><button class="btn" type="button">照着那一刻的方向，直直飞走</button><button class="btn" type="button">接着绕地球转</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>月亮</h2>
+  <p>月亮离我们 38 万千米，大约 27 天绕地球一圈。</p>
+  <div class="guess" data-guess="g4">
+    <p class="q">月亮为什么不掉下来？</p>
+    <div class="row"><button class="btn" type="button">太远了，地球拉不到它</button><button class="btn" type="button">它也一直在掉，只是横着飞，总掉不到地球上</button><button class="btn" type="button">有东西托着它</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>查一查“空间站过境”。天黑以后，能用眼睛看到一个亮点匀速划过天空。</p>
+    <p>它每秒飞将近 8 千米，一个半小时就绕地球一圈。</p>
+  </div>
+</section>

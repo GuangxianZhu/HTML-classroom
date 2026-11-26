@@ -1,0 +1,78 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>只打方向盘，速度变了吗？</h2>
+  <p>车在一个圆形的弯道上开。速度表一直指着同一个数，每秒 10 米。</p>
+  <p>第 17 小课说过：合力是 0，速度就不变。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">这辆正在拐弯的车，受到的合力是 0 吗？</p>
+    <div class="row"><button class="btn" type="button">是 0，速度表没动</button><button class="btn" type="button">不是 0，有个力一直在把它往弯里拉</button><button class="btn" type="button">不是 0，有个力把它往弯外甩</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="在 3 个不同的地方，让路面结冰。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>把拐弯的力突然拿走</h2>
+  <p>这是从天上往下看。车在圆形弯道上转圈，红箭头是地面给它的摩擦力。</p>
+  <p>按“路面突然结冰”，摩擦力一下子没了。看车往哪走。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="从上往下看的圆形弯道，车沿着圆圈开；红色箭头从车指向圆心；结冰后车沿直线滑出去"></canvas>
+    <div class="row"><button class="btn primary" type="button" id="ice1">路面突然结冰</button><button class="btn" type="button" id="re1">重来</button></div>
+    <p class="cap" id="cap1"></p>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 说清楚</span>
+  <h2>速度有两样：多快，往哪边</h2>
+  <p>力一没有，车就照着那一刻的方向直直走。没有力，速度不变，连方向也不变。</p>
+  <p>所以说速度，要说两样：多快，往哪边。只要有一样在变，就是速度在变。</p>
+  <p class="key">方向变了，也是速度变了，也要有力。拐弯的力，朝着弯的里面。</p>
+  <p>车拐弯靠的是地面的摩擦力。它横着拉车，一直指向圆圈的中心。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4">
+  <span class="num">第 4 步 · 找规律</span>
+  <h2>力朝哪边，管的事不一样</h2>
+  <table class="tb">
+    <tr><th>力的方向</th><th>多快</th><th>往哪边</th></tr>
+    <tr><td>顺着车头</td><td>变快</td><td>不变</td></tr>
+    <tr><td>对着车头</td><td>变慢</td><td>不变</td></tr>
+    <tr><td>横着，和车头垂直</td><td>不变</td><td>拐弯</td></tr>
+  </table>
+  <p>在圆形弯道上稳稳地开，力一直是横着的。所以速度表不动，车却一直在拐。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">拐弯的时候再踩一脚油门，力是怎样的？</p>
+    <div class="row"><button class="btn" type="button">只有横着的</button><button class="btn" type="button">横着的和顺着车头的都有</button><button class="btn" type="button">只有顺着车头的</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>被甩向车门</h2>
+  <p>车往左拐，你觉得自己被甩向右边的车门。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">真有一个力把你往右推吗？</p>
+    <div class="row"><button class="btn" type="button">有，拐弯就会有往外甩的力</button><button class="btn" type="button">没有。你想直直走，车往左拐走了</button><button class="btn" type="button">有，是风</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p>然后车门从右边顶住你，往左推你。你这才跟着车一起拐弯。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>链球</h2>
+  <p>链球运动员抓着链子，让铁球绕着自己转圈，越转越快，然后松手。</p>
+  <div class="guess" data-guess="g4">
+    <p class="q">松手以后，球往哪飞？</p>
+    <div class="row"><button class="btn" type="button">顺着松手那一刻的方向，直直飞出去</button><button class="btn" type="button">从圆心往外，直直飞出去</button><button class="btn" type="button">接着转圈</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>在光滑的桌面上滚一颗弹珠。用尺子从侧面轻轻碰它一下，看它往哪拐。</p>
+    <p>不碰它的时候，它会自己拐弯吗？</p>
+  </div>
+</section>

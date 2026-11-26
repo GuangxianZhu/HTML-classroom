@@ -267,6 +267,15 @@ export function flash(g, w, h, a) { if (a <= 0) return; g.fillStyle = '#fff'; g.
 export function carAt(g, cx, cy, L, { rot = 0, color, alpha = 1 } = {}) {
   g.save(); g.translate(cx, cy); g.rotate(rot); drawCar(g, 0, L * .15, L, { color, alpha }); g.restore();
 }
+/** 从天上往下看的车：cx, cy 是中心，rot 是车头朝哪（0 朝右） */
+export function carTop(g, cx, cy, L, rot = 0, color) {
+  const W = L * .46;
+  g.save(); g.translate(cx, cy); g.rotate(rot);
+  g.fillStyle = color || T.ink2; rr(g, -L / 2, -W / 2, L, W, W * .28); g.fill();
+  g.fillStyle = T.panel2; g.globalAlpha = .85; rr(g, L * .08, -W * .36, L * .16, W * .72, 2); g.fill(); rr(g, -L * .3, -W * .34, L * .1, W * .68, 2); g.fill(); g.globalAlpha = 1;
+  g.fillStyle = '#F2C14E'; g.fillRect(L / 2 - 3, -W / 2 + 2, 3, W * .2); g.fillRect(L / 2 - 3, W / 2 - 2 - W * .2, 3, W * .2);
+  g.restore();
+}
 export { rr, dot };
 
 // ------------------------------------------------------------------ 先猜一下

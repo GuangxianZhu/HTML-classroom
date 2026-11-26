@@ -1,0 +1,84 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>开多快，会冲出弯道？</h2>
+  <p>弯道前面常有限速牌。上一小课说了：拐弯要有一个朝里的力，它是地面的摩擦力。</p>
+  <p>摩擦力有上限。要的力超过了上限，车就拐不过去。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">同一个弯，车速从每秒 10 米变成每秒 20 米。拐弯要的力变成几倍？</p>
+    <div class="row"><button class="btn" type="button">不变，弯又没变</button><button class="btn" type="button">2 倍</button><button class="btn" type="button">4 倍</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="每秒 10 米、20 米、30 米各过一次弯。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>用三种车速过同一个弯</h2>
+  <p>车是 1000 千克。弯道是一个半径 100 米的圆弧，从天上往下看。</p>
+  <p>选路面，拖滑块定车速，再按“过弯”。三种车速都试一次。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="从上往下看的半圆形弯道；车沿着弯道开，红色箭头指向圆心；要的力超过轮胎能抓的力时，车冲出弯道"></canvas>
+    <div class="row" id="road1" role="group" aria-label="路面"><span class="cap">路面：</span><button class="btn" type="button" data-v="8000" aria-pressed="true">干路</button><button class="btn" type="button" data-v="4000">湿路</button><button class="btn" type="button" data-v="1000">冰面</button></div>
+    <div class="ctl"><label for="s1">车速：每秒</label><input id="s1" type="range" min="10" max="30" step="10" value="10"><output id="s1o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go1">▶ 过弯</button></div>
+    <div class="kpis" id="k1"></div>
+    <p class="cap" id="cap1"></p>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">车速（每秒几米）</th><td>10</td><td>20</td><td>30</td></tr>
+      <tr><th style="white-space:nowrap">拐弯要的力（牛）</th><td id="n10">？</td><td id="n20">？</td><td id="n30">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>车速要乘两次</h2>
+  <p>车速是 2 倍，要的力是 4 倍。车速是 3 倍，要的力是 9 倍。</p>
+  <p>第 12 小课里，刹车距离也是这样。车速翻倍，后果不是翻倍，是 4 倍。</p>
+  <div class="calc"><div>拐弯要的力 = 质量 × 车速 × 车速 ÷ 弯的半径</div><div>1000 × 20 × 20 ÷ 100 = <b class="qF">4000 牛</b></div></div>
+  <p class="key">车速翻倍，拐弯要 4 倍的力。</p>
+  <p>干路最多能抓 8000 牛。每秒 30 米要 9000 牛，抓不住，车就冲出去了。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="找出干路上能过这个急弯的最快车速。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>弯急一倍</h2>
+  <p>换一个更急的弯，半径只有 50 米。算式里除以的数小了一半，要的力就是 2 倍。</p>
+  <p>任务：干路上，找出能过这个弯的最快车速。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="一个更小的半圆形弯道，半径 50 米"></canvas>
+    <div class="ctl"><label for="s2">车速：每秒</label><input id="s2" type="range" min="10" max="30" step="5" value="10"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">▶ 过弯</button></div>
+    <div class="kpis" id="k2"></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <p class="key">弯急一倍，要 2 倍的力。所以弯越急，限速越低。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>下雨天</h2>
+  <p>半径 100 米的弯。干路最多抓 8000 牛，每秒 28 米还过得去。</p>
+  <p>下雨了，湿路最多只能抓 4000 牛，少了一半。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">雨天最快能用多少过这个弯？</p>
+    <div class="row"><button class="btn" type="button">每秒 14 米，也减一半</button><button class="btn" type="button">每秒 20 米</button><button class="btn" type="button">还是每秒 28 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>游乐场的转椅</h2>
+  <p>转椅越转越快，你觉得越来越坐不住，手要抓得越来越紧。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">转的速度变成 2 倍，手要用的力变成几倍？</p>
+    <div class="row"><button class="btn" type="button">2 倍</button><button class="btn" type="button">4 倍</button><button class="btn" type="button">不变</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>坐车的时候留意弯道的限速牌。弯越急，牌子上的数是不是越小？</p>
+    <p>骑自行车拐弯，试试慢慢拐和快快拐，身体的感觉差多少。注意安全。</p>
+  </div>
+</section>

@@ -1,0 +1,79 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>边飞边掉，怎么算？</h2>
+  <p>高台有 45 米高。两个一样的球，同时离开台子边。</p>
+  <p>一个只是松手，直直往下掉。另一个被横着推了一把，以每秒 10 米飞出去。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">谁先落地？</p>
+    <div class="row"><button class="btn" type="button">直直掉的先落地，它的路短</button><button class="btn" type="button">同时落地</button><button class="btn" type="button">飞出去的先落地，它快</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="换 3 种横着的速度，各试一次。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>两个球一起出发</h2>
+  <p>蓝球只是松手。橙球横着飞出去，横着的速度你来选。</p>
+  <p>每过 1 秒拍一张。看同一张照片里，两个球是不是一样高。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="左边是 45 米高的台子；蓝球直直往下掉，橙球横着飞出去，每秒留一个影子，同一秒的两个影子用虚线连着"></canvas>
+    <div class="row" id="pick1"><span class="cap">橙球横着：</span><button class="btn" type="button" data-v="5">每秒 5 米</button><button class="btn" type="button" data-v="10">每秒 10 米</button><button class="btn" type="button" data-v="15">每秒 15 米</button></div>
+    <table class="tb">
+      <tr><th style="white-space:nowrap">横着的速度</th><td>5</td><td>10</td><td>15</td></tr>
+      <tr><th style="white-space:nowrap">几秒落地</th><td id="t5">？</td><td id="t10">？</td><td id="t15">？</td></tr>
+      <tr><th style="white-space:nowrap">落在多远（米）</th><td id="x5">？</td><td id="x10">？</td><td id="x15">？</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>横着的和竖着的，各管各</h2>
+  <p>竖着看：橙球和蓝球一模一样。1 秒掉 5 米，2 秒掉 20 米，3 秒掉 45 米。</p>
+  <p>横着看：没有力横着推它，也没有力拖它。横着的速度就一直不变。</p>
+  <div class="calc"><div>落地用几秒：只看有多高，45 米是 3 秒</div><div>落在多远 = 横着的速度 × 秒数 = 10 × 3 = <b class="qx">30 米</b></div></div>
+  <p class="key">横着一直一样快，竖着越掉越快，两边互不打扰。</p>
+  <p class="cap" id="echo1"></p>
+  <p class="cap">这里没算空气。球不太轻、飞得不太快的时候，差不了多少。</p>
+</section>
+
+<section class="beat" id="b4" data-gate="让包裹正好落在靶子上。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>空投包裹</h2>
+  <p>无人机在 45 米高的地方平着飞，速度是每秒 20 米。它要把包裹投到地上的靶子上。</p>
+  <p>任务：拖滑块，定下离靶子还有多远就松手。再按“起飞”。</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="无人机从左往右平飞，松手后包裹边往前飞边往下掉；地上有一个靶子"></canvas>
+    <div class="ctl"><label for="s2">提前</label><input id="s2" type="range" min="0" max="80" step="20" value="0"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">▶ 起飞</button></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <p>再看一眼：包裹往下掉的时候，一直在无人机的正下方。它横着的速度和无人机一样。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>使劲扔，能在空中多待一会儿吗？</h2>
+  <p>站在同一个台子上，把球平着扔出去。一次轻轻扔，一次使出全力。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">哪一次球在空中待得久？</p>
+    <div class="row"><button class="btn" type="button">使出全力那次</button><button class="btn" type="button">一样久</button><button class="btn" type="button">轻轻扔那次</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>电影里的飞车</h2>
+  <p>电影里，车以每秒 20 米冲出断桥。对面的桥头一样高，在 20 米以外。</p>
+  <div class="guess" data-guess="g3">
+    <p class="q">飞到对面要 1 秒。到的时候，车比桥面低了多少？</p>
+    <div class="row"><button class="btn" type="button">一点没低，车够快就不掉</button><button class="btn" type="button">低了 5 米</button><button class="btn" type="button">低了 20 米</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>桌子边上放两枚硬币。用尺子一扫：一枚被弹飞出去，另一枚只是被碰掉。</p>
+    <p>听落地的声音，是一声还是两声？</p>
+  </div>
+</section>
