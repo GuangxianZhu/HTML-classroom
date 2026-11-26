@@ -1,0 +1,82 @@
+<section class="beat" id="b1">
+  <span class="num">第 1 步 · 问题</span>
+  <h2>坡越陡越难开，差在哪？</h2>
+  <p>地球往下拉车的力叫重力。这辆车 1000 千克，重力大约是 10000 牛。</p>
+  <p>平地上，这 10000 牛全被地面托住了。车停在坡上，就不一样了。</p>
+  <div class="guess" data-guess="g1">
+    <p class="q">车停在坡上不拉手刹，会往下溜。把它往下拉的力有多大？</p>
+    <div class="row"><button class="btn" type="button">10000 牛，和重力一样大</button><button class="btn" type="button">比 10000 牛小，坡越陡越大</button><button class="btn" type="button">和坡陡不陡没关系</button></div>
+    <p class="r" hidden></p>
+  </div>
+</section>
+
+<section class="beat" id="b2" data-gate="找出往下拉的力正好是 3000 牛的坡。">
+  <span class="num">第 2 步 · 动手</span>
+  <h2>调一调坡的陡度</h2>
+  <p>坡有多陡，这样说：沿着坡走 10 米，升高了几米。</p>
+  <p>拖滑块，看两个红箭头。一个是重力，一个是沿着坡往下拉车的力。</p>
+  <p>任务：找出往下拉的力正好是 3000 牛的坡。</p>
+  <div class="fig">
+    <canvas id="c1" aria-label="一个斜坡，车停在坡上；红色箭头：重力竖直往下，另一个沿着坡往下"></canvas>
+    <div class="ctl"><label for="s1">走 10 米升高</label><input id="s1" type="range" min="0" max="5" step="1" value="1"><output id="s1o"></output></div>
+    <div class="kpis" id="k1"></div>
+  </div>
+</section>
+
+<section class="beat" id="b3">
+  <span class="num">第 3 步 · 找规律</span>
+  <h2>升高十分之几，就拉十分之几</h2>
+  <table class="tb">
+    <tr><th style="white-space:nowrap">升高（米）</th><td>0</td><td>1</td><td>3</td><td>5</td></tr>
+    <tr><th style="white-space:nowrap">往下拉（牛）</th><td>0</td><td>1000</td><td>3000</td><td>5000</td></tr>
+  </table>
+  <p>走 10 米升高 3 米，升高的是坡长的十分之 3。往下拉的力，也是重力的十分之 3。</p>
+  <div class="calc"><div>往下拉的力 = 重力 × 升高的米数 ÷ 坡长</div><div>10000 × 3 ÷ 10 = <b class="qF">3000 牛</b></div></div>
+  <p class="key">坡越陡，重力里往下拉车的那一份越大。剩下的由坡面托着。</p>
+  <p class="cap">为什么正好是这个比例，要学了相似三角形才能讲清。现在先用上面的图验证它。</p>
+  <p class="cap" id="echo1"></p>
+</section>
+
+<section class="beat" id="b4" data-gate="找出冰面上车还停得住的最陡的坡。">
+  <span class="num">第 4 步 · 挑战</span>
+  <h2>停在坡上，靠的是轮胎抓地</h2>
+  <p>车停在坡上不往下溜，是轮胎和地面之间的摩擦力抓住了它。</p>
+  <p>这辆车的轮胎，干路上最多抓 8000 牛。湿路 4000 牛，冰面 1000 牛。</p>
+  <p>任务：冰面上，车还停得住的最陡的坡，是哪一个？</p>
+  <div class="fig">
+    <canvas id="c2" aria-label="斜坡和车；松开刹车后，车要么被轮胎抓住停在坡上，要么往下溜"></canvas>
+    <div class="row" id="road2" role="group" aria-label="路面"><span class="cap">路面：</span><button class="btn" type="button" data-v="8000">干路</button><button class="btn" type="button" data-v="4000">湿路</button><button class="btn" type="button" data-v="1000" aria-pressed="true">冰面</button></div>
+    <div class="ctl"><label for="s2">走 10 米升高</label><input id="s2" type="range" min="0" max="5" step="1" value="3"><output id="s2o"></output></div>
+    <div class="row"><button class="btn primary" type="button" id="go2">把车停上去试试</button></div>
+    <p class="cap" id="cap2"></p>
+  </div>
+  <p class="cap">这三个数是取整的。坡上轮胎能抓的力其实还会再小一点。</p>
+</section>
+
+<section class="beat" id="b5">
+  <span class="num">第 5 步 · 先猜再想</span>
+  <h2>稳稳地开上坡，要多大的力？</h2>
+  <p>坡是走 10 米升高 2 米。车在坡上稳稳往上开，速度不变。</p>
+  <p>先不算地面和空气往后拖的力。</p>
+  <div class="guess" data-guess="g2">
+    <p class="q">发动机往前推车的力，要多大？</p>
+    <div class="row"><button class="btn" type="button">正好 2000 牛</button><button class="btn" type="button">要比 2000 牛大，不然上不去</button><button class="btn" type="button">10000 牛</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <p class="key">速度不变，两边的力就一样大。上坡也是这样。</p>
+</section>
+
+<section class="beat" id="b6">
+  <span class="num">第 6 步 · 讲给别人听</span>
+  <h2>车上多坐了人</h2>
+  <div class="guess" data-guess="g3">
+    <p class="q">同一个坡，车装满了货，变成 2000 千克。往下拉的力怎么变？</p>
+    <div class="row"><button class="btn" type="button">不变，坡没变</button><button class="btn" type="button">变成 2 倍</button><button class="btn" type="button">变成一半</button></div>
+    <p class="r" hidden></p>
+  </div>
+  <div class="card">
+    <span class="tag">离开屏幕做一次</span>
+    <p>用一块硬板搭个斜坡，放一辆玩具车。用一根橡皮筋沿着坡拉住它。</p>
+    <p>把坡慢慢垫高。看橡皮筋是不是越拉越长。</p>
+  </div>
+</section>
