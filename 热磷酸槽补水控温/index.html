@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>热磷酸槽补水控温</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 设备工程师看的控制画面，冷静、数字说话，每条机制都交代出处
+   IDEA: 槽式机台的 HMI 监控屏：左边剖面图在动，右边读数，下面趋势曲线，最后是依据清单
+   PICTURE: 石英内槽+外槽+泵/在线加热器/过滤器/补水阀/鼓泡管/排气风门的剖面，气泡随沸腾度变化
+   COLOUR and TYPE: 深石墨底；热=橙，沸点=黄，纯水=蓝，浓度=淡紫；专利标签蓝、推理标签橙；数字用 Barlow Semi Condensed
+   LAYOUT: 标题 → 剖面图|读数 → 控件 → 三段曲线 → 试一下 → 依据表 */
+:root{color-scheme:dark;--bg:#111518;--panel:#191e23;--panel2:#1f262c;--line:#2c353d;--ink:#e9eef2;--mut:#95a3ae;--hot:#ff8a3d;--tb:#f2c94c;--diw:#4cc3ff;--conc:#c7aaff;--pat:#6fb8ff;--inf:#ffb36b;
+--num:"Barlow Semi Condensed","PingFang SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;overflow-x:clip}
+a{color:var(--pat)}
+.band{padding:clamp(18px,3vw,36px) max(4vw,14px);max-width:1280px;margin:0 auto}
+h1{font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0 0 8px;text-wrap:balance;font-weight:700}
+h2{font-size:20px;margin:0 0 4px}
+.lead{margin:0;color:var(--mut);max-width:66ch}
+.tag{display:inline-block;font-size:12px;line-height:1;padding:4px 7px;border-radius:99px;margin-left:6px;vertical-align:2px;text-decoration:none;white-space:nowrap;font-weight:600}
+.tag.p{background:#16314a;color:var(--pat)}.tag.i{background:#3d2a16;color:var(--inf)}
+.stage{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;padding-top:0}
+.fig{position:relative;background:var(--panel);border-radius:12px;aspect-ratio:640/450;overflow:hidden}
+.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.read{background:var(--panel);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.big .lbl{display:block;color:var(--mut);font-size:14px}
+.big b{font:700 clamp(44px,6vw,64px)/1 var(--num);color:var(--hot);font-variant-numeric:tabular-nums}
+.big u{text-decoration:none;font:600 22px var(--num);color:var(--mut);margin-left:4px}
+.chip{align-self:flex-start;font-size:14px;padding:4px 10px;border-radius:99px;background:#3a3216;color:var(--tb)}
+.chip.off{background:#2a3036;color:var(--mut)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:15px}
+dt{color:var(--mut)}dd{margin:0;text-align:right;font:600 18px var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
+dd.w{color:var(--conc)}dd.tbv{color:var(--tb)}dd.d{color:var(--diw)}dd.loop{font:500 14px/1.4 inherit;white-space:normal;color:var(--ink)}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.grp{background:var(--panel);border-radius:12px;padding:12px 14px}
+.grp h3{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--mut)}
+.grp .hint{font-size:13px;color:var(--mut);margin:8px 0 0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:15px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:6px 12px;cursor:pointer}
+button[aria-pressed=true]{background:#2c3a46;border-color:var(--diw);color:#fff}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--diw);outline-offset:2px}
+button.act{border-color:var(--hot)}button.danger{border-color:#7a3a3a}
+.row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.row label{font-size:14px;color:var(--mut)}
+.row.r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px}
+.row.r input{grid-column:1/-1;order:3}
+input[type=range]{width:100%;accent-color:var(--diw);height:40px;margin:0}
+.val{font:600 17px var(--num);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;min-height:44px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--diw);flex:none}
+.dim{opacity:.45;pointer-events:none}
+.charts{background:var(--panel);border-radius:12px;padding:10px}
+.chartfig{position:relative;height:400px}
+.chartfig canvas{position:absolute;inset:0;width:100%;height:100%}
+.tries ol{margin:8px 0 0;padding-left:1.3em;display:grid;gap:12px;max-width:84ch}
+.tries li span{color:var(--mut)}
+.tries button{min-height:38px;font-size:14px;padding:4px 10px;margin:6px 6px 0 0}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:600;font-size:14px}
+td:nth-child(2){white-space:nowrap}
+tr:target{background:#1d2a36}
+.src{color:var(--mut);font-size:14px}
+.note{color:var(--mut);font-size:13px;margin-top:14px}
+@media(max-width:860px){.stage{grid-template-columns:minmax(0,1fr)}dl{grid-template-columns:auto 1fr auto 1fr}.chartfig{height:360px}}
+@media(max-width:600px){dl{grid-template-columns:auto 1fr}.chartfig{height:340px}
+ table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:4.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:4em;margin-inline-start:-4.5em;color:var(--mut);font-size:13px}}
+@media(prefers-reduced-motion:reduce){.flow{animation:none!important}}
+.flow{stroke-dasharray:6 10;animation:fl 1.2s linear infinite}
+@keyframes fl{to{stroke-dashoffset:-32}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="band">
+  <h1>热磷酸槽：温度靠补水阀，还是靠加热器？</h1>
+  <p class="lead">专利里有两条路线。沸腾耦合：槽液一直微沸，沸点和浓度一一对应，温度高了补水、低了停水<a class="tag p" href="#src-coupled">专利</a>。温浓分离：加热器把温度控在 160±0.3 ℃，浓度计单独控补水，槽液停在沸点下面一点<a class="tag p" href="#src-split">专利</a>。两种都能在下面切换、投片、改气压和排气。标签点开能跳到依据表，蓝色是专利，橙色是我的推理。</p>
+</header>
+
+<section class="band stage">
+  <div class="fig">
+    <svg viewBox="0 0 640 450" role="img" aria-label="热磷酸槽剖面：内槽、外槽、循环泵、在线加热器、过滤器、补水阀、温度计、N2 鼓泡管、排气风门">
+      <defs>
+        <linearGradient id="gQ" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfe8ff" stop-opacity=".16"/><stop offset=".5" stop-color="#cfe8ff" stop-opacity=".05"/><stop offset="1" stop-color="#cfe8ff" stop-opacity=".16"/></linearGradient>
+        <linearGradient id="gL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9d3e6" stop-opacity=".20"/><stop offset="1" stop-color="#7fb4cf" stop-opacity=".34"/></linearGradient>
+        <linearGradient id="gW" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b8c7d4"/><stop offset=".5" stop-color="#7d8fa0"/><stop offset="1" stop-color="#55667a"/></linearGradient>
+        <linearGradient id="gS" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a535c"/><stop offset=".5" stop-color="#6c7781"/><stop offset="1" stop-color="#3e464e"/></linearGradient>
+        <filter id="blur"><feGaussianBlur stdDeviation="5"/></filter>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+        <clipPath id="cpT"><rect x="162" y="93" width="216" height="40"/></clipPath>
+      </defs>
+      <!-- 排气 + 风门 -->
+      <rect x="232" y="0" width="76" height="80" fill="url(#gS)" opacity=".55"/>
+      <g id="steam" filter="url(#blur)"></g>
+      <line id="damper" x1="-30" y1="0" x2="30" y2="0" stroke="#d0d7dd" stroke-width="4" stroke-linecap="round" transform="translate(270 36) rotate(45)"/>
+      <circle cx="270" cy="36" r="3.5" fill="#d0d7dd"/>
+      <text x="318" y="24" fill="#95a3ae" font-size="13">排气风门</text>
+      <text id="exhTxt" x="318" y="42" fill="#e9eef2" font-size="13" font-weight="600">−10 mmH2O</text>
+      <!-- 循环管路 -->
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M420 186 V252 H453 M487 252 H545 V264 M545 344 V356 M545 400 V420 H270 V332" stroke="#6f7a84" stroke-width="8"/>
+        <path d="M420 186 V252 H453 M487 252 H545 V264 M545 344 V356 M545 400 V420 H270 V332" stroke="#d6dde2" stroke-width="4.5"/>
+        <path class="flow" d="M420 186 V252 H453 M487 252 H545 V264 M545 344 V356 M545 400 V420 H270 V332" stroke="#ffffff" stroke-opacity=".55" stroke-width="2"/>
+        <path d="M628 62 H424 V106" stroke="#5c6a76" stroke-width="7"/>
+        <path d="M628 62 H424 V106" stroke="#bcd9ea" stroke-width="3.5"/>
+        <path id="diwFlow" class="flow" d="M628 62 H424 V106" stroke="#4cc3ff" stroke-width="2.4" opacity="0"/>
+      </g>
+      <text x="628" y="46" fill="#95a3ae" font-size="13" text-anchor="end">纯水 DIW</text>
+      <g id="valve" transform="translate(520 62)">
+        <path d="M-12 -9 L12 9 L12 -9 L-12 9 Z" fill="#2b333a" stroke="#c7d0d7" stroke-width="1.6"/>
+        <rect x="-3" y="-20" width="6" height="11" fill="#c7d0d7"/><rect x="-9" y="-24" width="18" height="6" rx="2" fill="#c7d0d7"/>
+      </g>
+      <text x="520" y="32" fill="#95a3ae" font-size="13" text-anchor="middle">补水阀</text>
+      <!-- 外槽 -->
+      <path d="M138 100 V150 H160" fill="none" stroke="#cfe8ff" stroke-opacity=".5" stroke-width="3"/>
+      <rect x="140" y="130" width="19" height="19" fill="url(#gL)"/>
+      <path d="M380 96 V186 H440 V96" fill="url(#gQ)" stroke="#cfe8ff" stroke-opacity=".5" stroke-width="3"/>
+      <rect id="lqR" x="382" y="140" width="56" height="45" fill="url(#gL)"/>
+      <line x1="398" y1="88" x2="398" y2="178" stroke="#8d99a3" stroke-width="2"/>
+      <circle id="float" cx="398" cy="140" r="5" fill="#e3e9ee"/>
+      <text x="448" y="126" fill="#95a3ae" font-size="13">外槽（溢流）</text>
+      <text x="448" y="176" fill="#95a3ae" font-size="13">液位计</text>
+      <!-- 内槽 -->
+      <rect x="160" y="100" width="220" height="232" rx="4" fill="url(#gQ)" stroke="#cfe8ff" stroke-opacity=".55" stroke-width="3"/>
+      <rect x="162" y="104" width="216" height="226" fill="url(#gL)"/>
+      <path d="M160 103 q-6 8 -10 26 M380 103 q6 8 10 30" fill="none" stroke="#a9d3e6" stroke-opacity=".45" stroke-width="2"/>
+      <g id="bubbles" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-opacity=".55" stroke-width=".8"></g>
+      <rect x="196" y="320" width="148" height="5" rx="2" fill="#c8d2da" opacity=".7"/>
+      <text x="130" y="216" fill="#95a3ae" font-size="13" text-anchor="end">内槽</text>
+      <text x="130" y="234" fill="#95a3ae" font-size="13" text-anchor="end">（石英）</text>
+      <!-- 鼓泡管 -->
+      <line x1="362" y1="62" x2="362" y2="300" stroke="#dfe7ee" stroke-opacity=".6" stroke-width="3"/>
+      <rect x="355" y="54" width="14" height="9" rx="2" fill="#5a646d"/>
+      <g id="n2" fill="#cfe8ff" fill-opacity=".7"></g>
+      <text x="380" y="352" fill="#95a3ae" font-size="13" text-anchor="middle">N2 鼓泡管</text>
+      <!-- 晶圆 + 提臂 -->
+      <g id="wafers"></g>
+      <text id="wLbl" x="214" y="352" fill="#95a3ae" font-size="13" text-anchor="middle" opacity="0">晶圆 50 片</text>
+      <!-- 盖子（中间留开口） -->
+      <rect id="lidL" x="150" y="84" width="114" height="8" rx="2" fill="#5a646d"/>
+      <rect id="lidR" x="276" y="84" width="114" height="8" rx="2" fill="#5a646d"/>
+      <!-- 温度计 -->
+      <line x1="184" y1="44" x2="184" y2="290" stroke="#dfe7ee" stroke-opacity=".7" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="184" cy="290" r="4" fill="#ff8a3d"/>
+      <rect x="174" y="30" width="20" height="14" rx="3" fill="#5a646d"/>
+      <text x="168" y="42" fill="#95a3ae" font-size="13" text-anchor="end">温度计</text>
+      <!-- 飞溅 -->
+      <path id="wave" d="" fill="none" stroke="#d8eef8" stroke-width="2" opacity="0"/>
+      <g id="splash" fill="#d8eef8" clip-path="url(#cpT)"></g>
+      <text id="spTxt" x="300" y="140" fill="#ff5d5d" font-size="15" font-weight="700" text-anchor="middle" opacity="0">局部暴沸！</text>
+      <!-- 泵 -->
+      <circle cx="470" cy="252" r="18" fill="#2b333a" stroke="#c7d0d7" stroke-width="2"/>
+      <g id="imp" transform="translate(470 252)"><path d="M0 0 L0 -12 M0 0 L10.4 6 M0 0 L-10.4 6" stroke="#e3e9ee" stroke-width="3" stroke-linecap="round"/></g>
+      <text x="470" y="290" fill="#95a3ae" font-size="13" text-anchor="middle">循环泵</text>
+      <!-- 加热器 -->
+      <rect id="hGlow" x="523" y="262" width="44" height="86" rx="8" fill="#ff7a2e" opacity="0" filter="url(#glow)"/>
+      <rect id="heat" x="527" y="264" width="36" height="80" rx="5" fill="#3a3f45" stroke="#c7d0d7" stroke-width="1.6"/>
+      <path d="M533 276 h24 M533 288 h24 M533 300 h24 M533 312 h24 M533 324 h24 M533 336 h24" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
+      <text x="516" y="312" fill="#95a3ae" font-size="13" text-anchor="end">在线加热器</text>
+      <text id="hTxt" x="516" y="330" fill="#ff8a3d" font-size="14" font-weight="600" text-anchor="end">8.7 kW</text>
+      <!-- 过滤器 -->
+      <rect x="531" y="356" width="28" height="44" rx="4" fill="#2b333a" stroke="#c7d0d7" stroke-width="1.6"/>
+      <path d="M535 362 l4 6 l4 -6 l4 6 l4 -6 l4 6 M535 376 l4 6 l4 -6 l4 6 l4 -6 l4 6 M535 390 l4 6 l4 -6 l4 6 l4 -6 l4 6" fill="none" stroke="#8d99a3" stroke-width="1.2"/>
+      <text x="568" y="383" fill="#95a3ae" font-size="13">过滤器</text>
+    </svg>
+  </div>
+  <div class="read">
+    <div class="big"><span class="lbl">槽温（温度计读数）</span><b id="rT">160.00</b><u>℃</u></div>
+    <span class="chip" id="rState">沸腾</span>
+    <dl>
+      <dt>设定</dt><dd id="rSp">160.00 ℃</dd>
+      <dt>当前沸点</dt><dd class="tbv" id="rTb">160.00 ℃</dd>
+      <dt>真实浓度</dt><dd class="w" id="rW">85.64 %</dd>
+      <dt>温度推算浓度</dt><dd class="w" id="rWi">85.64 %</dd>
+      <dt>浓度计（比重）</dt><dd class="w" id="rWm">85.64 %</dd>
+      <dt>沸腾度</dt><dd class="tbv" id="rBL">4.0</dd>
+      <dt>加热器</dt><dd id="rH">8.7 kW</dd>
+      <dt>补水（平均）</dt><dd class="d" id="rD">0 mL/min</dd>
+      <dt>蒸发</dt><dd id="rE">0 g/min</dd>
+      <dt>大气压</dt><dd id="rP">1013 hPa</dd>
+      <dt>控制状态</dt><dd class="loop" id="rLoop">运行</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="band ctl" aria-label="控制">
+  <div class="grp">
+    <h3>控制路线</h3>
+    <div class="seg" data-k="mode">
+      <button data-v="coupled" aria-pressed="true">沸腾耦合：温度→补水</button>
+      <button data-v="split" aria-pressed="false">温浓分离：加热器控温，浓度计控补水</button>
+    </div>
+    <div data-show="coupled">
+      <div class="row r"><label for="pb">加热器恒定功率<a class="tag p" href="#src-keepboil">专利</a></label><span class="val" id="pbV">8.7 kW</span><input id="pb" type="range" min="7" max="11" step="0.1" value="8.7"></div>
+    </div>
+    <div data-show="split">
+      <label class="chk"><input type="checkbox" id="mOff">浓度计停用（只控温、不补水）<a class="tag p" href="#src-drift">专利</a></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="bias">气泡让比重计读低<a class="tag i" href="#src-bias">推理</a></label>
+  </div>
+  <div class="grp">
+    <h3>投片<a class="tag p" href="#src-lid">专利</a><a class="tag i" href="#src-wafer">推理</a></h3>
+    <div class="seg" data-k="ff" id="ffSeg">
+      <button data-v="none" aria-pressed="false">照常积分</button>
+      <button data-v="base" aria-pressed="false">维持基础补水</button>
+      <button data-v="freeze" aria-pressed="true">冻结 + 前馈加热</button>
+    </div>
+    <p class="hint" id="ffHint">投片时补水环怎么处理（沸腾耦合用）。前馈加热<a class="tag p" href="#src-ff">专利</a>，冻结<a class="tag p" href="#src-freeze">专利</a><a class="tag i" href="#src-freeze">推理</a></p>
+    <div class="row">
+      <button class="act" id="bWafer">投入晶圆（50 片常温）</button>
+      <button class="danger" id="bPour">直接往内槽倒 150 mL 冷水</button><a class="tag p" href="#src-drop">专利</a>
+    </div>
+  </div>
+  <div class="grp" data-show="coupled">
+    <h3>补水规则（沸腾耦合）</h3>
+    <div class="seg" data-k="pi">
+      <button data-v="band" aria-pressed="false">区间开关 ±0.1 ℃</button>
+      <button data-v="safe" aria-pressed="true">PI 稳健</button>
+      <button data-v="aggr" aria-pressed="false">PI 激进</button>
+    </div>
+    <p class="hint">区间开关<a class="tag p" href="#src-coupled">专利</a>，PI 和参数<a class="tag i" href="#src-pi">推理</a></p>
+    <div class="row r"><label for="dd">补水死区时间（补水点到温度计）</label><span class="val" id="ddV">8 s</span><input id="dd" type="range" min="2" max="20" step="1" value="8"></div>
+  </div>
+  <div class="grp">
+    <h3>环境</h3>
+    <div class="row r"><label for="pp">大气压<a class="tag p" href="#src-press">专利</a></label><span class="val" id="ppV">1013 hPa</span><input id="pp" type="range" min="950" max="1050" step="1" value="1013"></div>
+    <label class="chk" data-show="coupled"><input type="checkbox" id="comp">气压补偿（按气压修正设定温度）<a class="tag i" href="#src-press">推理</a></label>
+    <div class="row r"><label for="ex">排气负压<a class="tag p" href="#src-exh">专利</a></label><span class="val" id="exV">−10 mmH2O</span><input id="ex" type="range" min="5" max="20" step="1" value="10"></div>
+  </div>
+  <div class="grp">
+    <h3>仿真</h3>
+    <div class="seg" data-k="spd">
+      <button data-v="1" aria-pressed="false">1×</button>
+      <button data-v="5" aria-pressed="false">5×</button>
+      <button data-v="20" aria-pressed="true">20×</button>
+      <button data-v="60" aria-pressed="false">60×</button>
+    </div>
+    <div class="row"><button id="bPause">暂停</button><button id="bReset">重置</button><span class="val" id="clock">0:00</span></div>
+  </div>
+</section>
+
+<section class="band charts" aria-label="趋势曲线">
+  <div class="chartfig"><canvas id="cv"></canvas></div>
+</section>
+
+<section class="band tries">
+  <h2>试一下</h2>
+  <ol>
+    <li>投片对比（沸腾耦合）。<span>照常积分：降温时积分项被压得很负，回到沸点后补水阀迟迟不开，温度和浓度一起冲高。维持基础补水：不沸腾时还在加水，浓度被稀释，回温拖很久。冻结＋前馈加热：两分钟左右回来。</span><a class="tag i" href="#src-freeze">推理</a><a class="tag p" href="#src-ff">专利</a><br>
+      <button data-sc="none">照常积分</button><button data-sc="base">维持基础补水</button><button data-sc="freeze">冻结 + 前馈加热</button></li>
+    <li>区间开关和 PI 对比。<span>专利写法是超区间开阀、低于区间关阀，补的水十几秒后才流到温度计，所以槽温是锯齿。PI 激进档加 15 s 死区一样会锯齿。</span><a class="tag p" href="#src-coupled">专利</a><a class="tag i" href="#src-pi">推理</a><br>
+      <button data-sc="band">区间开关</button><button data-sc="osc">PI 激进 + 15 s 死区</button></li>
+    <li>台风天 975 hPa（沸腾耦合）。<span>槽温还是 160 ℃，真实浓度高了约 0.4%，温度推算浓度看不出来。再勾气压补偿对比。</span><a class="tag p" href="#src-press">专利</a><br><button data-sc="typh">跑一下</button></li>
+    <li>排气风门。<span>同样 160 ℃：−5 mmH2O 剧烈沸腾，−20 mmH2O 不沸腾，温度和浓度的绑定断了。</span><a class="tag p" href="#src-exh">专利</a><br><button data-sc="exh5">−5 mmH2O</button><button data-sc="exh20">−20 mmH2O</button></li>
+    <li>温浓分离 + 投片。<span>冷晶圆让温度掉出 159.7~160.3，浓度控制自动暂停，加热器把温度拉回来，提臂挡住盖子开口后热量留住，加热器输出跟着降下来；温度一旦超过 160.3 ℃ 加热器直接断开。</span><a class="tag p" href="#src-split">专利</a><a class="tag p" href="#src-lid">专利</a><br><button data-sc="splitDrop">跑一下</button></li>
+    <li>温浓分离遇台风。<span>次沸点余量只有约 0.4 ℃，气压掉十几 hPa 就被吃掉，槽液开始沸腾、温度上不去 160 ℃，加热器顶满。</span><a class="tag i" href="#src-typh">推理</a><br><button data-sc="splitTyph">跑一下</button></li>
+    <li>只控温不补水。<span>温度纹丝不动，水从液面一直跑，浓度一直往上爬。</span><a class="tag p" href="#src-drift">专利</a><br><button data-sc="meterOff">跑一下（60×）</button></li>
+    <li>新液升温。<span>85% 新液在 158 ℃ 就开始沸腾，要蒸掉一部分水沸点才爬到 160 ℃，之后补水才开始动。</span><a class="tag p" href="#src-fresh">专利</a><br><button data-sc="fresh">跑一下（60×，约 1 分钟）</button></li>
+  </ol>
+</section>
+
+<section class="band" id="src">
+  <h2>依据：哪些来自专利，哪些是我推的</h2>
+  <p class="lead" style="margin-bottom:10px">专利号链接到 Google Patents，年份是优先权年。标「推理」的部分是我按物理或控制理论推的，或者是为了让仿真能跑而定的量级，没有出处。</p>
+  <table class="stack">
+    <thead><tr><th>内容</th><th>类型</th><th>出处</th></tr></thead>
+    <tbody id="srcBody"></tbody>
+  </table>
+  <p class="note">没做进去的：高温不沸腾时选择比变差（US9257292 有实验图），Si 浓度累积和部分换液（US6399517：Si 到约 100 ppm 时排掉约 2/3 再补新液）。</p>
+</section>
+
+<script>
+// ===== 热磷酸槽物理模型（纯函数，无 DOM） =====
+const SIM = (() => {
+  // 常压沸点 vs H3PO4 质量分数（85%≈158℃ 见 US9911631，其余为近似拟合）
+  const TAB = [[78,140],[80,145],[82,150],[83,153],[84,155.5],[85,158],[86,161.2],[87,164.5],[88,168],[89,172],[90,176]];
+  const xs = TAB.map(t => t[0]), ys = TAB.map(t => t[1]), n = xs.length;
+  const d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i]);
+  m[0] = d[0]; m[n-1] = d[n-2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i-1] * d[i] <= 0 ? 0 : (d[i-1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    const a = m[i] / d[i], b = m[i+1] / d[i], s = a*a + b*b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t*a*d[i]; m[i+1] = t*b*d[i]; }
+  }
+  function tb0(wp) {
+    if (wp <= xs[0]) return ys[0] + d[0] * (wp - xs[0]);
+    if (wp >= xs[n-1]) return ys[n-1] + d[n-2] * (wp - xs[n-1]);
+    let i = 0; while (wp > xs[i+1]) i++;
+    const h = xs[i+1] - xs[i], t = (wp - xs[i]) / h, t2 = t*t, t3 = t2*t;
+    return (2*t3 - 3*t2 + 1)*ys[i] + (t3 - 2*t2 + t)*h*m[i] + (-2*t3 + 3*t2)*ys[i+1] + (t3 - t2)*h*m[i+1];
+  }
+  // 沸点随气压：Clausius-Clapeyron（US9257292 写明沸点由浓度和大气压决定；ΔH 取值为推理）
+  const R = 8.314, DH = 46000, P0 = 1013.25;
+  function tb(wp, P) { const T0 = tb0(wp) + 273.15; return 1 / (1/T0 - R*Math.log(P/P0)/DH) - 273.15; }
+  function wOf(T, P) { let lo = 60, hi = 95; for (let k = 0; k < 40; k++) { const mid = (lo+hi)/2; if (tb(mid, P) < T) lo = mid; else hi = mid; } return (lo+hi)/2; }
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  // 常数（示意量级，均为推理）
+  const K = {
+    M0: 90, CHW: 25000, UA: 7.4, KEXH: 300, QOPEN: 600, TAMB: 25, PMAX: 12000, L: 2.25e6,
+    CPW: 4180, CPA: 1500, FV: 0.012, TC: 2, TAUS: 3, TAUM: 20, TDIW: 25,
+    CW: 50*0.128*710 + 1.0*750, TAUW: 12, SURF: 0.0004, TSP: 160, BAND: 0.3, MARGIN: 0.12,
+    BLK: 2.7, VOID: 0.05, DENS: 1.5,
+  };
+  const PI = { safe: { kp: 0.4, ti: 120 }, aggr: { kp: 4.0, ti: 5 } };
+  const W0 = wOf(K.TSP, P0), WT = W0 + K.MARGIN;
+  const tsp = s => s.mode === 'coupled' && s.comp ? tb(W0, s.P) : K.TSP;
+  const wp = s => 100 * s.mA / (s.mA + s.mW);
+  const cap = s => s.mA*K.CPA + s.mW*K.CPW + K.CHW;
+  const lossOf = (s, T) => K.UA*(T - K.TAMB) + (K.KEXH*s.exh + (s.lotIn ? 0 : K.QOPEN)) * (T - K.TAMB)/135;
+
+  function setConc(s, w) { const M = s.mA + s.mW; s.mA = M*w/100; s.mW = M - s.mA; }
+  function create(opt = {}) {
+    const s = {
+      t: 0, mA: 0, mW: 0, T: K.TSP, Tm: K.TSP, wm: W0,
+      P: P0, Ptarget: P0, comp: false, exh: 10,
+      mode: 'coupled', ff: 'freeze', pi: 'safe', dead: 8, pbase: 8700, meterOff: false, bubbleBias: false,
+      queue: [], I: 0.12, Ic: 0.03, Ih: 5400, duty: 0.12, dutyAvg: 0.12, cycleT: 0, valve: false, bandOpen: false,
+      heater: 8700, boost: false, frozen: false, frozenT: 0, warm: false,
+      wafer: null, waferPending: 0, lotIn: false,
+      evap: 0, boil: 0, bl: 4, diw: 0, boiling: true, pour: 0, log: [], logT: 0,
+    };
+    s.mA = K.M0*W0/100; s.mW = K.M0 - s.mA;
+    if (opt.mode === 'split') { s.mode = 'split'; setConc(s, WT); s.wm = WT; s.boiling = false; s.bl = 0; s.boil = 0; s.duty = 0.03; }
+    if (opt.fresh) { setConc(s, 85.0); s.T = s.Tm = 25; s.wm = 85.0; s.warm = true; s.boiling = false; s.bl = 0; s.boil = 0; s.I = 0; s.duty = 0; s.Ih = 0; s.heater = K.PMAX; }
+    return s;
+  }
+
+  function control(s) {
+    const sp = tsp(s);
+    if (s.warm && s.Tm >= sp - 0.5) s.warm = false;
+    if (s.mode === 'split') {
+      // US8153017：加热器 PI 控温 160±0.3，超上限加热器断开；浓度计控补水，且只在温度区间内进行
+      const e = K.TSP - s.Tm, kp = 6000, ti = 120, raw = kp*e + s.Ih;
+      if ((raw > 0 || e > 0) && (raw < K.PMAX || e < 0)) s.Ih += kp*K.TC/ti*e;
+      s.Ih = clamp(s.Ih, 0, K.PMAX);
+      s.heater = s.Tm > K.TSP + K.BAND ? 0 : clamp(kp*e + s.Ih, 0, K.PMAX);
+      s.boost = false;
+      const inBand = Math.abs(s.Tm - K.TSP) <= K.BAND;
+      s.frozen = !inBand;
+      if (s.meterOff || !inBand) { s.duty = 0; return; }
+      const ec = s.wm - WT, kc = 2, tic = 150, rc = kc*ec + s.Ic;
+      if ((rc > 0 || ec > 0) && (rc < 1 || ec < 0)) s.Ic += kc*K.TC/tic*ec;
+      s.duty = clamp(kc*ec + s.Ic, 0, 1);
+      return;
+    }
+    // 沸腾耦合（US6399517）：温度高→开阀补水，低→关阀
+    const e = s.Tm - sp;
+    if (s.frozen) {
+      s.duty = s.ff === 'base' ? s.dutyAvg : 0;
+      s.boost = s.Tm < sp - 0.6;
+      if ((s.frozenT > 8 && s.Tm >= sp - 0.3 && s.boiling) || s.frozenT > 240) { s.frozen = false; s.boost = false; s.bandOpen = false; }
+    }
+    if (!s.frozen) {
+      if (s.pi === 'band') {
+        if (s.Tm > sp + 0.1) s.bandOpen = true; else if (s.Tm < sp - 0.1) s.bandOpen = false;
+        s.duty = s.bandOpen ? 1 : 0;
+      } else {
+        const g = PI[s.pi], raw = g.kp*e + s.I;
+        if (s.ff === 'none') { s.I += g.kp*K.TC/g.ti*e; s.I = clamp(s.I, -6, 6); }
+        else if ((raw > 0 || e > 0) && (raw < 1 || e < 0)) s.I += g.kp*K.TC/g.ti*e;
+        s.duty = clamp(g.kp*e + s.I, 0, 1);
+      }
+    }
+    s.heater = (s.warm || s.boost) ? K.PMAX : s.pbase;
+  }
+
+  function step(s, dt) {
+    s.t += dt;
+    s.P += (s.Ptarget - s.P) * Math.min(1, dt/20);
+    s.lotIn = !!s.wafer || s.waferPending > 0;
+    s.cycleT += dt; if (s.frozen) s.frozenT += dt;
+    if (s.cycleT >= K.TC) { s.cycleT -= K.TC; control(s); }
+    s.valve = s.cycleT < s.duty*K.TC;
+    if (!s.frozen && !s.warm) s.dutyAvg += (s.duty - s.dutyAvg) * Math.min(1, dt/300);
+    const add = s.valve ? K.FV*dt : 0;
+    s.diw += (add/dt - s.diw) * Math.min(1, dt/15);
+    if (add) {
+      const rt = s.t + s.dead, q = s.queue, last = q[q.length - 1];
+      if (last && rt - last.rt < 0.5) last.m += add; else q.push({ rt, m: add });
+    }
+    let C = cap(s);
+    while (s.queue.length && s.queue[0].rt <= s.t) {
+      const p = s.queue.shift();
+      s.T = (C*s.T + p.m*K.CPW*K.TDIW) / (C + p.m*K.CPW); s.mW += p.m; C = cap(s);
+    }
+    if (s.waferPending > 0) { s.waferPending -= dt; if (s.waferPending <= 0) s.wafer = { T: 25 }; }
+    let Tb = tb(wp(s), s.P);
+    const surf = K.SURF * Math.exp(Math.min(0, s.T - Tb) / 5);
+    let Q = s.heater - lossOf(s, s.T) - surf*K.L;
+    if (s.wafer) { const qw = (K.CW/K.TAUW)*(s.T - s.wafer.T); s.wafer.T += qw*dt/K.CW; Q -= qw; }
+    s.T += Q*dt/C; s.mW -= surf*dt;
+    Tb = tb(wp(s), s.P);
+    let boil = 0;
+    if (s.T > Tb) { boil = (s.T - Tb)*C/K.L; s.mW -= boil; s.T = Tb; }
+    s.boil += (boil/dt - s.boil) * Math.min(1, dt/4);
+    s.boiling = s.boil > 0.00005;
+    s.bl = s.boiling ? clamp(1 + K.BLK*s.boil*1000, 1, 5) : 0;
+    s.evap += ((boil/dt + surf) - s.evap) * Math.min(1, dt/4);
+    s.Tm += (s.T - s.Tm) * dt / K.TAUS;
+    // 鼓泡比重式浓度计：沸腾气泡让读数偏低（推理），并带 20 s 滞后（推理）
+    const read = wp(s) - (s.bubbleBias ? K.DENS*K.VOID*s.bl : 0);
+    s.wm += (read - s.wm) * dt / K.TAUM;
+    if (s.pour > 0) s.pour -= dt;
+    if (s.t >= s.logT) {
+      s.logT += 0.5;
+      s.log.push({ t: s.t, Tm: s.Tm, Tb: tb(wp(s), s.P), sp: tsp(s), w: wp(s), wi: wOf(s.Tm, P0), wm: s.wm,
+        wt: s.mode === 'split' ? WT : null, h: s.heater, v: s.duty, bl: s.bl });
+      if (s.log.length > 1400) s.log.splice(0, s.log.length - 1400);
+    }
+  }
+
+  function dropWafers(s) {
+    s.waferPending = 2.5;
+    if (s.mode === 'coupled' && s.ff !== 'none') { s.frozen = true; s.frozenT = 0; }
+  }
+  function liftWafers(s) { s.wafer = null; s.waferPending = 0; }
+  function pour(s) {
+    const m = 0.15, C = cap(s);
+    s.T = (C*s.T + m*K.CPW*K.TDIW) / (C + m*K.CPW); s.mW += m; s.pour = 3;
+  }
+  function setMode(s, mode) {
+    if (mode === s.mode) return;
+    if (mode === 'split') { s.Ih = s.heater; s.Ic = 0.03; s.boost = false; }
+    else { s.I = s.dutyAvg; s.frozen = false; s.bandOpen = false; }
+    s.frozen = false; s.mode = mode;
+  }
+  return { create, step, dropWafers, liftWafers, pour, setMode, tb, wOf, wp, tsp, K, PI, W0, WT, P0 };
+})();
+if (typeof module !== 'undefined') module.exports = SIM;
+
+</script>
+<script>
+{
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const G = n => `https://patents.google.com/patent/${n}/${n.startsWith('JP') ? 'ja' : 'en'}`;
+const SRC = [
+  ['coupled', '沸腾时用温度代表浓度；温度超出区间开纯水阀，低于区间关阀', 'p', `<a href="${G('US6399517B2')}">US6399517</a>（Tokyo Electron，1999）。纯水接在循环管路上。页面里「区间开关」的 ±0.1 ℃ 是我定的。`],
+  ['keepboil', '加热器功率保持足够高，让槽液一直沸腾；补水按温度开关或计量', 'p', `<a href="${G('US9911631B2')}">US9911631</a>（TEL FSI，2013）。恒定功率 8.7 kW 这个数是我定的。`],
+  ['pi', '补水用 PI 控制、两档参数、死区造成锯齿震荡', 'i', '按控制理论推的。专利只写了区间开关或流量计量，没给 PI 参数。'],
+  ['outer', '纯水补进外槽或循环管路，再随循环进内槽', 'p', `<a href="${G('US10923368B2')}">US10923368</a>（TEL，2017）补进外槽；US6399517 补进循环管。死区时间 8 s 是我定的。`],
+  ['drop', '直接往槽里滴水会局部沸腾，浓度和温度不均', 'p', `<a href="${G('US4980017A')}">US4980017</a>（Nisso Engineering，1988），改成抽出一部分槽液、注水、加热后再打回去。页面的飞溅动画是示意。`],
+  ['press', '沸点由浓度和大气压共同决定', 'p', `<a href="${G('US9257292B2')}">US9257292</a>（TEL，2011）。每 hPa 约 0.033 ℃ 是我按 Clausius-Clapeyron、取蒸发焓 46 kJ/mol 算的；气压补偿开关是我加的。`],
+  ['curve', '85% 磷酸常压沸点约 158 ℃', 'p', `<a href="${G('US9911631B2')}">US9911631</a>。其余浓度的沸点曲线是近似拟合，属于推理。`],
+  ['split', '温浓分离：加热器控 159.7~160.3 ℃，不用纯水降温；温度在区间内才控浓度；目标浓度略高于 160 ℃ 对应的沸点浓度（次沸点）；浓度用 N2 鼓泡测背压换算比重', 'p', `<a href="${G('US8153017B2')}">US8153017</a>（Dainippon Screen，2002）。目标高出 0.12%、浓度计滞后 20 s、PI 参数是我定的。`],
+  ['lid', '晶圆进槽时提臂挡住盖子开口，热量留住，温度往上冲', 'p', `<a href="${G('US8153017B2')}">US8153017</a>。开口散热 600 W 是我定的。`],
+  ['wafer', '50 片常温晶圆吸热，槽温先掉 2~3 ℃', 'i', '按 50 片×128 g 硅片加保持具的热容估算。'],
+  ['ff', '用投片信号前馈加热，抵消投片降温', 'p', `<a href="${G('JPH11168083A')}">JPH11168083A</a>（1997 年申请），同一篇还用前馈加热抵消补水带来的降温。Boost 到 12 kW、退出条件是我定的。`],
+  ['freeze', '投片后冻结补水环，回到沸点再恢复', 'i', '「温度在区间内才控浓度」这个思路来自 US8153017；拿它来解决补水 PI 的积分饱和是我的推理。'],
+  ['exh', '排气负压改变沸腾强弱', 'p', `<a href="${G('US6758940B2')}">US6758940</a>（Mosel Vitelic，2000）：160 ℃ 时 −20 mmH2O 不沸腾、刻蚀 43 Å/min，−10 微沸 50 Å/min，−5 剧烈沸腾。每 mmH2O 带走 300 W 是我定的换算。`],
+  ['bl', '用液柱压力推沸腾度，1~5 级，4 级最佳', 'p', `<a href="${G('US11062922B2')}">US11062922</a>（TEL，2017），还按沸腾度以 0.02 wt% 一步修正设定浓度，页面没做这个修正。沸腾度和蒸发量的换算是推理。`],
+  ['bias', '沸腾气泡让鼓泡比重计读数偏低', 'i', '把 US8153017 的鼓泡比重计和 US11062922「沸腾越强液柱压力越低」放在一起推出来的，偏差大小是随便定的量级，所以默认关闭。'],
+  ['typh', '温浓分离遇低气压：次沸点余量被吃掉，槽液沸腾，加热器顶满', 'i', '模型跑出来的结果，专利里没写。'],
+  ['drift', '只控温不补水，开放槽里的水一直跑，浓度一直升', 'p', `<a href="${G('US6996479B2')}">US6996479</a>（Motorola / Infineon，2000），图中 B→C。`],
+  ['fresh', '低浓度新液要先沸腾蒸掉水，沸点才能爬到 160 ℃', 'p', `<a href="${G('US6996479B2')}">US6996479</a> 图中 A→B（原文从约 81% 开始，页面用 85% 新液）。`],
+  ['param', '槽液 90 kg、加热器 12 kW 上限、补水阀开启 720 mL/min、温度计时间常数 3 s 等热参数', 'i', '示意量级，没有出处。'],
+];
+$('srcBody').innerHTML = SRC.map(([id, what, k, src]) => `<tr id="src-${id}"><td>${what}</td><td><span class="tag ${k}" style="margin:0">${k === 'p' ? '专利' : '推理'}</span></td><td class="src">${src}</td></tr>`).join('');
+
+let s = SIM.create(), speed = 20, paused = false, events = [], sched = null;
+let waferAnim = { p: 0, dir: 0 };
+
+// ---- 晶圆 + 提臂 ----
+const wg = $('wafers');
+let wm = '<rect x="267" y="-280" width="6" height="424" fill="#9aa5ae"/><rect x="192" y="304" width="156" height="6" rx="2" fill="#8d99a3"/><rect x="192" y="140" width="5" height="170" fill="#8d99a3"/><rect x="343" y="140" width="5" height="170" fill="#8d99a3"/><rect x="192" y="138" width="156" height="5" rx="2" fill="#8d99a3"/>';
+for (let i = 0; i < 25; i++) wm += `<rect x="${203 + i*5.6}" y="150" width="2.4" height="152" rx="1" fill="url(#gW)"/>`;
+wg.innerHTML = wm;
+// ---- 气泡 ----
+const mk = (g, n) => { const a = []; for (let i = 0; i < n; i++) { const c = document.createElementNS(NS, 'circle'); g.appendChild(c); a.push({ el: c, x: 0, y: 0, r: 0, v: 0, on: false }); } return a; };
+const BUB = mk($('bubbles'), 90), N2 = mk($('n2'), 6);
+function spawn(b) { b.x = 170 + Math.random()*186; b.y = 318 - Math.random()*20; b.r = 1.2 + Math.random()*2.6; b.v = 40 + Math.random()*50; }
+BUB.forEach(b => { spawn(b); b.y = 110 + Math.random()*200; });
+N2.forEach((b, i) => { b.x = 362; b.y = 300 - i*35; b.r = 1.6; });
+const STM = [];
+for (let i = 0; i < 7; i++) { const e = document.createElementNS(NS, 'ellipse'); e.setAttribute('fill', '#e8f2f8'); $('steam').appendChild(e); STM.push({ el: e, y: 100 - i*15, x: 255 + Math.random()*30 }); }
+const SPL = [];
+for (let i = 0; i < 16; i++) { const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', 2 + Math.random()*2); $('splash').appendChild(c); SPL.push({ el: c, x: 0, y: 0, vx: 0, vy: 0 }); }
+let splashT = 0;
+function kickSplash() { splashT = 1.6; SPL.forEach(p => { p.x = 230 + Math.random()*90; p.y = 105; p.vx = (Math.random() - .5)*140; p.vy = -40 - Math.random()*60; }); }
+
+// ---- 控件 ----
+function syncUI() {
+  document.querySelectorAll('.seg').forEach(g => {
+    const k = g.dataset.k, cur = k === 'spd' ? String(speed) : String(s[k]);
+    g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === cur ? 'true' : 'false'));
+  });
+  document.querySelectorAll('[data-show]').forEach(e => e.style.display = e.dataset.show === s.mode ? '' : 'none');
+  $('ffSeg').classList.toggle('dim', s.mode !== 'coupled');
+  $('ffHint').innerHTML = s.mode === 'coupled'
+    ? '投片时补水环怎么处理。前馈加热<a class="tag p" href="#src-ff">专利</a>，冻结<a class="tag i" href="#src-freeze">推理</a>'
+    : '温浓分离自带规则：温度掉出 159.7~160.3 ℃ 时浓度控制暂停<a class="tag p" href="#src-split">专利</a>';
+  $('pb').value = s.pbase/1000; $('pbV').textContent = (s.pbase/1000).toFixed(1) + ' kW';
+  $('dd').value = s.dead; $('ddV').textContent = s.dead + ' s';
+  $('pp').value = Math.round(s.Ptarget); $('ppV').textContent = Math.round(s.Ptarget) + ' hPa';
+  $('ex').value = s.exh; $('exV').textContent = '−' + s.exh + ' mmH2O';
+  $('comp').checked = s.comp; $('mOff').checked = s.meterOff; $('bias').checked = s.bubbleBias;
+  $('bPause').textContent = paused ? '继续' : '暂停';
+  $('bWafer').textContent = (s.wafer || s.waferPending > 0) ? '取出晶圆' : '投入晶圆（50 片常温）';
+}
+const ev = l => events.push({ t: s.t, l });
+document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = g.dataset.k, v = b.dataset.v;
+  if (k === 'spd') speed = +v; else if (k === 'mode') { SIM.setMode(s, v); ev(v === 'split' ? '切到温浓分离' : '切到沸腾耦合'); } else s[k] = v;
+  syncUI();
+}));
+$('pb').addEventListener('input', e => { s.pbase = +e.target.value*1000; syncUI(); });
+$('dd').addEventListener('input', e => { s.dead = +e.target.value; syncUI(); });
+$('pp').addEventListener('input', e => { s.Ptarget = +e.target.value; syncUI(); });
+$('ex').addEventListener('input', e => { s.exh = +e.target.value; syncUI(); });
+$('comp').addEventListener('change', e => { s.comp = e.target.checked; ev(s.comp ? '补偿开' : '补偿关'); });
+$('mOff').addEventListener('change', e => { s.meterOff = e.target.checked; ev(s.meterOff ? '浓度计停' : '浓度计开'); });
+$('bias').addEventListener('change', e => { s.bubbleBias = e.target.checked; });
+function wafer() {
+  if (s.wafer || s.waferPending > 0) { SIM.liftWafers(s); waferAnim.dir = -1; ev('取出'); }
+  else { SIM.dropWafers(s); waferAnim.dir = 1; ev('投片'); }
+  syncUI();
+}
+$('bWafer').addEventListener('click', wafer);
+$('bPour').addEventListener('click', () => { SIM.pour(s); kickSplash(); ev('倒冷水'); });
+$('bPause').addEventListener('click', () => { paused = !paused; syncUI(); });
+function reset(opt, keep) {
+  const o = s; s = SIM.create(opt);
+  if (keep) { if (o.mode !== s.mode) SIM.setMode(s, o.mode); ['ff', 'pi', 'dead', 'pbase', 'exh', 'bubbleBias'].forEach(k => s[k] = o[k]); }
+  events = []; sched = null; waferAnim = { p: 0, dir: 0 }; paused = false; syncUI();
+}
+$('bReset').addEventListener('click', () => reset(s.mode === 'split' ? { mode: 'split' } : {}, true));
+const SC = {
+  none: () => { s.ff = 'none'; sched = 40; }, base: () => { s.ff = 'base'; sched = 40; }, freeze: () => { s.ff = 'freeze'; sched = 40; },
+  band: () => { s.pi = 'band'; ev('区间开关'); }, osc: () => { s.pi = 'aggr'; s.dead = 15; ev('PI 激进 + 15 s'); },
+  typh: () => { s.Ptarget = 975; ev('降到 975 hPa'); },
+  exh5: () => { s.exh = 5; ev('−5 mmH2O'); }, exh20: () => { s.exh = 20; ev('−20 mmH2O'); },
+  splitDrop: () => { sched = 40; }, splitTyph: () => { s.Ptarget = 975; ev('降到 975 hPa'); },
+  meterOff: () => { s.meterOff = true; speed = 60; ev('浓度计停'); }, fresh: () => { speed = 60; ev('新液开始升温'); },
+};
+const SCOPT = { splitDrop: { mode: 'split' }, splitTyph: { mode: 'split' }, meterOff: { mode: 'split' }, fresh: { fresh: true } };
+document.querySelectorAll('[data-sc]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.sc; reset(SCOPT[k] || {}, false); speed = 20; SC[k]();
+  if (typeof sched === 'number') { const at = sched; sched = { t: at, f: wafer }; }
+  syncUI();
+  document.querySelector('.stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+
+// ---- 曲线 ----
+const cv = $('cv'), cx = cv.getContext('2d');
+let CW = 0, CH = 0;
+const fitCanvas = () => { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; CW = r.width; CH = r.height; cv.width = CW*dpr; cv.height = CH*dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0); drawChart(); };
+const roC = new ResizeObserver(fitCanvas); roC.observe(cv);
+const WIN = 600;
+function drawChart() {
+  if (!CW) return;
+  const narrow = CW < 520, x0 = narrow ? 44 : 54, x1 = CW - 10;
+  cx.clearRect(0, 0, CW, CH);
+  const tN = s.t, tS = tN - WIN, vis = s.log.filter(r => r.t >= tS);
+  const X = t => x0 + (t - tS)/WIN*(x1 - x0);
+  const P = [{ y: 4, h: CH*0.39 }, { y: CH*0.39 + 10, h: CH*0.29 }, { y: CH*0.68 + 18, h: CH*0.32 - 40 }];
+  cx.font = '12px "Barlow Semi Condensed","PingFang SC",sans-serif';
+  function frame(p, lo, hi, fmt, title, legend) {
+    cx.fillStyle = '#151a1e'; cx.fillRect(x0, p.y + 18, x1 - x0, p.h - 18);
+    const top = p.y + 22, bot = p.y + p.h - 4, Y = v => bot - (v - lo)/(hi - lo)*(bot - top);
+    cx.strokeStyle = '#2c353d'; cx.lineWidth = 1; cx.fillStyle = '#95a3ae'; cx.textAlign = 'right'; cx.textBaseline = 'middle';
+    const n = narrow ? 2 : 3;
+    for (let i = 0; i <= n; i++) { const v = lo + (hi - lo)*i/n, y = Y(v); cx.beginPath(); cx.moveTo(x0, y); cx.lineTo(x1, y); cx.stroke(); cx.fillText(fmt(v), x0 - 6, y); }
+    cx.textAlign = 'left'; cx.textBaseline = 'top'; let lx = x0;
+    cx.fillStyle = '#e9eef2'; cx.fillText(title, lx, p.y); lx += cx.measureText(title).width + 12;
+    legend.forEach(([c, t, dash]) => { cx.strokeStyle = c; cx.setLineDash(dash ? [4, 3] : []); cx.lineWidth = 2; cx.beginPath(); cx.moveTo(lx, p.y + 7); cx.lineTo(lx + 16, p.y + 7); cx.stroke(); cx.setLineDash([]); cx.fillStyle = '#95a3ae'; cx.fillText(t, lx + 20, p.y); lx += 26 + cx.measureText(t).width + 8; });
+    return Y;
+  }
+  function line(Y, key, c, dash, w) {
+    cx.strokeStyle = c; cx.lineWidth = w || 2; cx.setLineDash(dash ? [5, 4] : []); cx.beginPath(); let on = false;
+    vis.forEach(r => { if (r[key] == null) { on = false; return; } const x = X(r.t), y = Y(r[key]); on ? cx.lineTo(x, y) : cx.moveTo(x, y); on = true; }); cx.stroke(); cx.setLineDash([]);
+  }
+  const rng = (keys, span, pad) => { let lo = Infinity, hi = -Infinity; vis.forEach(r => keys.forEach(k => { if (r[k] == null) return; lo = Math.min(lo, r[k]); hi = Math.max(hi, r[k]); })); if (!isFinite(lo)) { lo = 0; hi = 1; } const m = (lo + hi)/2, h = Math.max(span, hi - lo + pad)/2; return [m - h, m + h]; };
+  let [a, b] = rng(['Tm', 'Tb', 'sp'], 1.2, 0.3);
+  let Y = frame(P[0], a, b, v => v.toFixed(1), '温度 ℃', narrow ? [['#ff8a3d', '槽温'], ['#f2c94c', '沸点', 1]] : [['#ff8a3d', '槽温（温度计）'], ['#f2c94c', '当前沸点', 1], ['#e9eef2', '设定']]);
+  line(Y, 'sp', 'rgba(233,238,242,.55)', 0, 1); line(Y, 'Tb', '#f2c94c', 1); line(Y, 'Tm', '#ff8a3d');
+  [a, b] = rng(['w', 'wi', 'wm', 'wt'], 0.3, 0.06);
+  Y = frame(P[1], a, b, v => v.toFixed(2), '浓度 %', narrow ? [['#c7aaff', '真实'], ['#8f86b8', '温度推算', 1], ['#7fd1e8', '浓度计']] : [['#c7aaff', '真实'], ['#8f86b8', '温度推算（按 1013 hPa）', 1], ['#7fd1e8', '浓度计（比重）'], ['#e9eef2', '目标']]);
+  line(Y, 'wt', 'rgba(233,238,242,.55)', 0, 1); line(Y, 'wi', '#8f86b8', 1); line(Y, 'wm', '#7fd1e8', 0, 1.5); line(Y, 'w', '#c7aaff');
+  Y = frame(P[2], 0, 1, () => '', '执行器', narrow ? [['#ff8a3d', '加热器'], ['#4cc3ff', '补水阀'], ['#f2c94c', '沸腾度']] : [['#ff8a3d', '加热器 0–12 kW'], ['#4cc3ff', '补水阀开度'], ['#f2c94c', '沸腾度 0–5']]);
+  cx.fillStyle = 'rgba(76,195,255,.75)';
+  vis.forEach(r => { if (r.v > 0.002) { const x = X(r.t), y = Y(r.v); cx.fillRect(x - 0.6, y, 1.6, Y(0) - y); } });
+  vis.forEach(r => { r.hh = r.h/12000; r.bb = r.bl/5; });
+  line(Y, 'hh', '#ff8a3d'); line(Y, 'bb', '#f2c94c', 0, 1.5);
+  cx.fillStyle = '#95a3ae'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+  const step = narrow ? 300 : 120;
+  for (let k = 0; k <= WIN; k += step) cx.fillText(k === WIN ? '现在' : '−' + Math.round((WIN - k)/60) + ' 分', X(tN - WIN + k), CH - 16);
+  events.forEach(e => { if (e.t < tS) return; const x = X(e.t), rt = x > x1 - 80; cx.strokeStyle = 'rgba(233,238,242,.35)'; cx.setLineDash([2, 3]); cx.beginPath(); cx.moveTo(x, P[0].y + 18); cx.lineTo(x, P[2].y + P[2].h); cx.stroke(); cx.setLineDash([]); cx.fillStyle = '#e9eef2'; cx.textAlign = rt ? 'right' : 'left'; cx.fillText(e.l, x + (rt ? -4 : 4), P[0].y + 22); });
+}
+
+// ---- 画面 ----
+const mix = (a, b, t) => Math.round(a + (b - a)*t);
+let accR = 0, accC = 0, rot = 0;
+function visuals(fdt) {
+  const wpv = SIM.wp(s), Tb = SIM.tb(wpv, s.P), run = paused ? 0 : fdt;
+  if (waferAnim.dir) {
+    waferAnim.p += waferAnim.dir*Math.max(1/1.5, speed/2.5)*run;
+    if (waferAnim.p >= 1) { waferAnim.p = 1; waferAnim.dir = 0; } if (waferAnim.p <= 0) { waferAnim.p = 0; waferAnim.dir = 0; }
+  }
+  const moving = waferAnim.dir !== 0;
+  $('wafers').setAttribute('transform', `translate(0 ${(-340*(1 - waferAnim.p)).toFixed(1)})`);
+  $('wLbl').setAttribute('opacity', waferAnim.p > .99 ? 1 : 0);
+  $('lidL').setAttribute('transform', moving ? 'rotate(-75 150 88)' : '');
+  $('lidR').setAttribute('transform', moving ? 'rotate(75 390 88)' : '');
+  const g = s.boil*1000, nOn = splashT > 0 ? 90 : s.boiling ? Math.min(90, Math.round(6 + g*22)) : 0;
+  BUB.forEach((b, i) => {
+    const on = i < nOn; if (on && !b.on) spawn(b); b.on = on;
+    if (on) { b.y -= b.v*run; b.x += Math.sin((b.y + i)*0.08)*0.3; b.r += run*0.8; if (b.y < 108) spawn(b); }
+    b.el.setAttribute('cx', b.x.toFixed(1)); b.el.setAttribute('cy', b.y.toFixed(1)); b.el.setAttribute('r', on ? b.r.toFixed(1) : 0);
+  });
+  N2.forEach(b => { b.y -= 30*run; if (b.y < 108) b.y = 300; b.el.setAttribute('cx', (362 + Math.sin(b.y/7)*1.5).toFixed(1)); b.el.setAttribute('cy', b.y.toFixed(1)); b.el.setAttribute('r', b.r); });
+  const so = Math.min(0.55, s.evap*1000/4);
+  STM.forEach(m => { m.y -= (16 + s.exh*1.6)*run; if (m.y < -20) { m.y = 100; m.x = 252 + Math.random()*36; }
+    m.el.setAttribute('cx', m.x); m.el.setAttribute('cy', m.y.toFixed(1)); m.el.setAttribute('rx', 14 + (100 - m.y)*0.08); m.el.setAttribute('ry', 9); m.el.setAttribute('opacity', (so*Math.min(1, (m.y + 20)/60)).toFixed(2)); });
+  $('damper').setAttribute('transform', `translate(270 36) rotate(${(20 + (s.exh - 5)/15*65).toFixed(0)})`);
+  $('exhTxt').textContent = '−' + s.exh + ' mmH2O';
+  if (splashT > 0) splashT -= fdt; const sp = splashT > 0;
+  SPL.forEach(p => { if (sp) { p.vy += 260*fdt; p.x += p.vx*fdt; p.y += p.vy*fdt; } p.el.setAttribute('cx', p.x.toFixed(1)); p.el.setAttribute('cy', p.y.toFixed(1)); p.el.setAttribute('opacity', sp && p.y < 106 ? .95 : 0); if (sp && p.y > 106 && splashT > .4) { p.x = 230 + Math.random()*90; p.y = 105; p.vy = -40 - Math.random()*60; } });
+  const wv = $('wave'); if (sp) { const ph = performance.now()/60; let d = 'M163 105'; for (let x = 163; x <= 377; x += 6) d += ` L${x} ${(105 + Math.sin(x/9 + ph)*3*splashT).toFixed(1)}`; wv.setAttribute('d', d); wv.setAttribute('opacity', .9); } else wv.setAttribute('opacity', 0);
+  $('spTxt').setAttribute('opacity', sp ? (0.5 + 0.5*Math.sin(performance.now()/90)).toFixed(2) : 0);
+  const lv = Math.max(118, Math.min(172, 146 - (s.mA + s.mW - SIM.K.M0)*40)) + (sp ? Math.sin(performance.now()/40)*5 : 0);
+  $('lqR').setAttribute('y', lv.toFixed(1)); $('lqR').setAttribute('height', (185 - lv).toFixed(1)); $('float').setAttribute('cy', lv.toFixed(1));
+  const ht = s.heater/SIM.K.PMAX;
+  $('heat').setAttribute('fill', `rgb(${mix(58, 255, ht)},${mix(63, 122, ht)},${mix(69, 46, ht)})`);
+  $('hGlow').setAttribute('opacity', (ht*0.7).toFixed(2));
+  $('hTxt').textContent = (s.heater/1000).toFixed(1) + ' kW';
+  $('diwFlow').setAttribute('opacity', s.valve ? 1 : 0);
+  $('valve').querySelector('path').setAttribute('fill', s.valve ? '#4cc3ff' : '#2b333a');
+  rot = (rot + run*540) % 360; $('imp').setAttribute('transform', `translate(470 252) rotate(${rot.toFixed(0)})`);
+  return { wpv, Tb };
+}
+function readouts(v) {
+  const split = s.mode === 'split';
+  $('rT').textContent = s.Tm.toFixed(2);
+  $('rSp').textContent = split ? `160 ±0.3 ℃ · ${SIM.WT.toFixed(2)} %` : SIM.tsp(s).toFixed(2) + ' ℃';
+  $('rTb').textContent = v.Tb.toFixed(2) + ' ℃';
+  $('rW').textContent = v.wpv.toFixed(2) + ' %';
+  $('rWi').textContent = SIM.wOf(s.Tm, SIM.P0).toFixed(2) + ' %';
+  $('rWm').textContent = s.wm.toFixed(2) + ' %';
+  $('rBL').textContent = s.boiling ? s.bl.toFixed(1) + ' 级' : '未沸腾';
+  $('rH').textContent = (s.heater/1000).toFixed(1) + ' kW';
+  $('rD').textContent = Math.round(s.diw*1000*60) + ' mL/min';
+  $('rE').textContent = Math.round(s.evap*1000*60) + ' g/min';
+  $('rP').textContent = Math.round(s.P) + ' hPa';
+  const st = $('rState');
+  if (s.boiling) { st.textContent = split ? `在沸腾（沸腾度 ${s.bl.toFixed(1)}），已离开次沸点` : `微沸（沸腾度 ${s.bl.toFixed(1)}，4 级最佳）：温度≈沸点`; st.className = 'chip'; }
+  else { st.textContent = split ? '次沸点：温度和浓度分开控' : '未沸腾：温度和浓度脱钩'; st.className = 'chip off'; }
+  let lp;
+  if (split) lp = s.meterOff ? '只控温：浓度计停用，不补水' : s.Tm > 160.3 ? '超 160.3 ℃：加热器断开，浓度控制暂停' : s.frozen ? '温度出区间：浓度控制暂停' : '温度在区间内：按浓度计补水';
+  else lp = s.warm ? '升温中：加热器满功率，补水关' : s.frozen ? (s.boost ? '冻结补水，前馈加热 12 kW' : (s.ff === 'base' ? '冻结，按经验值维持补水' : '冻结，等回到沸点')) : s.pi === 'band' ? '运行（区间开关）' : '运行（补水 PI）';
+  $('rLoop').textContent = lp;
+  const t = Math.floor(s.t); $('clock').textContent = Math.floor(t/60) + ':' + String(t % 60).padStart(2, '0');
+  if (!s.wafer && s.waferPending <= 0 && $('bWafer').textContent === '取出晶圆') syncUI();
+}
+let last = performance.now();
+function frameLoop(now) {
+  const fdt = Math.min(0.1, (now - last)/1000); last = now;
+  if (!paused) {
+    const simT = fdt*speed, n = Math.max(1, Math.ceil(simT/0.1)), dt = simT/n;
+    for (let i = 0; i < n; i++) { SIM.step(s, dt); if (sched && s.t >= sched.t) { const f = sched.f; sched = null; f(); } }
+  }
+  const v = visuals(fdt);
+  accR += fdt; accC += fdt;
+  if (accR > 0.15) { accR = 0; readouts(v); }
+  if (accC > 0.1) { accC = 0; drawChart(); }
+  requestAnimationFrame(frameLoop);
+}
+syncUI();
+requestAnimationFrame(frameLoop);
+}
+</script>
+</body>
+</html>

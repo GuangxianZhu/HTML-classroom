@@ -1,4 +1,22 @@
 {
+ "hotphos": {
+  "page": "热磷酸槽补水控温/index.html",
+  "colors": 64,
+  "loadWait": 1500,
+  "steps": [
+   [
+    "mark"
+   ],
+   [
+    "jsclick",
+    "[data-sc=\"freeze\"]"
+   ],
+   [
+    "wait",
+    9500
+   ]
+  ]
+ },
  "variator": {
   "page": "行星锥盘无级变速器/index.html",
   "colors": 64,
