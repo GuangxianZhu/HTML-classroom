@@ -1,5 +1,5 @@
 @echo off
-rem One-click launcher: car simulator (drivable web page + Blender model of body, engine and CVT)
+rem One-click launcher: car simulator (drivable web page + Blender model of body and two powertrains: petrol + CVT, two-motor hybrid)
 rem   1) git pull main   2) menu: open the simulator page / open preview images / rebuild the model with Blender
 chcp 65001 >nul
 setlocal
@@ -82,6 +82,13 @@ if errorlevel 2 (set "RENDER=") else (set "RENDER=--render")
 "%BL%" -b --factory-startup -P "blender\build_car.py" -- --out "blender\out" %RENDER%
 if errorlevel 1 (
     echo [ERROR] Build failed. See messages above.
+    pause
+    exit /b 1
+)
+rem ---- second powertrain: two-motor hybrid (writes pt_ehev.glb, car.glb is left alone) ----
+"%BL%" -b --factory-startup -P "blender\build_car.py" -- --pt ehev --out "blender\out" %RENDER%
+if errorlevel 1 (
+    echo [ERROR] Hybrid powertrain build failed. See messages above.
     pause
     exit /b 1
 )

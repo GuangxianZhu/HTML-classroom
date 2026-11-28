@@ -167,5 +167,57 @@ console.log('— 能量守恒');
   near('油耗累计 = 喷油量的积分', s.fuel * S.lhv, eFuel, eFuel * 1e-9);
 }
 
+// ------------------------------------------------------------------ 第二套动力：两电机混动
+console.log('— 混动：模型、齿比、开起来对不对');
+{
+  const HY = await import('../../飞度混动原理/web/src/sim.js');
+  const specE = JSON.parse(fs.readFileSync(new URL('../blender/out/spec_ehev.json', import.meta.url), 'utf8'));
+  const strip = (o) => JSON.stringify(o, (k, v) => (k.startsWith('_') ? undefined : v));
+  ok('混动的三维模型是按现在这份 params.json 建的（改了 ehev 要重新跑 build_car.py --pt ehev）', strip(specE.params) === strip(P.ehev));
+  const T = P.ehev.teeth, kM = T.zr / T.zf * T.zcd / T.zm, kE = T.zr / T.zf * T.zcd / T.zed;
+  near('电机 → 车轮的总速比和官方的 2.454 × 3.423 对得上', kM, 2.454 * 3.423, 0.02);
+  near('发动机 → 车轮的总速比和官方的 0.805 × 3.423 对得上', kE, 0.805 * 3.423, 0.02);
+  near('网页里仿真用的速比和模型的齿数是同一套（电机）', HY.CAR.Gm, kM, 1e-9);
+  near('网页里仿真用的速比和模型的齿数是同一套（发动机）', HY.CAR.Ge, kE, 1e-9);
+  near('发电机转速 = 发动机的 2 倍（仿真和模型一致）', T.zig / T.zgp, HY.CAR.Gg, 1e-9);
+  const ax = specE.derived.axes, d = (a, b) => Math.hypot(ax[a][0] - ax[b][0], ax[a][1] - ax[b][1]);
+  near('电机轴 ↔ 中间轴的距离 = 两个齿轮的分度圆半径之和', d('M', 'C'), T.m1 * (T.zm + T.zcd) / 2, 0.01);
+  near('输入轴 ↔ 中间轴（直驱齿轮）', d('I', 'C'), T.m1 * (T.zed + T.zcd) / 2, 0.01);
+  near('输入轴 ↔ 电机轴（发电机齿轮）', d('I', 'M'), T.mg * (T.zig + T.zgp) / 2, 0.01);
+  near('中间轴 ↔ 差速器', d('C', 'D'), T.mf * (T.zf + T.zr) / 2, 0.01);
+  ok('电机小齿轮和直驱齿轮都咬中间轴，它俩自己不能碰到', d('I', 'M') > T.m1 * (T.zm + T.zed) / 2 + 1.8 * T.m1 + 2, `${d('I', 'M').toFixed(1)} mm`);
+  near('差速器和燃油版在同一个位置（半轴共用）', Math.hypot(ax.D[0] - C.diff_yz[0], ax.D[1] - C.diff_yz[1]), 0, 0.01);
+  near('混动发动机的上止点和燃油版一样高（缸体外形共用）', P.ehev.engine.stroke / 2 + P.ehev.engine.rod, E.stroke / 2 + E.rod, 0.05);
+  const fit = specE.fit;
+  ok('装得进前舱：左右离纵梁、上面离前盖、后面离前围板都有间隙', fit.gap_left > 15 && fit.gap_right > 15 && fit.hood > 20 && fit.firewall > 30, `左 ${fit.gap_left} 右 ${fit.gap_right} 前盖 ${fit.hood} 前围 ${fit.firewall}`);
+  ok('电机壳碰不到左半轴的球笼', fit.motor_to_halfshaft > 10, `${fit.motor_to_halfshaft} mm`);
+  ok('离地间隙不比车身最低点低', fit.ground > 172, `${fit.ground} mm`);
+  for (const k of ['fuel', 'exhaust', 'dc', 'ac_mot', 'ac_gen']) ok(`能量流的路径 ${k} 在`, Array.isArray(specE.flows[k]) && specE.flows[k].length >= 2);
+  ok('零件说明都写了（每个件所在的组都有名字和一句话）', Object.values(specE.objects).every((g) => specE.groups[g] && specE.groups[g].desc.length > 10));
+
+  HY.setVehicle({ m: P.vehicle.mass, CdA: P.vehicle.cd * P.vehicle.area, Crr: P.vehicle.crr, rw: P.vehicle.r_roll / 1000 });
+  const drive = (q, cmd, T_, dt = 1 / 60) => { for (let t = 0; t < T_; t += dt) HY.driveStep(q, { pedal: 0, brake: 0, cruise: null, grade: 0, ...cmd }, dt); return q; };
+  let q = HY.makeDrive();
+  drive(q, { pedal: .2 }, 4);
+  ok('轻踩 20% 起步：发动机不起动，纯电', q.mode === 'EV' && !q.eng && q.v > 2, `${(q.v * 3.6).toFixed(0)} km/h，${q.mode}`);
+  q = HY.makeDrive();
+  let t100 = 0;
+  while (q.v * 3.6 < 100 && t100 < 40) { HY.driveStep(q, { pedal: 1, brake: 0, cruise: null, grade: 0 }, 1 / 60); t100 += 1 / 60; }
+  within('地板油 0→100 km/h', t100, 6.5, 13, ' s');
+  ok('地板油时发动机在发电、离合器是分开的（推车的是电机）', q.eng && q.clutch === 'open' && q.Pgen > 20e3);
+  q = HY.makeDrive(); q.v = 100 / 3.6;
+  let eng = 0, n = 0;
+  for (let i = 0; i < 12000; i++) { HY.driveStep(q, { pedal: 0, brake: 0, cruise: 100, grade: 0 }, .05); if (i > 2000) { n++; if (q.mode === 'ENG') eng++; } }
+  ok('100 km/h 匀速：大部分时间离合器合着，发动机直接推车', eng / n > .5, `${(eng / n * 100).toFixed(0)}%`);
+  near('直驱时发动机转速 = 车速 × 固定速比', q.clutch === 'locked' ? q.nE : HY.lockRpm(q.v), HY.lockRpm(q.v), 1);
+  const l100 = q.fuelG / (HY.ENG.rhoF * 1000) / q.distM * 1e5;
+  within('100 km/h 匀速油耗', l100, 3.5, 7.5, ' L/100km');
+  const cvt100 = (() => { let a = 0, b = 1, x; for (let i = 0; i < 12; i++) { const m = (a + b) / 2; x = run(car, () => ({ pedal: m }), 40, 1 / 120, cruiseState(100, car.ratioHigh)).log.at(-1); if (x.kmh < 100) a = m; else b = m; } return x.lph / x.kmh * 100; })();
+  ok('同一辆车 100 km/h 匀速，混动比燃油 + CVT 省油', l100 < cvt100, `${l100.toFixed(1)} 对 ${cvt100.toFixed(1)} L/100km`);
+  q = HY.makeDrive(); q.v = 60 / 3.6;
+  drive(q, { brake: .2 }, 2);
+  ok('60 km/h 轻踩刹车：电机发电，电往电池里充', q.mode === 'REGEN' && q.Pbat < -3000 && q.Pmot < 0, `${(q.Pbat / 1000).toFixed(1)} kW`);
+}
+
 console.log(`\n${pass} 项通过，${fail} 项失败`);
 process.exit(fail ? 1 : 0);

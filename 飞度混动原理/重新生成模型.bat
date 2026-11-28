@@ -1,5 +1,5 @@
 @echo off
-rem Rebuild the Blender model, then rebuild index.html
+rem Rebuild the hybrid powertrain model (built by the car simulator project), then rebuild index.html
 rem   1) git pull main   2) find Blender   3) run the script   4) bundle the page if Node is installed
 chcp 65001 >nul
 setlocal
@@ -40,7 +40,15 @@ set "RENDER="
 choice /c YN /n /t 10 /d N /m "Render preview images with Cycles too? (slower)  [Y/N, default N in 10 s] "
 if errorlevel 2 (set "RENDER=") else (set "RENDER=--render")
 
-"%BL%" -b --factory-startup -P "blender\build_ehev.py" -- --out "blender\out" %RENDER%
+rem ---- the model now lives in the car simulator project (sibling folder). Find it without typing its non-ASCII name ----
+set "SIM="
+for /d %%D in ("..\*") do if exist "%%D\blender\powertrain_ehev.py" set "SIM=%%D"
+if not defined SIM (
+    echo [ERROR] Could not find the car simulator project next to this folder.
+    pause
+    exit /b 1
+)
+"%BL%" -b --factory-startup -P "%SIM%\blender\build_car.py" -- --pt ehev --out "%SIM%\blender\out" %RENDER%
 if errorlevel 1 (
     echo [ERROR] Build failed. See messages above.
     pause
@@ -49,7 +57,7 @@ if errorlevel 1 (
 
 where npm >nul 2>nul
 if errorlevel 1 (
-    echo [INFO] Node.js not found, index.html was not rebuilt. The new model is in blender\out.
+    echo [INFO] Node.js not found, index.html was not rebuilt. The new model is in the car simulator project, blender\out.
     pause
     exit /b 0
 )

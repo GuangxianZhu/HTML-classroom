@@ -1,8 +1,12 @@
 // 页面：把仿真（core.js）、三维舞台（stage.js）和仪表、图、踏板接起来。
 import glb from '../../blender/out/car.glb';
 import spec from '../../blender/out/spec.json';
+import ptGlb from '../../blender/out/pt_ehev.glb';
+import specE from '../../blender/out/spec_ehev.json';
 import P from '../../params.json';
 import { makeCar, run, RPM, clamp, stroke, valveLift } from './core.js';
+// 第二套动力（两电机混动）的仿真：用的是“飞度混动原理”那一页的能量模型，把车换成这辆三厢车
+import * as HY from '../../../飞度混动原理/web/src/sim.js';
 import { Stage } from './stage.js';
 
 const $ = (id) => document.getElementById(id);
@@ -14,6 +18,11 @@ const set = { pedal: 0, brake: 0, grade: 0 };       // 滑块上设的
 const act = { pedal: 0, brake: 0, grade: 0 };       // 脚实际踩到的（跟着滑块走，略慢一点）
 const keys = { up: false, down: false };
 let slow = 20, stage = null, toast = '', toastT = 0;
+// PT = 现在装的是哪套动力：'cvt' 燃油 + CVT / 'ehev' 两电机混动（网址带 ?pt=ehev 直接进混动）
+let PT = new URLSearchParams(location.search).get('pt') === 'ehev' ? 'ehev' : 'cvt';
+HY.setVehicle({ m: P.vehicle.mass, CdA: P.vehicle.cd * P.vehicle.area, Crr: P.vehicle.crr, rw: P.vehicle.r_roll / 1000 });
+let hs = HY.makeDrive();
+const HMODE = { EV: ['纯电', 'ok'], HYB: ['混动：发动机发电', 'on'], ENG: ['发动机直驱', 'ok'], REGEN: ['能量回收', 'on'], EBRK: ['回收 + 拖发动机', 'warn'], SYNC: ['同步转速，准备直连', 'on'] };
 const trace = { v: [], n: [], t: 0 };
 const timer = { armed: true, t0: -1, last: 0, vmax: 0 };
 const f0 = (x) => x.toFixed(0), f1 = (x) => x.toFixed(1), f2 = (x) => x.toFixed(2);
@@ -52,7 +61,8 @@ const speedo = dial($('speedo'), { max: 200, minor: 10, major: 20, label: (v) =>
 
 // ------------------------------------------------------------------ 数字小格
 const TILES = [['tq', '发动机扭矩'], ['pw', '发动机功率'], ['tc', '变矩器'], ['fx', '驱动力'], ['ins', '瞬时油耗'], ['avg', '平均油耗'], ['acc', '加速度'], ['t100', '0→100 km/h']];
-$('tiles').innerHTML = TILES.map(([id, k]) => `<div class="tile"><div class="k">${k}</div><div class="v" id="t_${id}">—</div><div class="s" id="s_${id}">&nbsp;</div></div>`).join('');
+const TILES_E = { tq: '发动机', pw: '驱动电机', tc: '电池' };          // 混动时前三格换成这三样
+$('tiles').innerHTML = TILES.map(([id, k]) => `<div class="tile"><div class="k" id="k_${id}">${k}</div><div class="v" id="t_${id}">—</div><div class="s" id="s_${id}">&nbsp;</div></div>`).join('');
 const tile = (id, v, unit, sub) => {
   const a = $(`t_${id}`), b = $(`s_${id}`), h = unit ? `${v}<small>${unit}</small>` : v;
   if (a.innerHTML !== h) a.innerHTML = h;
@@ -61,11 +71,18 @@ const tile = (id, v, unit, sub) => {
 
 function tiles() {
   const kmh = Math.abs(o.kmh);
+  if (PT === 'ehev') {
+    tile('tq', hs.eng ? f1(hs.Pe / 1000) : '熄火', hs.eng ? 'kW' : '', hs.eng ? `${f0(hs.nE / 10) * 10} rpm` : '一动不动');
+    tile('pw', f1(hs.Pmot / 1000), 'kW', `${f0(HY.motorRpm(hs.v) / 10) * 10} rpm${hs.Pmot < -200 ? '，在发电' : ''}`);
+    tile('tc', f1(Math.abs(hs.Pbat) / 1000), 'kW', `${hs.Pbat > 150 ? '放电' : hs.Pbat < -150 ? '充电' : '几乎不动'}，电量 ${f0(hs.soc * 100)}%`);
+    tile('fx', f0(o.fDrive), 'N', `阻力 ${f0(o.fRes)} N`);
+  } else {
   tile('tq', f0(o.te), 'N·m', `负荷 ${f0(o.lam * 100)}%`);
   tile('pw', f1(o.pShaft / 1000), 'kW', `想要 ${f0(o.pDes / 1000)} kW`);
   if (o.lock > .95) tile('tc', '锁止', '', '硬连，不打滑');
   else tile('tc', `×${f2(o.tr)}`, '', `涡轮 ${f0(o.nTurbine)}`);
   tile('fx', f0(o.fDrive), 'N', `阻力 ${f0(o.fAero * Math.sign(o.kmh || 1) + (kmh > .1 ? o.fRoll : 0) + o.fGrade * Math.sign(o.kmh || 1))} N`);
+  }
   if (kmh > 3) tile('ins', f1(Math.min(99.9, o.lph / kmh * 100)), 'L/100km', `${f1(o.lph)} L/h`);
   else tile('ins', f2(o.lph), 'L/h', '车没走');
   const lit = s.fuel / S.rho_fuel;
@@ -77,7 +94,24 @@ function tiles() {
 
 // ------------------------------------------------------------------ 现在在发生什么
 let nPrev = o.n, dnFilt = 0;
+/** 混动：电脑现在选了哪条路、为什么（理由是能量模型自己给的） */
+function explainE() {
+  const g = s.gear, [mt, mc] = HMODE[hs.mode] || ['', ''];
+  const chips = [[mt, mc], [{ open: '离合器分开', sync: '离合器同步中', locked: '离合器压紧' }[hs.clutch], hs.clutch === 'locked' ? 'ok' : ''], [`电量 ${f0(hs.soc * 100)}%`, '']];
+  if (act.grade) chips.push([`${act.grade > 0 ? '上' : '下'}坡 ${f0(Math.abs(act.grade) * 100)}%`, '']);
+  let t;
+  if (toastT > 0) t = toast;
+  else if (g === 'P') t = 'P 挡：驻车机构把车轮卡住。发动机是熄火的，混动车停着不用怠速。挂到 D、踩油门，先是电池带着电机起步。';
+  else if (g === 'N') t = 'N 挡：电机不出力。这套系统里发动机和车轮之间本来就靠离合器断开，N 挡只是让电机也歇着。';
+  else if (hs.v < .3 && act.pedal < .01) t = '停着：发动机熄火，电机不通电，什么都不转。踩油门就走。';
+  else t = `${hs.ecuWhy}。`;
+  const hc = chips.map(([a, c]) => `<span class="chip ${c}">${a}</span>`).join('');
+  if ($('chips').innerHTML !== hc) $('chips').innerHTML = hc;
+  if ($('nowText').textContent !== t) $('nowText').textContent = t;
+}
+
 function explain() {
+  if (PT === 'ehev') return explainE();
   const chips = [], kmh = o.kmh, av = Math.abs(kmh), moving = av > .5, g = s.gear;
   if (o.lock > .95) chips.push(['锁止离合器压紧', 'ok']);
   else if (o.lock > .02) chips.push(['锁止离合器正在压紧', 'on']);
@@ -207,10 +241,36 @@ function drawVario() {
   if (o.dir) { const ty = Y(o.nTarget); x.fillStyle = COL.amber; x.beginPath(); x.moveTo(L, ty); x.lineTo(L - 6, ty - 4); x.lineTo(L - 6, ty + 4); x.fill(); }
 }
 
-const ESEG = [['wheel', '到车轮', COL.ok], ['cvt', '钢带和齿轮的损失', '#7f93a8'], ['tc', '变矩器发热', COL.warn], ['eng', '发动机摩擦、泵气、附件', '#b9805c'], ['heat', '排气和冷却带走', '#6b4743']];
-$('ebar').innerHTML = ESEG.map(([id, , c]) => `<i id="e_${id}" style="background:${c};flex:0 1 0"></i>`).join('');
-$('elegend').innerHTML = ESEG.map(([id, k, c]) => `<div><span class="key" style="background:${c}"></span>${k}<span class="num" id="el_${id}"></span></div>`).join('');
+const ESEG_C = [['wheel', '到车轮', COL.ok], ['cvt', '钢带和齿轮的损失', '#7f93a8'], ['tc', '变矩器发热', COL.warn], ['eng', '发动机摩擦、泵气、附件', '#b9805c'], ['heat', '排气和冷却带走', '#6b4743']];
+const ESEG_E = [['wheel', '到车轮', COL.ok], ['chg', '存进电池', COL.info], ['drv', '电机、逆变器、齿轮的损耗', '#7f93a8'], ['heat', '发动机变成热的那部分', '#6b4743']];
+let ESEG = ESEG_C;
+function energyLayout() {
+  ESEG = PT === 'ehev' ? ESEG_E : ESEG_C;
+  $('eTitle').textContent = PT === 'ehev' ? '油和电池出的功率去哪了' : '油烧出来的功率去哪了';
+  $('ebar').innerHTML = ESEG.map(([id, , c]) => `<i id="e_${id}" style="background:${c};flex:0 1 0"></i>`).join('');
+  $('elegend').innerHTML = ESEG.map(([id, k, c]) => `<div><span class="key" style="background:${c}"></span>${k}<span class="num" id="el_${id}"></span></div>`).join('');
+}
+energyLayout();
+/** 混动的功率账：进来的 = 油 + 电池放的电；出去的 = 到车轮 + 存进电池 + 损耗 + 发动机的热 */
+function energyE() {
+  const pf = o.pFuel, dis = Math.max(hs.Pbat, 0), chg = Math.max(-hs.Pbat, 0), inp = pf + dis + Math.max(-hs.Pw, 0);
+  if (inp < 50) {
+    $('etotal').innerHTML = '现在既不烧油也不用电。';
+    for (const [id] of ESEG) { $(`e_${id}`).style.flexGrow = 0; $(`el_${id}`).textContent = '0'; }
+    return;
+  }
+  const wheel = Math.max(hs.Pw, 0), heat = pf > 0 ? Math.max(pf - hs.Pe, 0) : 0, drv = Math.max(inp - wheel - chg - heat, 0);
+  const val = { wheel, chg, drv, heat };
+  $('etotal').innerHTML = hs.Pw < -200 ? `车轮往回送 <b>${f1(-hs.Pw / 1000)}</b> kW，其中 <b>${f0(chg / -hs.Pw * 100)}%</b> 存进了电池`
+    : pf < 1 ? `没烧油：电池每秒放出 <b>${f1(dis / 1000)}</b> kW，其中 <b>${f0(wheel / inp * 100)}%</b> 到了车轮`
+      : `油每秒放出 <b>${f1(pf / 1000)}</b> kW 的热${dis > 200 ? `，电池另出 <b>${f1(dis / 1000)}</b> kW` : ''}，其中 <b>${f0(wheel / inp * 100)}%</b> 到了车轮`;
+  for (const [id] of ESEG) { $(`e_${id}`).style.flexGrow = Math.max(0, val[id]); $(`el_${id}`).textContent = `${f1(val[id] / 1000)} kW`; }
+  $('socFill').style.width = `${f0(hs.soc * 100)}%`; $('socTxt').textContent = `${f0(hs.soc * 100)}%`;
+  $('hE').textContent = hs.eng ? f1(hs.Pe / 1000) : '0'; $('hB').textContent = `${hs.Pbat < -150 ? '充 ' : hs.Pbat > 150 ? '放 ' : ''}${f1(Math.abs(hs.Pbat) / 1000)}`;
+  $('hM').textContent = f1(hs.Pmot / 1000);
+}
 function energy() {
+  if (PT === 'ehev') return energyE();
   const pf = o.pFuel;
   if (pf < 1) {
     $('etotal').innerHTML = '断油了：喷油量是 0，现在是车的动能在带着发动机转。';
@@ -263,6 +323,10 @@ function drawCluster() {
   x.fillStyle = '#10161b'; x.fillRect(W / 2 - 17 * k, cy + 28 * k, 34 * k, 13 * k);
   x.fillStyle = '#9fd3a8'; x.font = `600 ${7.5 * k}px ${NUMF}`; x.fillText((s.dist / 1000).toFixed(2), W / 2, cy + 35 * k);
   x.fillStyle = '#6c757e'; x.font = `${4.6 * k}px system-ui, sans-serif`; x.fillText('TRIP km', W / 2, cy + 47 * k);
+  if (PT === 'ehev') {                        // 混动：发动机熄火、车还能走的时候亮一个绿色的 EV
+    x.font = `700 ${8 * k}px ${NUMF}`; x.fillStyle = !hs.eng && s.gear !== 'P' ? '#58e0a0' : '#27313a';
+    x.fillText('EV', W / 2 - 90 * k, cy + 30 * k);
+  }
   tex.needsUpdate = true;
 }
 let gateDrawn = '';
@@ -331,6 +395,7 @@ const PARTS = [
 ];
 let tipName = '', tipT = 0;
 function tipText() {
+  if (tipName.startsWith('H_')) { const g = specE.groups[specE.objects[tipName]]; return g ? `<b>${g.cn}</b>　${g.desc}` : '<b>混动动力总成</b>'; }
   for (const [re, name, info] of PARTS) { const m = tipName.match(re); if (m) return `<b>${name(m)}</b>　${info(m)}`; }
   const g = spec.groups[spec.objects[tipName]];
   return `<b>${g ? g.cn : '车身'}</b>`;
@@ -346,6 +411,7 @@ const slider = (id, key) => {
 };
 const setThr = slider('thr', 'pedal'), setBrk = slider('brk', 'brake');
 function setGear(g) {
+  if (PT === 'ehev' && g === 'R') { toast = '混动这套还没做倒车。真车倒车就是驱动电机反着转，里面没有倒挡齿轮。'; toastT = 3; return false; }
   const why = car.shift(s, g);
   if (why) { toast = why; toastT = 2.5; }
   document.querySelectorAll('#gears button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.gear === s.gear));
@@ -355,13 +421,23 @@ document.querySelectorAll('#gears button').forEach((b) => b.addEventListener('cl
 $('grade').addEventListener('change', (e) => { set.grade = +e.target.value; });
 function reset() {
   s = car.initial(); o = car.step(s, { pedal: 0, brake: 0 }, H);
+  hs = HY.makeDrive();
+  if (PT === 'ehev') stepE(H);
   setThr(0); setBrk(0); set.grade = 0; $('grade').value = '0'; act.pedal = act.brake = act.grade = 0;
   trace.v.length = trace.n.length = 0; timer.armed = true; timer.t0 = -1; timer.last = 0;
   setGear('P');
 }
 $('reset').addEventListener('click', reset);
 
-const TRY = [
+const TRY_E = [
+  ['轻踩 20% 起步', '发动机不响，电池带着电机走', () => { setGear('D'); setBrk(0); setThr(.2); }],
+  ['踩到 60%', '发动机起动，但它只发电，推车的还是电机', () => { setGear('D'); setBrk(0); setThr(.6); }],
+  ['地板油', '发电机和电池一起供电，自动记 0→100', () => { setGear('D'); setBrk(0); setThr(1); }],
+  ['松油门', '电机反过来发电，电往电池里流', () => { setThr(0); setBrk(0); }],
+  ['轻踩刹车 20%', '大部分减速还是靠电机回收', () => { setThr(0); setBrk(.2); }],
+  ['到 100 km/h 后保持', '油门收到 15% 左右稳住，等离合器合上', () => { setGear('D'); setBrk(0); setThr(.16); }],
+];
+const TRY_C = [
   ['松刹车，不踩油门', '车自己慢慢走，这是变矩器的蠕行', () => { setGear('D'); setThr(0); setBrk(0); }],
   ['轻踩 25% 起步', '变矩器先放大扭矩，18 km/h 后锁止', () => { setGear('D'); setBrk(0); setThr(.25); }],
   ['40% 油门一直踩着', '转速不动、车在加速，盯着速比看', () => { setGear('D'); setBrk(0); setThr(.4); }],
@@ -369,7 +445,9 @@ const TRY = [
   ['松油门滑行', '喷油量变成 0，发动机在拖车', () => { setThr(0); setBrk(0); }],
   ['失速试验', '刹车踩死加地板油，看变矩器发多少热', () => { setGear('D'); setBrk(1); setThr(1); }],
 ];
-$('try').innerHTML = TRY.map(([b, t], i) => `<button data-i="${i}"><b>${b}</b><span>${t}</span></button>`).join('');
+let TRY = TRY_C;
+function tryLayout() { TRY = PT === 'ehev' ? TRY_E : TRY_C; $('try').innerHTML = TRY.map(([b, t], i) => `<button data-i="${i}"><b>${b}</b><span>${t}</span></button>`).join(''); }
+tryLayout();
 $('try').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) TRY[+b.dataset.i][2](); });
 
 const KEY = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ' ': 'down' };
@@ -422,9 +500,37 @@ $('slow').addEventListener('change', (e) => { slow = +e.target.value; });
 }
 
 // ------------------------------------------------------------------ 静态文字
-$('sub').textContent = `${f1(car.disp / 1000)} L 四缸汽油机 + 液力变矩器 + 钢带 CVT，前轮驱动。数字都是虚构的教学设定。`;
+const SUB = { cvt: `${f1(car.disp / 1000)} L 四缸汽油机 + 液力变矩器 + 钢带 CVT，前轮驱动。数字都是虚构的教学设定。`,
+  ehev: '1.5 L 阿特金森发动机 + 发电机 + 驱动电机 + 一个离合器，前轮驱动。动力的参数按飞度 e:HEV 的官方数字，车还是这辆。' };
+$('hNote').innerHTML = '车轮永远由驱动电机带着。发动机大部分时间只发电；匀速跑到 60 多 km/h 以上，电脑才把离合器合上让发动机直接推车。电池只有 1 度电左右，是个缓冲。每一步为什么这么选，<a href="../飞度混动原理/index.html" target="_blank" rel="noopener">飞度混动原理</a> 那一页分八章讲。';
 $('pulNote').textContent = `钢带长 ${f0(car.BELT)} mm 不变，两根轴隔 ${C.centre} mm。主动轮的两片锥盘夹紧，钢带被挤到大半径上；从动轮同时让开，钢带落到小半径上。速比 = 从动轮半径 ÷ 主动轮半径，能从 ${f2(car.ratioLow)} 一直滑到 ${f2(car.ratioHigh)}，中间没有台阶。`;
 $('varioNote').innerHTML = `橙点是发动机现在的转速和车速，拖着的线是刚才走过的路。两条琥珀色的线之间是 CVT 够得着的范围，左边的小三角是电脑想要的转速。虚线是一台假想的 5 挡手动：它只能待在五条线上，加速时转速得一遍遍从低爬到高。空心圈是主动轮的转速，它和橙点分开时说明变矩器在打滑。`;
+function factsE(r) {
+  const cells = [
+    ['发动机', '78', 'kW'], ['驱动电机', '90', 'kW'], ['电机最大扭矩', '253', 'N·m'],
+    ['电机 → 车轮', f2(HY.CAR.Gm), ''], ['发动机 → 车轮', f2(HY.CAR.Ge), ''], ['车重（含驾驶员）', f0(V.mass), 'kg'],
+    ['0→100 km/h', r ? f1(r.t100) : '…', 's'], ['电池', '1.0', 'kWh'], ['100 km/h 匀速', r ? f1(r.c100) : '…', 'L/100km'],
+  ];
+  $('spec').innerHTML = cells.map(([k, v, u]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div></div>`).join('');
+  const li = [
+    ['t1', '资料', '发动机 78 kW / 127 N·m、驱动电机 90 kW / 253 N·m、电机行驶 2.454、发动机行驶 0.805、减速比 3.423，是本田飞度 e:HEV 诸元表上的数字。'],
+    ['t1', '资料', '结构照公开资料建：发电机和驱动电机同轴，发电机的细轴从驱动电机的空心轴里穿过去；驱动电机靠发动机、发电机在最外面；绕组是扁铜线；PCU 直接坐在电机壳上。'],
+    ['t2', '设定', `车还是这辆三厢车：${f0(V.mass)} kg、风阻面积 ${f2(V.cd * V.area)} m²，比飞度重、风阻大，所以油耗和“多少车速开始直驱”都和真飞度不一样。电池立在后排靠背后面，两根橙色高压线从地板下面走。`],
+    ['t2', '设定', '各根轴的位置、齿数（按官方速比凑的）、发电机那一对齿轮的 2 倍、电机的槽数和极数没有公开数据，是示意。'],
+    ['t3', '估算', '发动机的效率图、电机和逆变器的损耗、电池 1.0 kWh、选模式的规则，都是“飞度混动原理”那一页的模型：量级对，具体数字不是本田的标定。100 km/h 的油耗是跑一长段取的平均，电池电量的起止差没有折算。'],
+    ['', '没算', '倒车、蠕行、冷车暖机、暖风、电池温度、轮胎打滑。能量流只在“透视 / 动力总成 / 内部”三种看法里画。'],
+  ];
+  $('facts').innerHTML = li.map(([c, t, x]) => `<li><span class="tag ${c}">${t}</span>${x}</li>`).join('');
+}
+function headlineE() {
+  const q = HY.makeDrive();
+  let t = 0;
+  while (q.v * 3.6 < 100 && t < 60) { HY.driveStep(q, { pedal: 1, brake: 0, cruise: null, grade: 0 }, 1 / 60); t += 1 / 60; }
+  const c = HY.makeDrive(); c.v = 100 / 3.6;
+  let d0 = 0, g0 = 0;
+  for (let i = 0; i < 30000; i++) { HY.driveStep(c, { pedal: 0, brake: 0, cruise: 100, grade: 0 }, .05); if (i === 6000) { d0 = c.distM; g0 = c.fuelG; } }
+  factsE({ t100: t, c100: (c.fuelG - g0) / (HY.ENG.rhoF * 1000) / (c.distM - d0) * 1e5 });
+}
 function facts(r) {
   const tk = car.tqWot(4200), cells = [
     ['排量', `${f0(car.disp)}`, 'cc'], ['最大功率', `${f0(S.p_max_kw)}`, 'kW'], ['最大扭矩', `${f0(tk)}`, 'N·m'],
@@ -455,6 +561,45 @@ function headline() {
   facts({ t100: wot.find((q) => q.kmh >= 100).t, vmax: wot.at(-1).kmh, c100: x.lph / x.kmh * 100 });
 }
 
+// ------------------------------------------------------------------ 混动：走一步，把结果摆成和燃油版差不多的样子（表盘、三维、计时共用）
+function stepE(dt) {
+  const g = s.gear, v0 = hs.v;
+  HY.driveStep(hs, { pedal: g === 'D' ? act.pedal : 0, brake: g === 'P' ? 1 : act.brake, cruise: null, grade: act.grade }, dt);
+  s.v = hs.v; s.t += dt; s.dist += hs.v * dt; s.fuel += hs.fuelGs / 1000 * dt;
+  o = { n: hs.nE, nTarget: hs.nE, kmh: hs.v * 3.6, a: (hs.v - v0) / dt, pedal: act.pedal, brake: act.brake, dir: g === 'D' ? 1 : 0,
+    lph: hs.fuelGs / 1000 * 3600 / S.rho_fuel, pFuel: hs.fuelGs / 1000 * HY.ENG.LHV, fDrive: hs.Fw, fRes: hs.Fres, eng: hs.eng, clutch: hs.clutch };
+}
+/** 给三维的能量流（kW）。燃油版只有油、废气、半轴和热；混动多了直流、交流和三条机械路 */
+function flows() {
+  const k = 1e-3;
+  if (PT !== 'ehev') {
+    return [{ fuel: o.pFuel * k, exhaust: Math.max(o.pFuel - o.pShaft, 0) * k * .45, axle_L: o.pWheel * k / 2, axle_R: o.pWheel * k / 2, force: o.fDrive,
+      heat_eng: Math.max(o.pFuel - o.pShaft, 0) * k, heat_drive: Math.max(o.pTcLoss + (o.pIn - o.pWheel), 0) * k }, null];
+  }
+  const dir = hs.clutch === 'locked', genMech = dir ? (hs.Pgen > 150 ? hs.Pgen / .9 : 0) : hs.eng ? hs.Pe : 0, toCl = dir ? Math.max(hs.Pe - genMech, 0) : 0;
+  const pf = o.pFuel, heat = pf > 0 ? Math.max(pf - hs.Pe, 0) : 0;
+  const f = { fuel: pf * k, exhaust: heat * k * .45, batt_pcu: hs.Pbat * k, gen_pcu: Math.abs(hs.Pgen) > 400 ? hs.Pgen * k : 0, pcu_mot: hs.Pmot * k,
+    axle_L: hs.Pw * k / 2, axle_R: hs.Pw * k / 2, force: hs.v > .3 ? hs.Fw : 0, heat_eng: heat * k, heat_drive: Math.max(hs.Pe + hs.Pbat - hs.Pw, 0) * k };
+  stage.flow.setHz(clamp(.5 + HY.motorRpm(hs.v) / 2500, .5, 4.5), clamp(.5 + hs.nE * 2 / 2500, .5, 4.5));
+  return [f, { eng_gen: genMech * k, eng_wheel: toCl * k, mot_wheel: hs.Pmot * k, ac_mot: f.pcu_mot, ac_gen: f.gen_pcu }];
+}
+/** 换动力：车停回原位，表盘、按钮、说明都换成这一套的 */
+function setPT(pt) {
+  PT = pt;
+  document.body.dataset.pt = pt;
+  document.querySelectorAll('#pts button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.pt === pt));
+  for (const [id, k] of TILES) $(`k_${id}`).textContent = pt === 'ehev' && TILES_E[id] ? TILES_E[id] : k;
+  $('sub').textContent = SUB[pt];
+  $('camCvt').textContent = pt === 'ehev' ? '看电驱单元' : '看 CVT';
+  document.querySelector('#gears button[data-gear="R"]').disabled = pt === 'ehev';
+  energyLayout(); tryLayout();
+  if (stage) stage.setPowertrain(pt);
+  reset();
+  if (pt === 'ehev') { factsE(null); setTimeout(headlineE, 60); } else { facts(null); setTimeout(headline, 60); }
+  try { history.replaceState(null, '', pt === 'ehev' ? '?pt=ehev' : location.pathname); } catch (e) { /* file:// 下有的浏览器不让改网址，不要紧 */ }
+}
+document.querySelectorAll('#pts button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.pt !== PT) setPT(b.dataset.pt); }));
+
 // ------------------------------------------------------------------ 主循环
 let last = performance.now(), accT = 0, uiT = 0, plotT = 0;
 function tick(dt) {
@@ -466,7 +611,7 @@ function tick(dt) {
     const kf = Math.min(1, H / .05);
     act.pedal += (set.pedal - act.pedal) * kf; act.brake += (set.brake - act.brake) * kf; act.grade += (set.grade - act.grade) * Math.min(1, H / .6);
     if (Math.abs(act.grade) < 1e-4 && !set.grade) act.grade = 0;
-    o = car.step(s, act, H);
+    if (PT === 'ehev') stepE(H); else o = car.step(s, act, H);
     // 0→100 自动计时
     const kmh = o.kmh;
     if (Math.abs(kmh) < .3) { timer.armed = true; timer.t0 = -1; timer.vmax = 0; }
@@ -486,22 +631,23 @@ function frame(now) {
   const dt = Math.min(.1, (now - last) / 1000); last = now;
   tick(dt);
   stage.update(dt, o, slow, s.gear);
-  tach.set(o.n, f0(Math.round(o.n / 10) * 10)); tach.target(o.dir ? o.nTarget : null);
+  tach.set(o.n, f0(Math.round(o.n / 10) * 10)); tach.target(PT === 'cvt' && o.dir ? o.nTarget : null);
   speedo.set(Math.abs(o.kmh), f0(Math.abs(o.kmh)));
   uiT += dt; plotT += dt;
-  if (plotT > .033) { plotT = 0; drawPulleys(); drawCluster(); drawGate(); }
+  if (plotT > .033) { plotT = 0; if (PT === 'cvt') drawPulleys(); drawCluster(); drawGate(); }
   if (uiT > .12) {
-    uiT = 0; tiles(); explain(); energy(); drawVario();
-    $('pr1').textContent = f1(stage.r1); $('pr2').textContent = f1(stage.r2); $('pratio').textContent = f2(o.ratio);
+    uiT = 0; tiles(); explain(); energy();
+    stage.setFlows(...flows());
+    if (PT === 'cvt') { drawVario(); $('pr1').textContent = f1(stage.r1); $('pr2').textContent = f1(stage.r2); $('pratio').textContent = f2(o.ratio); }
     if (tipName) { tipT -= .12; if (tipT <= 0) showTip(''); else $('tip').innerHTML = tipText(); }
   }
   requestAnimationFrame(frame);
 }
 
 async function boot() {
-  stage = new Stage($('gl'), car, spec);
+  stage = new Stage($('gl'), car, spec, specE);
   try {
-    await stage.init(glb);
+    await stage.init(glb, ptGlb);
   } catch (err) {
     $('loading').textContent = `三维模型没装上（${err.message}）。换一个支持 WebGL 的浏览器试试。`;
     throw err;
@@ -509,10 +655,11 @@ async function boot() {
   $('loading').hidden = true;
   new ResizeObserver(() => stage.resize()).observe($('stageWrap'));
   // 调试和自动检查用：advance(秒) 不等画面，直接把仿真往前推
-  window.__sim = { get s() { return s; }, get o() { return o; }, stage, car, set, setThr, setBrk, setGear, setMode, reset, timer, advance(t) { for (let i = 0; i < t / .05; i++) tick(.05); } };
+  window.__sim = { get s() { return s; }, get o() { return o; }, get hs() { return hs; }, get pt() { return PT; }, stage, car, set, setThr, setBrk, setGear, setMode, setPT, reset, timer, advance(t) { for (let i = 0; i < t / .05; i++) tick(.05); } };
+  window.__ready = true;
   setMode('xray');
+  setPT(PT);                                   // 按网址里的 ?pt= 装上对应的动力，顺便算右下角那三个性能数字
   last = performance.now();
   requestAnimationFrame(frame);
-  setTimeout(headline, 400);
 }
 boot();

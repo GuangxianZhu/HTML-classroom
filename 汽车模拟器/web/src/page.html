@@ -155,11 +155,21 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   header .sub { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #ebar i { transition: none; } }
+body[data-pt="ehev"] .cvt-only,body[data-pt="cvt"] .ehev-only{display:none}
+#pts{margin-left:14px}
+.socrow{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--dim);margin:2px 0 10px}
+.socbar{flex:1;height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.socbar i{display:block;height:100%;width:50%;background:var(--amber)}
+#hNote a{color:var(--info)}
 </style>
 
 <div id="app">
   <header>
     <h1>汽车模拟器</h1>
+    <div class="seg" id="pts" role="group" aria-label="装哪套动力">
+      <button data-pt="cvt" aria-pressed="true">燃油 + CVT</button>
+      <button data-pt="ehev" aria-pressed="false">两电机混动</button>
+    </div>
     <span class="sub" id="sub"></span>
   </header>
   <main>
@@ -213,7 +223,18 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
         <div class="try" id="try"></div>
       </section>
 
-      <section>
+      <section class="ehev-only">
+        <h2>电池、发动机、电机</h2>
+        <div class="socrow"><span>电池电量</span><div class="socbar"><i id="socFill"></i></div><b class="num" id="socTxt"></b></div>
+        <div class="pulrow">
+          <div><b class="num" id="hE"></b>发动机出力 kW</div>
+          <div class="mid"><b class="num" id="hB"></b>电池 kW</div>
+          <div><b class="num" id="hM"></b>驱动电机 kW</div>
+        </div>
+        <p class="note" id="hNote"></p>
+      </section>
+
+      <section class="cvt-only">
         <h2>钢带和两个锥轮</h2>
         <div class="pulrow">
           <div><b class="num" id="pr1"></b>主动轮上钢带的半径 mm</div>
@@ -224,14 +245,14 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
         <p class="note" id="pulNote"></p>
       </section>
 
-      <section>
+      <section class="cvt-only">
         <h2>转速和车速</h2>
         <canvas class="plot" id="vario"></canvas>
         <p class="note" id="varioNote"></p>
       </section>
 
       <section>
-        <h2>油烧出来的功率去哪了</h2>
+        <h2 id="eTitle">油烧出来的功率去哪了</h2>
         <div id="etotal"></div>
         <div id="ebar"></div>
         <div id="elegend"></div>

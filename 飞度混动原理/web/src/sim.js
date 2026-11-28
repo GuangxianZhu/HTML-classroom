@@ -23,6 +23,9 @@ export const CAR = {
   etaDcdc: 0.92,
 };
 
+/** 换一辆车：汽车模拟器把同一套动力装在那辆三厢车里时调。不调就是飞度的参数（这一页用的） */
+export function setVehicle({ m, CdA, Crr, rw }) { Object.assign(CAR, { m, mEq: m * 1.04, CdA, Crr, rw }); }
+
 export const ENG = {
   Vd: 1.496e-3, nMin: 1000, nMax: 6400, Pmax: 78e3, LHV: 43.0e6, rhoF: 0.745,
   tq: [[1000, 92], [1500, 101], [2000, 108], [3000, 117], [4000, 124], [4500, 127], [5000, 127], [5500, 124], [6200, 120], [6400, 116]],

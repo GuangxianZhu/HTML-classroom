@@ -729,12 +729,13 @@
     "wait",
     3000
    ]
-  ]
+  ],
+  "loadWait": 20000
  },
  "carsim": {
   "page": "汽车模拟器/index.html",
   "colors": 64,
-  "loadWait": 14000,
+  "loadWait": 20000,
   "steps": [
    [
     "mark"
@@ -745,7 +746,23 @@
    ],
    [
     "wait",
-    6000
+    5000
+   ],
+   [
+    "jsclick",
+    "#pts [data-pt=ehev]"
+   ],
+   [
+    "wait",
+    2500
+   ],
+   [
+    "jsclick",
+    "#try button:nth-child(2)"
+   ],
+   [
+    "wait",
+    7000
    ],
    [
     "jsclick",
@@ -754,14 +771,6 @@
    [
     "wait",
     7000
-   ],
-   [
-    "jsclick",
-    "#modes [data-mode=drive]"
-   ],
-   [
-    "wait",
-    14000
    ]
   ]
  },

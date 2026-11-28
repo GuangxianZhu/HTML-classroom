@@ -810,7 +810,7 @@ const PRESETS = {
 const drive = {
   id: 'drive', nav: '试驾', view: 'drive',
   title: '自己开一下：电脑每一刻在选哪条路',
-  lead: '踩油门、定速巡航、改坡度，看电脑怎么在 EV、混动、直驱、回收之间切换，以及它为什么这么选。',
+  lead: '踩油门、定速巡航、改坡度，看电脑怎么在 EV、混动、直驱、回收之间切换，以及它为什么这么选。想坐进驾驶位自己开、和燃油 + CVT 换着比，去 <a href="../汽车模拟器/index.html?pt=ehev" target="_blank" rel="noopener">汽车模拟器</a>（同一辆车、同一套混动）。',
   body: () => `
     <div class="btns">${Object.entries(PRESETS).map(([k, p]) => btn(`ps-${k}`, p.t)).join('')}</div>
     <div class="mode"><span class="dot" id="d-dot"></span><div><b id="d-mode"></b><p id="d-why"></p></div></div>

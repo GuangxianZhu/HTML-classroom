@@ -5,6 +5,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { beltPath, pistonHeight, rodAngle, valveLift } from './core.js';
+import { makeEhevRig } from './ehev_rig.js';
+import { makeFlowViz, ehevFlowPaths } from './flowviz.js';
+
+const CVT_ONLY = /^(Eng_|Cvt_|Drv_|PT_Mounts|Bay_Intake)/;       // 燃油版自己的件；换成混动时藏起来
 
 const MM = 0.001, TAU = Math.PI * 2, DEG = Math.PI / 180;
 export const B = (x, y, z) => new THREE.Vector3(x * MM, z * MM, -y * MM);
@@ -29,11 +33,11 @@ export const MODES = ['car', 'xray', 'pt', 'inside', 'drive'];
 const FOV = 32;
 
 export class Stage {
-  /** car = core.makeCar(params)，spec = blender/out/spec.json */
-  constructor(canvas, car, spec) {
-    this.canvas = canvas; this.car = car; this.spec = spec; this.D = spec.powertrain.derived;
-    this.mode = 'xray'; this.hood = 0; this.hoodTarget = 0;
-    this.ang = { crank: 0, turbine: 0, pri: 0, sec: 0, inter: 0, wheel: 0, belt: 0, road: 0 };
+  /** car = core.makeCar(params)，spec = blender/out/spec.json，specE = blender/out/spec_ehev.json（第二套动力：两电机混动） */
+  constructor(canvas, car, spec, specE) {
+    this.canvas = canvas; this.car = car; this.spec = spec; this.specE = specE; this.D = spec.powertrain.derived;
+    this.mode = 'xray'; this.hood = 0; this.hoodTarget = 0; this.pt = 'cvt';
+    this.ang = { crank: 0, turbine: 0, pri: 0, sec: 0, inter: 0, wheel: 0, belt: 0, road: 0, crankE: 0 };
     this.items = []; this.byName = new Map();
     this.VIEWS = {
       car: { pos: B(-4500, 5100, 2100), tgt: B(0, 150, 560) },
@@ -55,7 +59,7 @@ export class Stage {
     this.tween = null;
   }
 
-  async init(glbBytes) {
+  async init(glbBytes, ptBytes) {
     const r = this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
@@ -69,16 +73,23 @@ export class Stage {
     const key = new THREE.DirectionalLight(0xfff2df, 1.6); key.position.set(-3, 5, -4); scene.add(key);
     const rim = new THREE.DirectionalLight(0x9fc4ff, .9); rim.position.set(4, 2.2, 4); scene.add(rim);
 
-    const buf = glbBytes.buffer.slice(glbBytes.byteOffset, glbBytes.byteOffset + glbBytes.byteLength);
-    const gltf = await new Promise((res, rej) => new GLTFLoader().parse(buf, '', res, rej));
-    const root = this.root = gltf.scene; scene.add(root); root.updateMatrixWorld(true);
+    const parse = (b) => new Promise((res, rej) => new GLTFLoader().parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), '', res, rej));
+    const [gltf, gltfE] = await Promise.all([parse(glbBytes), parse(ptBytes)]);
+    const root = this.root = gltf.scene; scene.add(root);
+    const hy = new Map();
+    for (const n of [...gltfE.scene.children]) { root.add(n); hy.set(n.name, n); }      // 混动的件挂到同一个根上
+    root.updateMatrixWorld(true);
     const gm = Object.fromEntries(Object.entries(GHOSTS).map(([k, v]) => [k, ghostMat(...v)]));
     for (const n of [...root.children]) {
-      const ex = n.userData || {}, group = this.spec.objects[n.name] || ex.group || '';
-      const housing = group === 'powertrain' && (ex.kind === 'housing' || ex.shell === 1 || n.name === 'PT_Mounts');
-      const it = { node: n, name: n.name, group, ex, housing, meshes: [], ghost: housing ? gm.housing : gm[group] || gm.other, state: 'solid' };
+      const ex = n.userData || {}, isE = hy.has(n.name);
+      // 混动的件归到和燃油版一样的几组里：前舱附件 → bay，电池和高压线 → under，其余 → powertrain
+      const group = isE ? (/^H_(Bay|EComp)/.test(n.name) ? 'bay' : /^H_(HV_|IPU)/.test(n.name) ? 'under' : 'powertrain') : this.spec.objects[n.name] || ex.group || '';
+      const housing = group === 'powertrain' && (ex.kind === 'housing' || ex.shell === 1 || /^(PT_Mounts|H_Mounts|H_PCU)$/.test(n.name));
+      const it = { node: n, name: n.name, group, ex, housing, meshes: [], ghost: housing ? gm.housing : gm[group] || gm.other, state: 'solid',
+        pt: isE ? 'ehev' : CVT_ONLY.test(n.name) ? 'cvt' : '', cutQ: /^H_(Mot|Gen)StatorQ$/.test(n.name) };
       n.traverse((o) => {
         if (!o.isMesh) return;
+        if (isE) o.material = o.material.clone();            // 混动的轴会按“谁在传力”发光，每个网格要有自己的一份材质
         const glass = /^Glass/.test(o.material.name);
         if (glass) { o.material.transparent = true; o.material.depthWrite = false; }
         o.userData.solid = o.material; o.userData.ro = glass ? 2 : 0; o.userData.item = it;
@@ -87,6 +98,8 @@ export class Stage {
       this.items.push(it); this.byName.set(n.name, it);
     }
     this._rig();
+    this.rigE = makeEhevRig(THREE, hy, this.specE);
+    this.flow = makeFlowViz(THREE, scene, ehevFlowPaths(THREE, this.specE, this.spec.dims, (t) => hy.get(`H_Shaft${t}`).position));
     this._rigCockpit();
     this._buildBelt();
     this._buildGround();
@@ -266,15 +279,19 @@ export class Stage {
     const was = this.mode;
     this.mode = mode;
     const drive = mode === 'drive';
+    this.flow.group.visible = mode === 'xray' || mode === 'pt' || mode === 'inside';      // 车身是实心的时候不画能量流
+    this.flow.setScope(mode === 'inside' ? ['ac', 'shaft', 'arrow', 'dc', 'heatDrive'] : null, 1);   // 看内部时不画油管和排气，它们会横在镜头前
     for (const it of this.items) {
       if (it.dead) continue;
+      if (it.pt && it.pt !== this.pt) { it.state = 'hide'; it.node.visible = false; continue; }   // 另一套动力的件
+      if (it.name.startsWith('H_Burn')) { it.state = 'hide'; it.node.userData.hid = mode === 'car' || mode === 'drive'; continue; }   // 燃烧的闪光由 rigE 管
       const g = it.group;
       let st;
       if (drive) st = g === 'powertrain' || g === 'bay' || g === 'under' ? 'hide' : 'solid';   // 坐在车里看不到前舱，不画
       else if (mode === 'car') st = 'solid';
       else if (mode === 'xray') st = BODY.has(g) ? 'ghost' : 'solid';
       else if (mode === 'pt') st = g === 'powertrain' || g === 'under' || g === 'wheels' ? 'solid' : g === 'chassis' ? 'ghost' : 'hide';
-      else st = g === 'powertrain' ? (it.housing ? 'ghost' : 'solid') : g === 'wheels' ? 'ghost' : 'hide';   // 内部：壳体和车轮都变透明，只留会动的件
+      else st = g === 'powertrain' ? (it.cutQ ? 'hide' : it.housing ? 'ghost' : 'solid') : g === 'wheels' ? 'ghost' : 'hide';   // 内部：壳体和车轮都变透明，只留会动的件（定子剖掉四分之一）
       it.state = st; it.node.visible = st !== 'hide';
       for (const o of it.meshes) { o.material = st === 'ghost' ? it.ghost : o.userData.solid; o.renderOrder = st === 'ghost' ? 3 : o.userData.ro; }
     }
@@ -286,6 +303,10 @@ export class Stage {
     // 进出驾驶位直接切过去：飞的话机位会从车身里穿过去
     if (fly) this._goto(this.VIEWS[mode === 'car' && this.hoodTarget ? 'hood' : mode], drive || was === 'drive' ? 0 : .8);
   }
+  /** 换动力：'cvt' 燃油 + CVT / 'ehev' 两电机混动。另一套的件藏起来，车身和底盘共用 */
+  setPowertrain(pt) { this.pt = pt; this.flow.set({}); this.setMode(this.mode, false); }
+  /** 能量流（kW，见 flowviz.js）和哪根轴在传力（见 ehev_rig.js 的 setGlow） */
+  setFlows(f, glow) { this.flow.set(f); if (this.pt === 'ehev' && glow) this.rigE.setGlow(glow); }
   /** 第一人称的视场角：横着大约看 80°，太宽太窄都夹住 */
   _fpFov() { return Math.max(48, Math.min(76, 2 * Math.atan(Math.tan(40 * DEG) / this.aspect) / DEG)); }
   setHood(open) { this.hoodTarget = open ? 1 : 0; if (this.mode === 'car') this._goto(this.VIEWS[open ? 'hood' : 'car']); }
@@ -329,6 +350,25 @@ export class Stage {
   update(dt, o, slow, gear) {
     if (this.mode === 'drive') slow = 1;
     const a = this.ang, k = dt / slow, car = this.car, m = this.m;
+    if (this.pt === 'ehev') this._animEhev(o, k); else this._animCvt(o, k);
+    if (this.mode === 'drive') this._placeWorld(); else this._placeRoad();
+    this.belt.visible = this.pt === 'cvt' && this.mode !== 'drive' && (this.mode !== 'car' || this.hood > .02);
+    this.flow.setK(Math.max(.26, Math.min(1, this.camera.position.distanceTo(this.controls.target) / 6.5)));   // 镜头越近画得越细
+    this.flow.tick(dt, { thW: a.wheel, px: this.canvas.clientHeight * this.renderer.getPixelRatio() / (2 * Math.tan(this.camera.fov * Math.PI / 360)) });
+    this._tail(dt, o, gear);
+  }
+
+  /** 混动：o.kmh 车速、o.n 发动机转速（rpm）、o.clutch、o.eng。别的轴按齿数算（ehev_rig.js） */
+  _animEhev(o, k) {
+    const a = this.ang, w = (o.kmh / 3.6) / this.car.rRoll;
+    a.wheel += w * k; a.crankE += o.n * Math.PI / 30 * k; a.road += (o.kmh / 3.6) * k;
+    this.rigE.setEngine(!!o.eng); this.rigE.setClutch(o.clutch || 'open');
+    this.rigE.set(a.wheel, a.crankE);
+    for (const n of this.m.wheels) n.rotation.x = -a.wheel;
+  }
+
+  _animCvt(o, k) {
+    const a = this.ang, car = this.car, m = this.m;
     a.crank = (a.crank + o.we * k) % (2 * TAU);
     a.turbine = (a.turbine + o.wt * k) % TAU;
     a.pri = (a.pri + o.wPri * k) % TAU;
@@ -359,8 +399,9 @@ export class Stage {
     m.priMove.position.x = (this.D.x0p - car.sheaveGap(r1)) * MM;
     m.secMove.position.x = (this.D.x0s + car.sheaveGap(r2)) * MM;
     this._placeBelt(r1, r2);
-    if (this.mode === 'drive') this._placeWorld(); else this._placeRoad();
-    this.belt.visible = this.mode !== 'drive' && (this.mode !== 'car' || this.hood > .02);
+  }
+
+  _tail(dt, o, gear) {
     // 驾驶位的三个件：踏板绕铰链往前转，挡杆往目标挡位摆（方向盘等做转向时再动）
     const cp = this.cp;
     cp.acc.rotation.x = cp.accT * o.pedal; cp.brake.rotation.x = cp.brakeT * o.brake;

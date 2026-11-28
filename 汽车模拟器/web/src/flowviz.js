@@ -182,10 +182,10 @@ export function makeFlowViz(THREE, scene, P) {
     for (let i = 0; i < e.n; i++) {
       const [s1, s2, s3] = e.seed[i], life = (e.t * (.35 + .25 * s3) + s1) % 1;
       e.pos[i * 3] = e.at.x + (s2 - .5) * 2 * e.spread[0] + Math.sin(life * 6 + s1 * 9) * .02;
-      e.pos[i * 3 + 1] = e.at.y + life * .34;
+      e.pos[i * 3 + 1] = e.at.y + life * .34 * (.4 + .6 * scope.k);
       e.pos[i * 3 + 2] = e.at.z + (s3 - .5) * 2 * e.spread[1];
       e.aA[i] = i < act ? .55 * Math.sin(Math.PI * life) : 0;
-      e.aS[i] = .05 + .09 * life;
+      e.aS[i] = (.05 + .09 * life) * (.4 + .6 * scope.k);
     }
     for (const k of ['position', 'aA', 'aS']) e.pts.geometry.attributes[k].needsUpdate = true;
   }
@@ -227,6 +227,8 @@ export function makeFlowViz(THREE, scene, P) {
     },
     /** 这个机位只画哪几样（dc / ac / shaft / arrow / fuel / exhaust / heatEng / heatDrive），不给 = 全画；k = 粗细的倍数 */
     setScope(show, k = 1) { scope.show = new Set(show || ALL); scope.k = k; api.set(cur); },
+    /** 只改粗细的倍数（镜头拉近时调小，不然管线会糊住画面） */
+    setK(k) { if (Math.abs(k - scope.k) > .04) { scope.k = k; api.set(cur); } },
     setFilter(f) { Object.assign(filter, f); api.set(cur); },
     filter,
     /** 每帧调一次。o.thW = 车轮转过的角度（半轴上的条纹跟着转），o.px = 画布高度的像素数（热气的点大小） */
@@ -265,4 +267,26 @@ export function makeFlowViz(THREE, scene, P) {
     },
   };
   return api;
+}
+
+/**
+ * 从 spec_ehev.json 里的路径（Blender 坐标，毫米）拼出 makeFlowViz 要的 P。
+ * dims = spec.json 的 dims（轴距、轮距、轮胎半径），shaftPos(tag) = 半轴节点（H_ShaftL / H_ShaftR）的位置（three 坐标）
+ */
+export function ehevFlowPaths(THREE, spec, dims, shaftPos) {
+  const MM = .001, B = (x, y, z) => new THREE.Vector3(x * MM, z * MM, -y * MM), P = (p) => B(p[0], p[1], p[2]);
+  const F = spec.flows, half = dims.track / 2, wb = dims.WB / 2;
+  const sh = (tag, sx) => ({ a: shaftPos(tag).clone(), b: B(sx * (half - 62), wb, dims.r_tyre), sign: sx });
+  const exh = F.exhaust.map(P);
+  return {
+    dc: F.dc.map(P).reverse(),                                   // 电池 → PCU
+    acMot: F.ac_mot.map((p) => [P(p[1]), P(p[0])]),              // PCU → 驱动电机
+    acGen: F.ac_gen.map((p) => [P(p[0]), P(p[1])]),              // 发电机 → PCU
+    fuel: F.fuel.map(P), exhaust: exh,
+    shafts: [sh('L', -1), sh('R', 1)],
+    contact: [B(-(half + 175), wb, 6), B(half + 175, wb, 6)],
+    heat: { eng: B(128, 1560, 850), drive: B(-285, 1520, 770), tail: exh[exh.length - 1].clone().add(new THREE.Vector3(0, 0, .12)) },
+    label: { dc: B(-650, 100, 420), acMot: B(-430, 1440, 880), acGen: B(-430, 1640, 780), fuel: B(-100, 520, 200), heatEng: B(128, 1560, 1180),
+      heatDrive: B(-285, 1500, 1020), axle: B(-720, 1400, 120) },
+  };
 }
