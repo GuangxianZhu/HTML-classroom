@@ -54,7 +54,7 @@ const group = (ids, sel) => { for (const k of ids) { const e = $(k); if (e) e.se
 const COLF = { fuel: '#ff5a5a', mech: '#58e0a0', ac: '#c78bff', dc: '#ffb547', exh: '#a7b0bb' };
 export const MODE_COL = { EV: '#ffb547', HYB: '#c78bff', ENG: '#58e0a0', REGEN: '#4cc3ff', EBRK: '#ff7066', SYNC: '#ffd166', OFF: '#6b7a90' };
 const MODE_CN = { EV: 'EV 纯电', HYB: '混动：发动机发电', ENG: '发动机直驱', REGEN: '能量回收', EBRK: '回收 + 拖发动机', SYNC: '同步转速，准备直连', OFF: '停车' };
-const LEG_FLOW = `<span><i class="lf"></i>燃油</span><span><i class="lm"></i>机械动力</span><span><i class="la"></i>交流电（电机 ↔ PCU）</span><span><i class="ld"></i>直流电（电池 ↔ PCU）</span><span><i class="lx"></i>排气</span>`;
+const LEG_FLOW = 'flow';   // 图例现在是 main.js 里的一排开关（只看电 / 机械 / 油和气 / 热），这里只表示“这一章有能量流”
 
 // ---------------------------------------------------------------- 能量流框图（SVG）
 const FD_BOX = { tank: [8, 16, 56, 30, '油箱'], eng: [96, 16, 70, 30, '发动机'], clu: [204, 16, 64, 30, '离合器'], gen: [96, 86, 70, 30, '发电机'],
@@ -113,11 +113,15 @@ function flowsOf(st) {
   const mech = toClutch * k * CAR.etaMesh;
   const pmMech = st.Pmot * k;
   return {
+    // 三维里的能量流：数字就是真实的千瓦数（粗细按它画）。热 = 油的功率 − 发动机轴上出来的功率；
+    // 电和齿轮这一路的损耗 = 进去的（发动机 + 电池）− 到车轮的
     three: {
-      fuel: st.eng ? st.fuel * k / 3 : 0, exhaust: st.eng ? st.fuel * k / 6 + 1 : 0,
+      fuel: st.eng ? st.fuel * k : 0, exhaust: st.eng ? Math.max(st.fuel - st.Pe, 0) * k * .45 : 0,
       eng_gen: genMech * k, eng_wheel: toClutch * k, mot_wheel: pmMech,
       axle_L: st.Pw * k / 2, axle_R: st.Pw * k / 2,
       gen_pcu: Math.abs(st.Pgen) > 400 ? st.Pgen * k : 0, pcu_mot: pmMech, batt_pcu: st.Pbat * k,
+      heat_eng: st.eng ? Math.max(st.fuel - st.Pe, 0) * k : 0, heat_drive: Math.max((st.Pe || 0) + st.Pbat - st.Pw, 0) * k,
+      force: st.v > .3 ? st.Pw / st.v : 0,
     },
     dia: {
       fuel: st.eng ? st.fuel * k : 0, e2g: genMech * k, e2c: toClutch * k, c2w: mech,
@@ -135,6 +139,8 @@ function animate(A, dt, st, slowK, fd, noFlow) {
   s.setClutch(st.clutch || 'open');
   s.setAngles(s.th.W, s.th.I);
   if (s.view === 'drive') s.scrollRoad(st.v / slowK * dt);
+  // 三相电的波：转得越快波走得越快（真实频率是几百赫兹，这里只表示快慢）
+  s.flow.setHz(clamp(.5 + S.motorRpm(st.v) / 2500, .5, 4.5), clamp(.5 + (st.nE || 0) * 2 / 2500, .5, 4.5));
   const fl = flowsOf(st);
   s.setFlows(noFlow ? {} : fl.three);   // noFlow：这一步只看转速，不画能量粒子
   if (fd) { fd.update(fl.dia); fd.tick(dt); }
@@ -172,12 +178,12 @@ const overview = {
     <div class="chain"><span>发动机</span><em>→</em><span>离合器（只在高速匀速时合上）</span><em>→</em><span>车轮</span></div>
     ${ctl('ex', '拆开', 0, 100, 1, 0)}
     <div class="btns" role="group" aria-label="看哪里">${btn('v-home', '外观', true)}${btn('v-pt', '动力总成', false)}${btn('v-under', '底盘下面', false)}</div>
-    <div class="btns" role="group" aria-label="车身">${btn('b-ghost', '车身半透明', true)}${btn('b-solid', '车身实体', false)}${btn('b-hide', '隐藏车身', false)}</div>
+    <div class="btns" role="group" aria-label="车身">${btn('b-ghost', '车身只留轮廓', true)}${btn('b-solid', '车身实体', false)}${btn('b-hide', '隐藏车身', false)}</div>
     <div id="part" class="card"><h4>点模型上的零件</h4><p>标签和三维模型里的零件都能点，这里会说明它是干什么的。拖动旋转，滚轮或双指缩放。现在这辆车在 40 km/h 纯电行驶：发动机停着，电从后面的电池流到前面的电机。</p></div>
     <div class="tw"><table class="params" id="params"></table></div>`,
   notes: () => `
     ${note('参数从哪来', 'o', '<p>表里的数字来自本田日本官网的飞度诸元表（2022 年 10 月小改款以后的版本）。如果你的车是 2022 年 10 月以前出厂的，发动机是 72 kW、驱动电机 80 kW，原理完全一样。</p>')}
-    ${note('模型和真车的差别', 'c', '<p>车身只是一个紧凑两厢车的示意外形，不是飞度的外观。e-CVT 里面各根轴的相对位置、齿轮大小是我按官方齿比凑出来的示意，本田没有公开图纸。发电机那一级的齿比（2.0）是假设值。</p>')}
+    ${note('模型和真车的差别', 'c', '<p>车身用的是同仓库“汽车模拟器”那辆直线造型的三厢车，不是飞度。所以油箱在后排座椅下面、电池立在后排靠背后面；飞度本身油箱在前排座椅下面、电池在后备箱地板下。这一页所有的数字（齿比、车重、风阻、功率）仍然按飞度 e:HEV 算。</p><p>动力总成的结构照公开资料建：发电机和驱动电机<b>同轴</b>，发电机那根细轴从驱动电机的空心轴里穿过去，驱动电机靠发动机一侧、发电机在最外面；绕组是扁铜线；转子的磁钢埋在铁芯里排成 V 形；PCU 直接坐在电机壳上。各根轴的具体位置、齿数、槽数和极数没有公开数据，是示意；发电机那一级的齿比（2.0）是假设值。</p>')}
     ${note('怎么看证据标签', '', `<ul><li><span class="ev b">官方资料</span> 本田官网、诸元表、技术说明。</li><li><span class="ev a">公认</span> 教科书级结论。</li><li><span class="ev c">工程实践 / 媒体</span> 行业常见做法、拆解报告、媒体或车主的观察，具体数字因车而异。</li><li><span class="ev c">本页简化</span> 为了讲清楚做的假设，或者本页模型算出来的数。</li><li><span class="ev d">我的推测</span> 没找到可靠来源支持的判断。</li></ul>`)}`,
   enter(A) {
     const s = A.stage;
@@ -189,7 +195,7 @@ const overview = {
       ['合起来', `电机 → 车轮 ${(2.454 * 3.423).toFixed(2)} · 发动机 → 车轮 ${(0.805 * 3.423).toFixed(3)}`],
       ['发动机直驱时', `每 1 km/h 对应约 ${S.rpmPerKmh.toFixed(1)} rpm（100 km/h ≈ ${f0(S.lockRpm(100 / 3.6))} rpm）`],
       ['动力电池', '锂离子，48 个单体，标称约 173 V'],
-      ['燃油箱', '40 L，放在前排座椅下面'],
+      ['燃油箱', '40 L，飞度放在前排座椅下面（这辆演示车在后排座椅下）'],
       ['轮胎 / 车重', '185/60R15 等 · 约 1,190–1,290 kg'],
     ].map(([a, b]) => `<tr><th>${a}</th><td>${b}</td></tr>`).join('');
     let viewSel = 'v-home';
@@ -284,7 +290,7 @@ const ecvt = {
     ${note('合上之前要先同步', 'b', '<p>离合器两边转速不一样时硬合，会冲击、磨片。所以合上前先用发电机把发动机转速拉到和直驱齿轮一样（第 5 步的图里两条线重合），再合。车速一变，发动机转速跟着变：直驱时 <b>发动机转速 ≈ 24.6 × 车速（km/h）</b>。</p>')}
     ${note('什么时候合不上', 'c', `<p>车速太低时，锁死的发动机转速太低（50 km/h 只有约 ${f0(S.lockRpm(50 / 3.6))} rpm），容易抖、效率也差，所以低速不直驱。拖着重物爬坡这种要大扭矩的时候，一个高挡也不够用，就退回混动模式。</p><p>这正是本田后来在 CR-V（2023）上给直驱多加一个<b>低挡</b>的原因（媒体报道）。飞度这代只有一个。</p>`)}
     ${note('驱动电机为什么一直在转', 'a', `<p>电机和车轮之间没有离合器，车动它就转。直驱时它零电流空转，但永磁体的磁场还在，会有一点铁损。这是这种结构躲不掉的小代价，${CH('highway')}会算进去。</p>`)}
-    ${note('这一章里哪些数是示意', 'c', '<p>齿数（22、54、19、65、67）是我按官方齿比凑出来的，乘出来和官方的 8.40、2.757 对得上，但本田没有公布真实齿数。发电机那一级的 2 倍是假设。轮胎滚动半径取 0.297 m。“45 km/h 以下不让合”是本页为了演示定的门槛，真车的标定没有公开。</p>')}`,
+    ${note('这一章里哪些数是示意', 'c', '<p>齿数（22、54、19、65、67）是我按官方齿比凑出来的，乘出来和官方的 8.40、2.757 对得上，但本田没有公布真实齿数。发电机那一级的 2 倍是假设。三维里发电机和驱动电机在同一条轴线上（发电机的细轴从驱动电机的空心轴里穿过去），这是按本田公开的专利和说明建的；各轴之间的距离是示意。轮胎滚动半径取 0.297 m。“45 km/h 以下不让合”是本页为了演示定的门槛，真车的标定没有公开。</p>')}`,
   enter(A) {
     const s = A.stage, sp = A.spec.anchors, ax = A.spec.axes, K80 = 80 / 3.6;
     let v = K80, mode = 'off', nGen = 1200, nE = 0, clutch = 'open', step = 0, p3 = null, t = 0;
@@ -301,7 +307,7 @@ const ecvt = {
       eng: ['eng_block', '发动机', sp.eng_block],
       gen: ['gen_rotor', '发电机', sp.gen_stator],
       clu: ['clutch', '离合器', sp.clutch],
-      ed: ['edrive', '直驱齿轮 67 齿', [A.spec.x.p1, ax.I[0], ax.I[1]]],
+      ed: ['edrive', '直驱齿轮 67 齿', sp.edrive],
     };
 
     const pickMode = (m) => {
@@ -357,7 +363,7 @@ const ecvt = {
         tags: ['eng', 'gen', 'clu', 'ed', 'counter'], hl: ['edrive', 'input', 'gen_rotor'], flows: false, mode: 'gen',
         html: () => `
           <p class="stepnote"><b>这一步看发动机那根轴。</b>发动机的曲轴直接连着一根<b>输入轴</b>，轴上挂着两样东西：</p>
-          ${calc('a', '发电机：永远跟着发动机', `<p>输入轴上的 60 齿，咬着发电机的 30 齿，中间没有离合器。所以发电机永远是发动机的 60 ÷ 30 = <b>2 倍</b>（这个 2 是本页假设）。</p>${eq('q4g')}`)}
+          ${calc('a', '发电机：永远跟着发动机', `<p>输入轴上的 74 齿，咬着发电机轴头上的 37 齿，中间没有离合器。所以发电机永远是发动机的 74 ÷ 37 = <b>2 倍</b>（这个 2 是本页假设）。</p>${eq('q4g')}`)}
           ${calc('b', '直驱齿轮：永远跟着车轮', `<p>还有一个 67 齿的<b>直驱齿轮</b>，它是<b>空套</b>在输入轴上的（轴转它可以不转），咬着中间轴那个 54 齿。所以它和电机一样，永远被车轮带着转。</p>${eq('q4e')}<p>合起来：65 ÷ 19 × 54 ÷ 67 ≈ <b>${f2(CAR.Ge)}</b>（更精确是 2.757）。这就是“发动机到车轮固定 2.757 倍”里的那个数，不过现在它还只是直驱齿轮的转速，和发动机没关系。</p>`)}
           ${ctl('ng3', '发动机转速', 1000, 4500, 50, nGen)}
           <p class="pt">跟着<b>车轮</b>的一组</p>
@@ -421,7 +427,7 @@ const ecvt = {
       if (d.mode === 'auto') { pickMode('gen'); if (v * 3.6 >= 45) pickMode('lock'); else msg('现在车速低于 45 km/h，离合器合不上，车由电机推。把车速拖到 45 km/h 以上，它会自动同步、合上。', 'warn'); } else pickMode(d.mode);
       A.setTags(d.tags.map((x) => TAG[x]), (g) => A.showPart(g));
       s.highlight(d.hl);
-      A.setLegend(d.flows ? LEG_FLOW : '');
+      A.setLegend(LEG_FLOW);   // 这一章不画能量流的步骤也留着这排开关：“按跟谁转上色”在这里最有用
       if (top) { const sd = $('side'); if (sd) sd.scrollTop = 0; }
     };
     STEP3.forEach((_, i) => { $(`s3-${i}`).onclick = () => show(i); });

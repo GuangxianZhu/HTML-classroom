@@ -39,6 +39,7 @@ if HERE not in sys.path:
 import carkit as CK  # noqa: E402  汽车建模套件的副本，母版在仓库根目录 汽车建模套件/
 import shape as SH  # noqa: E402   外形：五条线 + 横截面配方（纯 Python）
 import powertrain as PT  # noqa: E402  发动机、CVT、半轴、进排气、冷却、油箱（尺寸读 ../params.json）
+import powertrain_ehev as PTE  # noqa: E402  第二套动力：两电机混动（--pt ehev 时建，件名以 H_ 开头）
 
 _argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
 _ap = argparse.ArgumentParser()
@@ -51,6 +52,7 @@ _ap.add_argument('--only', default='', help='检查图里只显示名字以这�
 _ap.add_argument('--skip', default='', help='跳过哪几步，逗号分隔：frame,chassis,cabin,powertrain（调外形时省时间）')
 _ap.add_argument('--views', default='', help='--render 时只渲这几张，逗号分隔：exterior,exterior_rear,side,front,rear,interior,cabin,bay,powertrain,internals,chassis')
 _ap.add_argument('--noexport', action='store_true', help='只建模渲图，不写 glb / blend / spec（调外形时用）')
+_ap.add_argument('--pt', default='cvt', help='cvt = 燃油 + CVT（默认，导出 car.glb）；ehev = 换成两电机混动（只导出 pt_ehev.glb / spec_ehev.json / car_ehev.blend，car.glb 不动）')
 ARGS, _ = _ap.parse_known_args(_argv)
 OUT = os.path.abspath(ARGS.out)
 os.makedirs(OUT, exist_ok=True)
@@ -1440,12 +1442,12 @@ def animate():
         ob.location = base
 
 
-def export_glb(path):
+def export_glb(path, prefix=None):
     bpy.context.scene.frame_set(1)
     for ob in bpy.context.scene.objects:
         ob.hide_viewport = False
         ob.hide_set(False)
-        ob.select_set(ob.type == 'MESH' and ob.name != 'Ground')
+        ob.select_set(ob.type == 'MESH' and ob.name != 'Ground' and (prefix is None or ob.name.startswith(prefix)))
     kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_extras=True,
               export_yup=True, export_animations=False, export_cameras=False, export_lights=False)
     bpy.ops.export_scene.gltf(**kw)
@@ -1473,6 +1475,9 @@ def main():
     if 'powertrain' not in skip:
         from types import SimpleNamespace
         pt = PT.build(M, SimpleNamespace(add=add, rbox=rbox, cyl=cyl, lathe=lathe, grp=grp, skin_top_z=skin_top_z))
+    if ARGS.pt == 'ehev':
+        main_ehev(M)
+        return
     tris = 0
     for o, _ in OBJS:
         o.data.calc_loop_triangles()
@@ -1512,6 +1517,75 @@ def main():
             show = views[nm][4] if len(views[nm]) > 4 else None
             render(cam, f'view_{nm}.jpg', pos, tgt, hide=list(hide or ()), lens=lens, show=list(show) if show else None)
     print(f'[OK] {len(OBJS)} objects, {tris} triangles')
+
+
+# 混动版里不要的件：燃油机和 CVT 自己的东西。水箱、风扇、排气管、油箱两套动力共用，留着
+EHEV_DROP = ('Eng_', 'Cvt_', 'Drv_', 'PT_Mounts', 'Bay_Intake')
+EHEV_INSIDE = ('H_Eng_Crank', 'H_Eng_Piston', 'H_Eng_Rod', 'H_Eng_Cam', 'H_Eng_Valve', 'H_Eng_Chain', 'H_Eng_Plugs', 'H_Eng_BlockR',
+               'H_Flywheel', 'H_InputShaft', 'H_Clutch', 'H_OdGear', 'H_GenShaft', 'H_MotShaft', 'H_MotStator', 'H_GenStator',
+               'H_Counter', 'H_Diff', 'H_Bearings', 'H_Shaft', 'H_Busbars')
+
+
+def main_ehev(M):
+    """--pt ehev：车身照常建，燃油机和 CVT 拿掉，换成 powertrain_ehev.py 的两电机混动。
+    只写 pt_ehev.glb（H_ 开头的件）、spec_ehev.json、car_ehev.blend 和 view_ehev_*.jpg；car.glb / spec.json 不动"""
+    from types import SimpleNamespace
+    for ob, g in list(OBJS):
+        if ob.name.startswith(EHEV_DROP) and not ob.name.startswith(('Eng_dummy',)):
+            OBJS.remove((ob, g))
+            bpy.data.objects.remove(ob, do_unlink=True)
+    pt = PTE.build(M, SimpleNamespace(add=add, rbox=rbox, cyl=cyl, ball=ball, lathe=lathe, grp=grp, skin_top_z=skin_top_z,
+                                      principled=principled))
+    hy = [(o, g) for o, g in OBJS if o.name.startswith('H_')]
+    tris = 0
+    for o, _ in hy:
+        o.data.calc_loop_triangles()
+        tris += len(o.data.loop_triangles)
+    spec = dict(objects={o.name: o.get('g', '') for o, _ in hy}, tris=tris, params=PT.P['ehev'], engine=PT.P['engine'], **pt)
+    cam = setup_render()
+    if not ARGS.noexport:
+        with open(os.path.join(OUT, 'spec_ehev.json'), 'w', encoding='utf-8') as f:
+            json.dump(spec, f, ensure_ascii=False, separators=(',', ':'))
+        export_glb(os.path.join(OUT, 'pt_ehev.glb'), prefix='H_')
+        aim(cam, (-5.4, 6.2, 2.1), (0, .1, .62))
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'car_ehev.blend'), compress=True)
+        print('[OK] saved car_ehev.blend')
+    if ARGS.check:
+        check_views(cam, [v for v in ARGS.check.split(',') if v])
+    if ARGS.render:
+        ax = PTE.AX_M
+        my, mz = ax[0] * MM, ax[1] * MM
+        ALLPT = ('H_', 'Bay_', 'Exh_', 'Fuel_')
+        views = dict(
+            ehev_bay=((-1.5, 4.3, 2.5), (0, 1.62, .62), 58, ('Panel_Hood',)),
+            ehev_powertrain=((-2.1, 3.5, 1.5), (-.05, 1.52, .5), 62, None, ('H_Eng', 'H_Case', 'H_PCU', 'H_Busbars', 'H_Shaft', 'H_Mounts',
+                                                                           'H_Flywheel', 'H_EComp')),
+            ehev_internals=((-2.1, 3.5, 1.5), (-.05, 1.52, .5), 62, None, EHEV_INSIDE),
+            ehev_ecvt=((-1.35, 2.75, 1.25), (-.24, my, mz - .02), 75, None,
+                       tuple(n for n in EHEV_INSIDE if not n.startswith('H_Eng')) + ('H_Flywheel',)),
+            ehev_motor=((-1.25, 2.25, .95), (-.3, my, mz), 120, None, ('H_MotShaft', 'H_GenShaft', 'H_MotStator', 'H_GenStator', 'H_Bearings',
+                                                                       'H_Busbars')),
+            ehev_engine=((1.5, 3.3, 1.2), (.11, 1.56, .52), 70, None, ('H_Eng_BlockR', 'H_Eng_Pan', 'H_Eng_Crank', 'H_Eng_Piston', 'H_Eng_Rod',
+                                                                        'H_Eng_Cam', 'H_Eng_Valve', 'H_Eng_Chain', 'H_Eng_Plugs', 'H_Eng_Exhaust',
+                                                                        'H_Flywheel')),
+            ehev_chassis=((-4.4, -3.6, 4.0), (0, -.1, .25), 58, None, ('Wheel_', 'Brake_', 'Subframes') + ALLPT),
+            ehev_battery=((-2.6, -3.9, 2.3), (0, -1.3, .7), 62, ('Panel_Trunk', 'Panel_SideOuter', 'Panel_BumperR', 'Panel_TailCap', 'Glass',
+                                                                 'GlassBond', 'Trim_Shelf', 'Panel_Roof', 'Trim_Headliner', 'Trim_Pillars',
+                                                                 'Lamp_', 'Seals', 'Seams', 'BIW', 'Bumpers', 'Plates', 'H_IPU_Lid',
+                                                                 'Panel_DoorR', 'Panel_SashR', 'Trim_DoorR', 'Wheelhouse')),
+        )
+        want = [v for v in ARGS.views.split(',') if v] or list(views)
+        for nm in want:
+            if nm not in views:
+                print('[render] 没有这个机位:', nm)
+                continue
+            pos, tgt, lens, hide = views[nm][:4]
+            show = views[nm][4] if len(views[nm]) > 4 else None
+            hide = list(hide or ())
+            if nm in ('ehev_ecvt', 'ehev_motor'):
+                hide += ['H_MotStatorQ', 'H_GenStatorQ']           # 定子剖掉四分之一，看见转子
+            render(cam, f'view_{nm}.jpg', pos, tgt, hide=hide, lens=lens, show=list(show) if show else None)
+    print(f'[OK] ehev: {len(hy)} objects, {tris} triangles')
 
 
 if __name__ == "__main__":
